@@ -1,0 +1,190 @@
+﻿@{
+    ViewData["Title"] = "Responsable Dashboard";
+
+    var coursList = ViewBag.CoursList as List<GestionHoraire.Models.Cours>;
+    var professeurs = ViewBag.Professeurs as List<GestionHoraire.Models.Utilisateur>;
+    var salles = ViewBag.Salles as List<GestionHoraire.Models.Salle>;
+    var departement = ViewBag.Departement as string;
+}
+
+<!-- Header -->
+<div class="row mb-4">
+    <div class="col-12 d-flex justify-content-between align-items-center">
+        <h1 class="h3 text-gray-800">
+            <i class="fas fa-chalkboard-teacher text-primary me-2"></i>
+            Tableau de bord du responsable
+        </h1>
+        <div>
+            <span class="badge bg-primary fs-6 px-3 py-2">
+                <i class="fas fa-user-tie me-1"></i>@ViewBag.UserRole
+            </span>
+            <span class="ms-2">Bonjour, @ViewBag.UserNom</span>
+            @if (!string.IsNullOrEmpty(departement))
+            {
+                <span class="ms-3 badge bg-secondary">Département : @departement</span>
+            }
+        </div>
+    </div>
+</div>
+
+<!-- Liste des cours -->
+<div class="row mb-4">
+    <div class="col-xl-12">
+        <div class="card shadow mb-4">
+            <div class="card-header py-3">
+                <h6 class="m-0 font-weight-bold text-primary">Liste des cours</h6>
+            </div>
+            <div class="card-body">
+                <div class="table-responsive">
+                    <table class="table table-hover align-middle">
+                        <thead class="table-light">
+                            <tr>
+                                <th>ID</th>
+                                <th>Titre</th>
+                                <th>Salle</th>
+                                <th>Professeur</th>
+                                <th>Actions</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            @foreach (var cours in coursList)
+                            {
+                                <tr>
+                                    <td>@cours.Id</td>
+                                    <td>@cours.Titre</td>
+                                    <td>
+                                        <form action="/Responsable/UpdateSalle" method="post" class="d-flex">
+                                            <input type="hidden" name="CoursId" value="@cours.Id" />
+                                            <select name="SalleId" class="form-select form-select-sm me-2">
+                                                <option value="">--Choisir--</option>
+                                                @foreach (var salle in salles)
+                                                {
+                                                    if (cours.SalleId == salle.Id)
+                                                    {
+                                                        <option value="@salle.Id" selected>@salle.Nom</option>
+                                                    }
+                                                    else
+                                                    {
+                                                        <option value="@salle.Id">@salle.Nom</option>
+                                                    }
+                                                }
+                                            </select>
+                                            <button type="submit" class="btn btn-sm btn-primary">Modifier</button>
+                                        </form>
+                                    </td>
+                                    <td>
+                                        <form action="/Responsable/UpdateProfesseur" method="post" class="d-flex">
+                                            <input type="hidden" name="CoursId" value="@cours.Id" />
+                                            <select name="UtilisateurId" class="form-select form-select-sm me-2">
+                                                <option value="">--Choisir--</option>
+                                                @foreach (var prof in professeurs)
+                                                {
+                                                    if (cours.UtilisateurId == prof.Id)
+                                                    {
+                                                        <option value="@prof.Id" selected>@prof.Nom</option>
+                                                    }
+                                                    else
+                                                    {
+                                                        <option value="@prof.Id">@prof.Nom</option>
+                                                    }
+                                                }
+                                            </select>
+                                            <button type="submit" class="btn btn-sm btn-success">Modifier</button>
+                                        </form>
+                                    </td>
+                                    <td>
+                                        @if (cours.SalleId != null && cours.UtilisateurId != null)
+                                        {
+                                            <span class="badge bg-success">Complet</span>
+                                        }
+                                        else
+                                        {
+                                            <span class="badge bg-warning text-dark">À compléter</span>
+                                        }
+                                    </td>
+                                </tr>
+                            }
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Bouton pour afficher la liste des professeurs -->
+<div class="row mb-3">
+    <div class="col-md-12 text-end">
+        <button class="btn btn-info" type="button" data-bs-toggle="collapse" data-bs-target="#professeursCollapse" aria-expanded="false" aria-controls="professeursCollapse">
+            Voir / Modifier les professeurs
+        </button>
+    </div>
+</div>
+
+<!-- Liste des professeurs (collapse) -->
+<div class="collapse" id="professeursCollapse">
+    <div class="row">
+        <div class="col-xl-12">
+            <div class="card shadow mb-4">
+                <div class="card-header py-3">
+                    <h6 class="m-0 font-weight-bold text-primary">Professeurs et disponibilités</h6>
+                </div>
+                <div class="card-body">
+                    <div class="table-responsive">
+                        <table class="table table-hover align-middle">
+                            <thead class="table-light">
+                                <tr>
+                                    <th>ID</th>
+                                    <th>Nom</th>
+                                    <th>Email</th>
+                                    <th>Disponibilités</th>
+                                    <th>Actions</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                @foreach (var prof in professeurs)
+                                {
+                                    <tr>
+                                        <td>@prof.Id</td>
+                                        <td>@prof.Nom</td>
+                                        <td>@prof.Email</td>
+                                        <td>
+                                            @if (prof.Disponibilites != null && prof.Disponibilites.Any())
+                                            {
+                                                @foreach (var dispo in prof.Disponibilites)
+                                                {
+                                                    <form action="/Responsable/UpdateDisponibilite" method="post" class="d-flex mb-1">
+                                                        <input type="hidden" name="DisponibiliteId" value="@dispo.Id" />
+                                                        <span class="me-2">@dispo.Jour : @dispo.HeureDebut.ToString(@"hh\:mm") - @dispo.HeureFin.ToString(@"hh\:mm")</span>
+                                                        <select name="Disponible" class="form-select form-select-sm me-2">
+                                                            @if (dispo.Disponible)
+                                                            {
+                                                                <option value="true" selected>Disponible</option>
+                                                                <option value="false">Occupé</option>
+                                                            }
+                                                            else
+                                                            {
+                                                                <option value="true">Disponible</option>
+                                                                <option value="false" selected>Occupé</option>
+                                                            }
+                                                        </select>
+                                                        <button type="submit" class="btn btn-sm btn-warning">Modifier</button>
+                                                    </form>
+                                                }
+                                            }
+                                            else
+                                            {
+                                                <span class="text-muted">Pas de créneaux définis</span>
+                                            }
+                                        </td>
+                                        <td>Modifier dans le champ ci-dessus</td>
+                                    </tr>
+                                }
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
