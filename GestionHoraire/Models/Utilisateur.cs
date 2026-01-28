@@ -5,24 +5,18 @@ namespace GestionHoraire.Models
 {
     public class Utilisateur
     {
-        [Key]
         public int Id { get; set; }
-
-        [Required]
         public string Nom { get; set; }
-
-        [Required]
         public string Email { get; set; }
-
-        [Required]
-        public string Role { get; set; } // "Professeur" ou "Responsable"
-
-        // Dépt lié
-        public int DepartementId { get; set; }
+        public DateTime DateCreation { get; set; }
+        public string Role { get; set; }
+        public int? DepartementId { get; set; }
         public Departement Departement { get; set; }
-
-        // Disponibilité pour planning
-        public ICollection<Disponibilite> Disponibilites { get; set; } // lien vers disponibilités
+        public bool Disponibilite { get; set; }
+        
+        public byte[] MotDePasseHash { get; set; }   // VARBINARY en SQL
+        public Guid MotDePasseSalt { get; set; }     // UNIQUEIDENTIFIER en SQL
     }
+
 }
 
