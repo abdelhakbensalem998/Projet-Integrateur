@@ -35,8 +35,6 @@ namespace GestionHoraire.Controllers
                 if (user.Departement != null)
                 {
                     HttpContext.Session.SetInt32("DepartementId", user.Departement.Id);
-                }
-
 
                 // Redirection PAR RÔLE
                 return user.Role switch
@@ -47,10 +45,6 @@ namespace GestionHoraire.Controllers
                     _ => RedirectToAction("Index", "Home")
                 };
             }
-
-            ViewBag.Error = "Email ou mot de passe incorrect";
-            return View();
-        }
 
         public IActionResult Logout()
         {

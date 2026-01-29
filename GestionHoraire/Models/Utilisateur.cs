@@ -13,7 +13,6 @@ namespace GestionHoraire.Models
         public int? DepartementId { get; set; }
         public Departement Departement { get; set; }
         public bool Disponibilite { get; set; }
-        
         public byte[] MotDePasseHash { get; set; }   // VARBINARY en SQL
         public Guid MotDePasseSalt { get; set; }     // UNIQUEIDENTIFIER en SQL
     }
