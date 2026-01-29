@@ -1,4 +1,5 @@
-﻿using System.ComponentModel.DataAnnotations;
+﻿using System;
+using System.ComponentModel.DataAnnotations;
 using System.ComponentModel.DataAnnotations.Schema;
 
 namespace GestionHoraire.Models
@@ -13,7 +14,9 @@ namespace GestionHoraire.Models
         public Utilisateur Utilisateur { get; set; }
 
         [Required]
-        public DayOfWeek Jour { get; set; } // Lundi, Mardi, etc.
+        // Utilisation de Column(TypeName = "nvarchar") si SQL stocke du texte
+        // Ou laissez tel quel si SQL stocke des entiers (0, 1, 2...)
+        public DayOfWeek Jour { get; set; }
 
         [Required]
         public TimeSpan HeureDebut { get; set; }

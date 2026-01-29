@@ -26,9 +26,9 @@ if (!app.Environment.IsDevelopment())
 
 app.UseHttpsRedirection();
 app.UseStaticFiles();           // ? Remplace MapStaticAssets
+app.UseSession(); // ? AJOUTE ÇA AVANT app.UseRouting()
 app.UseRouting();
 app.UseAuthorization();
-app.UseSession();  // ? AJOUTE ÇA AVANT app.UseRouting()
 
 
 app.MapControllerRoute(

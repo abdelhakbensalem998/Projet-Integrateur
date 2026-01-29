@@ -1,0 +1,62 @@
+﻿@model IEnumerable<GestionHoraire.Models.Cours>
+
+<div class="container-fluid mt-4">
+    <h2 class="text-center mb-4 text-primary">Emploi du Temps Hebdomadaire</h2>
+
+    <div class="table-responsive shadow-lg rounded">
+        <table class="table table-bordered text-center align-middle bg-white">
+            <thead class="table-dark">
+                <tr>
+                    <th style="width: 100px;">Heures</th>
+                    <th>Lundi</th>
+                    <th>Mardi</th>
+                    <th>Mercredi</th>
+                    <th>Jeudi</th>
+                    <th>Vendredi</th>
+                </tr>
+            </thead>
+            <tbody>
+                @for (int h = 8; h <= 17; h++)
+                {
+                    <tr>
+                        <td class="fw-bold bg-light">@h:00</td>
+                        @foreach (DayOfWeek jour in new[] { DayOfWeek.Monday, DayOfWeek.Tuesday, DayOfWeek.Wednesday, DayOfWeek.Thursday, DayOfWeek.Friday })
+                        {
+                            // On cherche le cours qui commence à cette heure précise
+                            var seance = Model.FirstOrDefault(c => c.Jour == jour && c.HeureDebut.Hours == h);
+
+                            <td class="p-1" style="height: 90px; min-width: 150px;">
+                                @if (seance != null)
+                                {
+                                    <div class="course-card p-2 rounded shadow-sm text-white">
+                                        <div class="fw-bold small">@seance.Titre</div>
+                                        <div style="font-size: 0.75rem;">
+                                            <i class="bi bi-person"></i> @seance.Utilisateur?.Nom <br />
+                                            <i class="bi bi-geo-alt"></i> @seance.Salle?.Nom
+                                        </div>
+                                    </div>
+                                }
+                            </td>
+                        }
+                    </tr>
+                }
+            </tbody>
+        </table>
+    </div>
+</div>
+
+<style>
+    /* Astuce : Couleurs dégradées pour les cours */
+    .course-card {
+        background: linear-gradient(135deg, #6a11cb 0%, #2575fc 100%);
+        border-left: 4px solid #ffd700;
+        height: 100%;
+        display: flex;
+        flex-direction: column;
+        justify-content: center;
+    }
+
+    .table-bordered td, .table-bordered th {
+        border: 1px solid #dee2e6 !important;
+    }
+</style>
