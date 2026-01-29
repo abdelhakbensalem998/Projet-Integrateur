@@ -1,0 +1,43 @@
+﻿@model IEnumerable<GestionHoraire.Models.Departement>
+
+<div class="container mt-4">
+    <div class="border-bottom mb-4 pb-2">
+        <h2 class="text-primary"><i class="bi bi-calendar-range-fill"></i> Gestion du Planning</h2>
+        <p class="text-muted">Groupes d'études de votre département</p>
+    </div>
+
+    @if (Model.Any())
+    {
+        @foreach (var dept in Model)
+        {
+            <div class="card shadow-sm border-primary mb-4">
+                <div class="card-header bg-primary text-white">
+                    <h5 class="mb-0">Département : @dept.Nom</h5>
+                </div>
+                <div class="card-body">
+                    <div class="row">
+                        <div class="col-md-4">
+                            <div class="card bg-light border-0 text-center p-3 hover-shadow">
+                                <div class="card-body">
+                                    <h6 class="card-title fw-bold">Groupe Principal</h6>
+                                    <p class="card-text small">@dept.Utilisateurs.Count(u => u.Role == "Etudiant") Étudiants inscrits</p>
+                                    <a asp-action="ConsulterPlanning" asp-route-deptId="@dept.Id" class="btn btn-sm btn-primary w-100">
+                                        <i class="bi bi-eye"></i> Voir l'Emploi du Temps
+                                    </a>
+                                </div>
+                            </div>
+                        </div>
+
+                    </div>
+                </div>
+            </div>
+        }
+    }
+    else
+    {
+        <div class="alert alert-danger">
+            <i class="bi bi-exclamation-octagon"></i> Erreur : Aucun département ne vous est attribué.
+            Contactez l'administrateur.
+        </div>
+    }
+</div>

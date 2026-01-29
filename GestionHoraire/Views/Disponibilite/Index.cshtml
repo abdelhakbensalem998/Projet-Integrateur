@@ -1,0 +1,126 @@
+﻿@model List<GestionHoraire.Models.Disponibilite>
+@{
+    ViewData["Title"] = "Disponibilités";
+    var professeurId = ViewBag.ProfesseurId as int? ?? 0;
+    var professeurNom = ViewBag.ProfesseurNom as string ?? "Utilisateur";
+    var userRole = ViewBag.UserRole as string ?? "";
+}
+
+<div class="container-fluid mt-4">
+    <div class="row">
+        <div class="col-md-12">
+            <div class="d-flex justify-content-between align-items-center mb-4">
+                <div>
+                    <h2 class="mb-1">⏰ <strong>@professeurNom</strong></h2>
+                    @if (userRole == "Responsable")
+                    {
+                        <small class="text-muted">ID: @professeurId</small>
+                    }
+                </div>
+                <div>
+                    @if (userRole == "Responsable")
+                    {
+                        <a asp-action="Create" asp-route-professeurId="@professeurId"
+                           class="btn btn-success me-2">
+                            ➕ Ajouter créneau
+                        </a>
+                        <form asp-action="GenererDefaut" asp-route-professeurId="@professeurId"
+                              method="post" class="d-inline"
+                              onclick="return confirm('Générer dispos L-V 8h-18h ?')">
+                            <button type="submit" class="btn btn-outline-primary">⚡ Dispos par défaut</button>
+                        </form>
+                    }
+                </div>
+            </div>
+
+            @if (TempData["Success"] != null)
+            {
+                <div class="alert alert-success alert-dismissible fade show">
+                    @TempData["Success"]
+                    <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+                </div>
+            }
+
+            @if (!Model.Any())
+            {
+                <div class="alert alert-warning">
+                    <i class="bi bi-calendar-x"></i> Aucune disponibilité.
+                    @if (userRole == "Professeur")
+                    {
+                        <a asp-action="Create" class="alert-link">Ajouter maintenant ?</a>
+                    }
+                </div>
+            }
+            else
+            {
+                @foreach (var jour in Model.Select(d => d.Jour).Distinct().OrderBy(j => (int)j))
+                {
+                    <div class="card mb-3 shadow-sm">
+                        <div class="card-header bg-gradient-primary text-white">
+                            <h5 class="mb-0">📅 @GetJourNom(jour)</h5>
+                        </div>
+                        <div class="card-body p-0">
+                            <div class="table-responsive">
+                                <table class="table table-sm mb-0">
+                                    <thead class="table-light">
+                                        <tr>
+                                            <th>Créneau</th>
+                                            <th>Statut</th>
+                                            <th style="width: 200px;">Actions</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody>
+                                        @foreach (var d in Model.Where(x => x.Jour == jour).OrderBy(x => x.HeureDebut))
+                                        {
+                                            <tr>
+                                                <td>
+                                                    <strong>@d.HeureDebut.ToString(@"hh\:mm")</strong>
+                                                    → @d.HeureFin.ToString(@"hh\:mm")
+                                                </td>
+                                                <td>
+                                                    <span class="badge fs-6 @(d.Disponible ? "bg-success" : "bg-danger")">
+                                                        @(d.Disponible ? "✅ Disponible" : "❌ Indisponible")
+                                                    </span>
+                                                </td>
+                                                <td>
+                                                    <div class="btn-group btn-group-sm" role="group">
+                                                        <a asp-action="Edit" asp-route-id="@d.Id"
+                                                           class="btn btn-outline-primary">
+                                                            ✏️ Modifier
+                                                        </a>
+                                                        @if (userRole == "Responsable")
+                                                        {
+                                                            <a asp-action="Delete" asp-route-id="@d.Id"
+                                                               asp-route-professeurId="@professeurId"
+                                                               class="btn btn-outline-danger"
+                                                               onclick="return confirm('Supprimer ?')">
+                                                                🗑️ Supprimer
+                                                            </a>
+                                                        }
+                                                    </div>
+                                                </td>
+                                            </tr>
+                                        }
+                                    </tbody>
+                                </table>
+                            </div>
+                        </div>
+                    </div>
+                }
+            }
+        </div>
+    </div>
+</div>
+
+@functions {
+    string GetJourNom(DayOfWeek jour) => jour switch
+    {
+        DayOfWeek.Monday => "Lundi",
+        DayOfWeek.Tuesday => "Mardi",
+        DayOfWeek.Wednesday => "Mercredi",
+        DayOfWeek.Thursday => "Jeudi",
+        DayOfWeek.Friday => "Vendredi",
+        DayOfWeek.Saturday => "Samedi",
+        _ => "Dimanche"
+    };
+}

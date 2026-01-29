@@ -1,0 +1,76 @@
+﻿@model GestionHoraire.Models.Disponibilite
+@{
+    ViewData["Title"] = Model.Id == 0 ? "Nouveau créneau" : "Modifier créneau";
+    var isEdit = Model.Id != 0;
+}
+
+<div class="container mt-4">
+    <div class="card shadow">
+        <div class="card-header @(isEdit ? "bg-warning" : "bg-success") text-white">
+            <h4>
+                @(isEdit ? "✏️" : "➕")
+                @ViewData["Title"]
+            </h4>
+        </div>
+        <div class="card-body">
+            <form asp-action="@(isEdit ? "Edit" : "Create")" method="post">
+                @if (isEdit)
+                {
+                    <input type="hidden" asp-for="Id" />
+                }
+                <input type="hidden" asp-for="UtilisateurId" />
+
+                <div class="row g-3">
+                    <div class="col-md-4">
+                        <label asp-for="Jour" class="form-label fw-bold"></label>
+                        <select asp-for="Jour" class="form-select">
+                            @foreach (DayOfWeek jour in Enum.GetValues<DayOfWeek>())
+                            {
+                                <option value="@((int)jour)" selected="@(jour == Model.Jour)">@GetJourNom(jour)</option>
+                            }
+                        </select>
+                    </div>
+                    <div class="col-md-4">
+                        <label asp-for="HeureDebut" class="form-label fw-bold"></label>
+                        <input asp-for="HeureDebut" type="time" step="900" class="form-control" />
+                        <span class="form-text">Pas de 15min</span>
+                    </div>
+                    <div class="col-md-4">
+                        <label asp-for="HeureFin" class="form-label fw-bold"></label>
+                        <input asp-for="HeureFin" type="time" step="900" class="form-control" />
+                        <span class="form-text">Fin > début</span>
+                    </div>
+                </div>
+
+                <div class="form-check mt-4">
+                    <input asp-for="Disponible" class="form-check-input" id="dispoCheck" />
+                    <label for="dispoCheck" class="form-check-label fw-bold">
+                        ✅ Disponible pour ce créneau
+                    </label>
+                </div>
+
+                <div class="mt-4 d-flex gap-2">
+                    <button type="submit" class="btn btn-primary btn-lg">
+                        <i class="bi bi-save"></i>
+                        @(isEdit ? "💾 Modifier" : "➕ Ajouter")
+                    </button>
+                    <a asp-action="Index" asp-route-professeurId="@Model.UtilisateurId"
+                       class="btn btn-secondary btn-lg">← Retour</a>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+
+@functions {
+    string GetJourNom(DayOfWeek jour) => jour switch
+    {
+        DayOfWeek.Monday => "Lundi",
+        DayOfWeek.Tuesday => "Mardi",
+        DayOfWeek.Wednesday => "Mercredi",
+        DayOfWeek.Thursday => "Jeudi",
+        DayOfWeek.Friday => "Vendredi",
+        DayOfWeek.Saturday => "Samedi",
+        _ => "Dimanche"
+    };
+}

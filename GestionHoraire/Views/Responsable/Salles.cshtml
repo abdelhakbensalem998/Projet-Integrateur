@@ -1,0 +1,56 @@
+﻿@model IEnumerable<GestionHoraire.Models.Salle>
+
+@{
+    ViewData["Title"] = "Gestion des Salles";
+}
+
+<div class="container mt-4">
+    <div class="d-flex justify-content-between align-items-center mb-4">
+        <div>
+            <h2 class="text-dark"><i class="bi bi-door-open-fill me-2"></i>Infrastructures</h2>
+            <p class="text-muted">Liste des salles de classe et laboratoires disponibles</p>
+        </div>
+        <button class="btn btn-success shadow-sm">
+            <i class="bi bi-plus-lg"></i> Ajouter une salle
+        </button>
+    </div>
+
+    @if (Model != null && Model.Any())
+    {
+        <div class="row">
+            @foreach (var salle in Model)
+            {
+                <div class="col-md-4 mb-4">
+                    <div class="card h-100 shadow-sm border-0">
+                        <div class="card-body">
+                            <div class="d-flex justify-content-between align-items-start">
+                                <h5 class="card-title fw-bold">@salle.Nom</h5>
+                                <span class="badge @(salle.Capacite > 40 ? "bg-primary" : "bg-info") rounded-pill">
+                                    @salle.Capacite places
+                                </span>
+                            </div>
+                            <p class="card-text text-muted small mt-2">
+                                <i class="bi bi-info-circle"></i> Prête pour les cours magistraux et travaux dirigés.
+                            </p>
+                        </div>
+                        <div class="card-footer bg-transparent border-0 d-flex justify-content-end gap-2 pb-3">
+                            <button class="btn btn-sm btn-outline-warning">Modifier</button>
+                            <button class="btn btn-sm btn-outline-danger">Désactiver</button>
+                        </div>
+                    </div>
+                </div>
+            }
+        </div>
+    }
+    else
+    {
+        <div class="text-center py-5 border rounded bg-light">
+            <i class="bi bi-building-exclamation fs-1 text-muted"></i>
+            <p class="mt-3">Aucune salle n'est enregistrée dans le système.</p>
+        </div>
+    }
+
+    <div class="mt-4">
+        <a asp-action="Index" class="btn btn-secondary">Retour au Dashboard</a>
+    </div>
+</div>
