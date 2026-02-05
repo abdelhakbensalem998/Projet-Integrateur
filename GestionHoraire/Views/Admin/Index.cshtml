@@ -1,112 +1,107 @@
-﻿@{
-    ViewData["Title"] = "Admin Dashboard";
+﻿@model IEnumerable<GestionHoraire.Models.Utilisateur>
+
+@{
+    ViewData["Title"] = "Gestion des Utilisateurs";
 }
 
-<div class="row">
-    <div class="col-12">
-        <div class="d-flex justify-content-between align-items-center mb-4">
-            <h1 class="h3 mb-0 text-gray-800">
-                <i class="fas fa-crown text-warning me-2"></i>
-                Tableau de bord Admin
-            </h1>
-            <div>
-                <span class="badge bg-warning text-dark fs-6 px-3 py-2">
-                    <i class="fas fa-user-crown me-1"></i>@ViewBag.UserRole
-                </span>
-                <span class="ms-2">Bonjour, @ViewBag.UserNom</span>
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" />
+
+<div class="container-fluid mt-4">
+    <div class="d-flex justify-content-between align-items-center mb-4">
+        <h1 class="h3 text-gray-800">Gestion des Utilisateurs</h1>
+        <button class="btn btn-primary shadow-sm" data-bs-toggle="modal" data-bs-target="#modalCreate">
+            <i class="fas fa-plus me-1"></i> Ajouter
+        </button>
+    </div>
+
+    <div class="card shadow border-0">
+        <div class="card-body p-0">
+            <div class="table-responsive">
+                <table class="table table-hover align-middle mb-0">
+                    <thead class="bg-light text-secondary text-uppercase small fw-bold">
+                        <tr>
+                            <th class="ps-4">Nom</th>
+                            <th>Email</th>
+                            <th>Rôle</th>
+                            <th class="text-end pe-4">Actions</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        @if (Model != null && Model.Any())
+                        {
+                            @foreach (var user in Model)
+                            {
+                                <tr>
+                                    <td class="ps-4 fw-bold">@user.Nom</td>
+                                    <td>@user.Email</td>
+                                    <td>
+                                        @if (user.Role == "Administrateur")
+                                        {
+                                            <span class="badge rounded-pill bg-info text-dark">@user.Role</span>
+                                        }
+                                        else if (user.Role == "ResponsableDépartement")
+                                        {
+                                            <span class="badge rounded-pill bg-primary">@user.Role</span>
+                                        }
+                                        else
+                                        {
+                                            <span class="badge rounded-pill bg-secondary">@user.Role</span>
+                                        }
+                                    </td>
+                                    <td class="text-end pe-4">
+                                        <div class="d-flex justify-content-end gap-2">
+                                            <button class="btn btn-sm btn-outline-primary" title="Modifier">
+                                                <i class="fas fa-edit"></i>
+                                            </button>
+                                            <form asp-action="DeleteUser" asp-route-id="@user.Id" method="post"
+                                                  onsubmit="return confirm('Supprimer @user.Nom ?');" class="m-0">
+                                                <button type="submit" class="btn btn-sm btn-outline-danger">
+                                                    <i class="fas fa-trash-alt"></i>
+                                                </button>
+                                            </form>
+                                        </div>
+                                    </td>
+                                </tr>
+                            }
+                        }
+                    </tbody>
+                </table>
             </div>
         </div>
     </div>
 </div>
 
-<div class="row">
-    <!-- Stats Cards -->
-    <div class="col-xl-3 col-md-6 mb-4">
-        <div class="card border-left-primary shadow h-100 py-2">
-            <div class="card-body">
-                <div class="row no-gutters align-items-center">
-                    <div class="col mr-2">
-                        <div class="text-xs font-weight-bold text-primary text-uppercase mb-1">
-                            Utilisateurs Total
-                        </div>
-                        <div class="h5 mb-0 font-weight-bold text-gray-800">35</div>
+<div class="modal fade" id="modalCreate" tabindex="-1" aria-hidden="true">
+    <div class="modal-dialog">
+        <div class="modal-content border-0 shadow">
+            <div class="modal-header bg-primary text-white">
+                <h5 class="modal-title"><i class="fas fa-user-plus me-2"></i>Nouvel Utilisateur</h5>
+                <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
+            </div>
+            <form asp-action="CreateUser" method="post">
+                <div class="modal-body">
+                    <div class="mb-3">
+                        <label class="form-label fw-bold">Nom complet</label>
+                        <input type="text" name="Nom" class="form-control" placeholder="Jean Martin" required />
                     </div>
-                    <div class="col-auto">
-                        <i class="fas fa-users fa-2x text-gray-300"></i>
+                    <div class="mb-3">
+                        <label class="form-label fw-bold">Email professionnel</label>
+                        <input type="email" name="Email" class="form-control" placeholder="admin@gestion.com" required />
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label fw-bold">Rôle assigné</label>
+                        <select name="Role" class="form-select">
+                            <option value="Administrateur">Administrateur</option>
+                            <option value="ResponsableDépartement">Responsable Département</option>
+                            <option value="Professeur">Professeur</option>
+                        </select>
                     </div>
                 </div>
-            </div>
-        </div>
-    </div>
-
-    <div class="col-xl-3 col-md-6 mb-4">
-        <div class="card border-left-success shadow h-100 py-2">
-            <div class="card-body">
-                <div class="row no-gutters align-items-center">
-                    <div class="col mr-2">
-                        <div class="text-xs font-weight-bold text-success text-uppercase mb-1">
-                            Admins Actifs
-                        </div>
-                        <div class="h5 mb-0 font-weight-bold text-gray-800">3</div>
-                    </div>
-                    <div class="col-auto">
-                        <i class="fas fa-user-shield fa-2x text-gray-300"></i>
-                    </div>
+                <div class="modal-footer bg-light">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Annuler</button>
+                    <button type="submit" class="btn btn-primary px-4">Enregistrer</button>
                 </div>
-            </div>
-        </div>
-    </div>
-
-    <div class="col-xl-3 col-md-6 mb-4">
-        <div class="card border-left-info shadow h-100 py-2">
-            <div class="card-body">
-                <div class="row no-gutters align-items-center">
-                    <div class="col mr-2">
-                        <div class="text-xs font-weight-bold text-info text-uppercase mb-1">
-                            Départements
-                        </div>
-                        <div class="h5 mb-0 font-weight-bold text-gray-800">4</div>
-                    </div>
-                    <div class="col-auto">
-                        <i class="fas fa-building fa-2x text-gray-300"></i>
-                    </div>
-                </div>
-            </div>
+            </form>
         </div>
     </div>
 </div>
-
-<div class="row">
-    <div class="col-xl-12 col-lg-12">
-        <div class="card shadow mb-4">
-            <div class="card-header py-3 d-flex flex-row align-items-center justify-content-between">
-                <h6 class="m-0 font-weight-bold text-primary">Actions rapides</h6>
-            </div>
-            <div class="card-body">
-                <div class="row">
-                    <div class="col-md-3 mb-3">
-                        <a href="#" class="btn btn-primary w-100">
-                            <i class="fas fa-users me-2"></i>Gestion Utilisateurs
-                        </a>
-                    </div>
-                    <div class="col-md-3 mb-3">
-                        <a href="#" class="btn btn-success w-100">
-                            <i class="fas fa-calendar me-2"></i>Horaires
-                        </a>
-                    </div>
-                    <div class="col-md-3 mb-3">
-                        <a href="#" class="btn btn-info w-100">
-                            <i class="fas fa-cogs me-2"></i>Paramètres
-                        </a>
-                    </div>
-                    <div class="col-md-3 mb-3">
-                        <a asp-controller="Login" asp-action="Logout" class="btn btn-danger w-100">
-                            <i class="fas fa-sign-out-alt me-2"></i>Déconnexion
-                        </a>
-                    </div>
-                </div>
-            </div>
-        </div>
-    </div>
-</div>
-
