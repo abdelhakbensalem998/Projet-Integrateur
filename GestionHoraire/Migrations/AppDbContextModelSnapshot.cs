@@ -60,7 +60,7 @@ namespace GestionHoraire.Migrations
 
                     b.HasIndex("UtilisateurId");
 
-                    b.ToTable("Cours", (string)null);
+                    b.ToTable("Cours");
                 });
 
             modelBuilder.Entity("GestionHoraire.Models.Departement", b =>
@@ -77,7 +77,7 @@ namespace GestionHoraire.Migrations
 
                     b.HasKey("Id");
 
-                    b.ToTable("Departements", (string)null);
+                    b.ToTable("Departements");
                 });
 
             modelBuilder.Entity("GestionHoraire.Models.Disponibilite", b =>
@@ -108,7 +108,7 @@ namespace GestionHoraire.Migrations
 
                     b.HasIndex("UtilisateurId");
 
-                    b.ToTable("Disponibilites", (string)null);
+                    b.ToTable("Disponibilites");
                 });
 
             modelBuilder.Entity("GestionHoraire.Models.Salle", b =>
@@ -128,7 +128,7 @@ namespace GestionHoraire.Migrations
 
                     b.HasKey("Id");
 
-                    b.ToTable("Salles", (string)null);
+                    b.ToTable("Salles");
                 });
 
             modelBuilder.Entity("GestionHoraire.Models.Utilisateur", b =>
@@ -152,6 +152,9 @@ namespace GestionHoraire.Migrations
                         .IsRequired()
                         .HasColumnType("nvarchar(max)");
 
+                    b.Property<bool>("EstActif")
+                        .HasColumnType("bit");
+
                     b.Property<byte[]>("MotDePasseHash")
                         .IsRequired()
                         .HasColumnType("varbinary(max)");
@@ -171,7 +174,7 @@ namespace GestionHoraire.Migrations
 
                     b.HasIndex("DepartementId");
 
-                    b.ToTable("Utilisateurs", (string)null);
+                    b.ToTable("Utilisateurs");
                 });
 
             modelBuilder.Entity("GestionHoraire.Models.Cours", b =>

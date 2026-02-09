@@ -1,8 +1,122 @@
-﻿@{
-    ViewData["Title"] = "Home Page";
+﻿@using Microsoft.AspNetCore.Http
+@{
+    ViewData["Title"] = "Accueil";
+
+    var userId = Context.Session.GetString("UserId");
+    var role = Context.Session.GetString("UserRole");
+    var userNom = Context.Session.GetString("UserNom");
+
+    string dashboardController = role switch
+    {
+        "Administrateur" => "Admin",
+        "ResponsableDépartement" => "Responsable",
+        "Professeur" => "Professeur",
+        _ => "Home"
+    };
 }
 
-<div class="text-center">
-    <h1 class="display-4">Welcome</h1>
-    <p>Learn about <a href="https://learn.microsoft.com/aspnet/core">building Web apps with ASP.NET Core</a>.</p>
+<div class="container py-5">
+
+    <!-- HERO -->
+    <div class="p-5 mb-4 bg-light rounded-3 border">
+        <div class="container-fluid py-3">
+            <h1 class="display-6 fw-bold">Gestion Horaire</h1>
+            <p class="col-md-10 fs-5 text-muted mb-4">
+                Plateforme de gestion des cours, affectations, salles et disponibilités des professeurs.
+            </p>
+
+            @if (!string.IsNullOrEmpty(userId))
+            {
+                <div class="d-flex flex-wrap gap-2 align-items-center">
+                    <span class="badge bg-success fs-6">Connectée</span>
+                    <span class="text-muted">Bonjour, <strong>@userNom</strong> (@role)</span>
+
+                    <a class="btn btn-primary ms-auto"
+                       asp-controller="@dashboardController" asp-action="Index">
+                        Continuer vers mon tableau de bord
+                    </a>
+
+                    <a class="btn btn-outline-secondary"
+                       asp-controller="Login" asp-action="Logout">
+                        Se déconnecter
+                    </a>
+                </div>
+            }
+            else
+            {
+                <div class="d-flex flex-wrap gap-2">
+                    <a class="btn btn-primary btn-lg"
+                       asp-controller="Login" asp-action="Index">
+                        Se connecter
+                    </a>
+                    <a class="btn btn-outline-secondary btn-lg"
+                       asp-controller="Home" asp-action="Privacy">
+                        Politique de confidentialité
+                    </a>
+                </div>
+            }
+        </div>
+    </div>
+
+    <!-- FEATURES -->
+    <div class="row g-4">
+        <div class="col-md-4">
+            <div class="card h-100 shadow-sm border-0">
+                <div class="card-body">
+                    <h5 class="card-title">📚 Gestion des cours</h5>
+                    <p class="card-text text-muted">
+                        Centraliser la liste des cours et associer professeur + salle de manière simple.
+                    </p>
+                </div>
+            </div>
+        </div>
+
+        <div class="col-md-4">
+            <div class="card h-100 shadow-sm border-0">
+                <div class="card-body">
+                    <h5 class="card-title">🗓️ Disponibilités</h5>
+                    <p class="card-text text-muted">
+                        Visualiser et mettre à jour les créneaux de disponibilité des professeurs.
+                    </p>
+                </div>
+            </div>
+        </div>
+
+        <div class="col-md-4">
+            <div class="card h-100 shadow-sm border-0">
+                <div class="card-body">
+                    <h5 class="card-title">🏢 Par département</h5>
+                    <p class="card-text text-muted">
+                        Organisation par département et gestion adaptée selon les rôles (Admin / Responsable / Prof).
+                    </p>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- ROLES -->
+    <div class="mt-5">
+        <h2 class="h4 mb-3">Accès selon votre rôle</h2>
+        <div class="row g-3">
+            <div class="col-lg-4">
+                <div class="border rounded p-3 h-100">
+                    <div class="fw-bold mb-1">👑 Administrateur</div>
+                    <div class="text-muted">Gestion globale (utilisateurs / structures / paramètres).</div>
+                </div>
+            </div>
+            <div class="col-lg-4">
+                <div class="border rounded p-3 h-100">
+                    <div class="fw-bold mb-1">🧑‍💼 Responsable de département</div>
+                    <div class="text-muted">Affectation prof/salle, suivi des cours, gestion des disponibilités.</div>
+                </div>
+            </div>
+            <div class="col-lg-4">
+                <div class="border rounded p-3 h-100">
+                    <div class="fw-bold mb-1">👩‍🏫 Professeur</div>
+                    <div class="text-muted">Accès à ses informations et disponibilités.</div>
+                </div>
+            </div>
+        </div>
+    </div>
+
 </div>
