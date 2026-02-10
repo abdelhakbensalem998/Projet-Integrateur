@@ -1,0 +1,50 @@
+﻿@model GestionHoraire.Models.Disponibilite
+
+<div class="container mt-5">
+    <div class="row justify-content-center">
+        <div class="col-md-6">
+            <div class="card shadow border-0">
+                <div class="card-header bg-primary text-white py-3">
+                    <h5 class="mb-0"><i class="bi bi-pencil-square me-2"></i>Modifier le créneau</h5>
+                </div>
+                <div class="card-body p-4">
+                    <p class="mb-4">Enseignant : <span class="badge bg-info text-dark">@ViewBag.ProfNom</span></p>
+
+                    <form asp-action="EditerDispo" method="post">
+                        @Html.AntiForgeryToken()
+                        <input type="hidden" asp-for="Id" />
+                        <input type="hidden" asp-for="UtilisateurId" />
+
+                        <div class="mb-3">
+                            <label class="form-label fw-bold">Jour de la semaine</label>
+                            <select asp-for="Jour" class="form-select shadow-sm">
+                                <option value="1">Lundi</option>
+                                <option value="2">Mardi</option>
+                                <option value="3">Mercredi</option>
+                                <option value="4">Jeudi</option>
+                                <option value="5">Vendredi</option>
+                                <option value="6">Samedi</option>
+                            </select>
+                        </div>
+
+                        <div class="row">
+                            <div class="col-md-6 mb-3">
+                                <label class="form-label fw-bold">Heure de début</label>
+                                <input asp-for="HeureDebut" type="time" class="form-control shadow-sm" required />
+                            </div>
+                            <div class="col-md-6 mb-3">
+                                <label class="form-label fw-bold">Heure de fin</label>
+                                <input asp-for="HeureFin" type="time" class="form-control shadow-sm" required />
+                            </div>
+                        </div>
+
+                        <div class="d-grid gap-2 mt-4">
+                            <button type="submit" class="btn btn-primary">Enregistrer les modifications</button>
+                            <a asp-action="VoirDispos" asp-route-id="@Model.UtilisateurId" class="btn btn-outline-secondary">Annuler</a>
+                        </div>
+                    </form>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>

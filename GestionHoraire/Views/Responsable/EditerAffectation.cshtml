@@ -1,0 +1,33 @@
+﻿@model GestionHoraire.Models.Cours
+
+<div class="container mt-5">
+    <div class="row justify-content-center">
+        <div class="col-md-6">
+            <div class="card shadow">
+                <div class="card-header bg-primary text-white">
+                    <h4 class="mb-0">Assigner un professeur</h4>
+                </div>
+                <div class="card-body">
+                    <h5>Cours : @Model.Titre</h5>
+                    <p class="text-muted">Horaire : @Model.Jour de @Model.HeureDebut à @Model.HeureFin</p>
+                    <hr />
+                    <form asp-action="EditerAffectation" method="post">
+                        @Html.AntiForgeryToken()
+                        <input type="hidden" asp-for="Id" />
+
+                        <div class="mb-3">
+                            <label class="form-label fw-bold">Choisir un enseignant</label>
+                            <select name="utilisateurId" class="form-select" asp-items="ViewBag.Professeurs">
+                                <option value="">-- Sélectionner un professeur --</option>
+                            </select>
+                        </div>
+
+                        <div class="d-flex justify-content-between mt-4">
+                            <a asp-action="Affectations" class="btn btn-secondary">Annuler</a>
+                            <button type="submit" class="btn btn-success">Enregistrer l'affectation</button>
+                        </div>
+                    </form>
+                </div>
+        </div>
+    </div>
+</div>

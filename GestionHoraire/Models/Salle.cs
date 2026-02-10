@@ -10,5 +10,7 @@ namespace GestionHoraire.Models
         public string Nom { get; set; }
 
         public int Capacite { get; set; }
+
+        public string Type { get; set; }
     }
 }

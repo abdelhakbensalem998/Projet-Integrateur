@@ -1,0 +1,35 @@
+﻿@model GestionHoraire.Models.Cours
+
+<div class="container mt-5">
+    <div class="row justify-content-center">
+        <div class="col-md-6">
+            <div class="card shadow border-0">
+                <div class="card-header bg-success text-white py-3">
+                    <h4 class="mb-0"><i class="bi bi-plus-circle me-2"></i>Nouveau Cours</h4>
+                </div>
+                <div class="card-body p-4">
+                    <form asp-action="CreerCours" method="post">
+                        @Html.AntiForgeryToken()
+
+                        <div asp-validation-summary="All" class="text-danger mb-3"></div>
+
+                        <div class="mb-3">
+                            <label asp-for="Titre" class="form-label fw-bold">Nom du cours</label>
+                            <input asp-for="Titre" class="form-control form-control-lg" placeholder="Ex: Algorithmique" required />
+                            <span asp-validation-for="Titre" class="text-danger"></span>
+                        </div>
+
+                        <input type="hidden" name="Jour" value="Monday" />
+                        <input type="hidden" name="HeureDebut" value="08:00" />
+                        <input type="hidden" name="HeureFin" value="10:00" />
+
+                        <div class="d-flex justify-content-between mt-4">
+                            <a asp-action="Affectations" class="btn btn-outline-secondary">Annuler</a>
+                            <button type="submit" class="btn btn-success px-5 shadow-sm">Créer le cours</button>
+                        </div>
+                    </form>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>

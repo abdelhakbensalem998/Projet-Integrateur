@@ -1,11 +1,12 @@
 using System;
 using GestionHoraire.Data;
 using GestionHoraire.Models;
+using GestionHoraire.Services;
 using Microsoft.EntityFrameworkCore;
 
 var builder = WebApplication.CreateBuilder(args);
 
-// Services (UNE SEULE FOIS)
+// Services UNE SEULE FOIS
 builder.Services.AddControllersWithViews();
 builder.Services.AddDbContext<AppDbContext>(options =>
     options.UseSqlServer(builder.Configuration.GetConnectionString("DefaultConnection")));
@@ -25,15 +26,17 @@ if (!app.Environment.IsDevelopment())
 }
 
 app.UseHttpsRedirection();
-app.UseStaticFiles();           // ? Remplace MapStaticAssets
-app.UseSession(); // ? AJOUTE ÇA AVANT app.UseRouting()
+app.UseStaticFiles();
+app.UseSession();
 app.UseRouting();
 app.UseAuthorization();
 
 
 app.MapControllerRoute(
     name: "default",
-    pattern: "{controller=Home}/{action=Index}/{id?}");  // ? Syntaxe correcte
+    pattern: "{controller=Home}/{action=Index}/{id?}");
 
 app.Run();
 
+// Ajout du service de planning pour qu'il soit utilisable partout
+builder.Services.AddScoped<PlanningService>();

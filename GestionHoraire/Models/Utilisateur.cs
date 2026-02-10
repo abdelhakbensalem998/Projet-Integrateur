@@ -9,24 +9,26 @@ namespace GestionHoraire.Models
 
         public string? Nom { get; set; }
         public string? Email { get; set; }
-        public string? Role { get; set; }
+        public string? Role { get; set; } // "Admin", "Responsable", "Professeur"
 
-        // Mot de passe sécurisé (SHA256 + Salt)
+        // --- Sécurité Mot de Passe ---
         public Guid MotDePasseSalt { get; set; }
         public byte[] MotDePasseHash { get; set; } = Array.Empty<byte>();
+        public bool EstMotDePasseProvisoire { get; set; }
 
-        // Liens
-        public int? DepartementId { get; set; }
-        public Departement? Departement { get; set; }
-
-        // (Si tu as des relations, garde-les. Sinon tu peux supprimer)
-        public ICollection<Cours> Cours { get; set; } = new List<Cours>();
-        public ICollection<Disponibilite> Disponibilites { get; set; } = new List<Disponibilite>();
-
-        // ✅ Nouveaux champs (SQL ajouté)
+        // --- Récupération de compte ---
         public string? QuestionSecurite { get; set; }
         public Guid? ReponseSecuriteSalt { get; set; }
         public byte[]? ReponseSecuriteHash { get; set; }
-        public bool EstMotDePasseProvisoire { get; set; }
+
+        // --- État et Relations ---
+        public bool Disponibilite { get; set; } // Statut global (ex: actif/inactif)
+        public int? DepartementId { get; set; }
+        public virtual Departement? Departement { get; set; }
+
+        // Collections pour les relations One-to-Many
+        public virtual ICollection<Cours> Cours { get; set; } = new List<Cours>();
+        public virtual ICollection<Disponibilite> Disponibilites { get; set; } = new List<Disponibilite>();
+        public DateTime DateCreation { get; set; } = DateTime.Now; // Initialise par défaut à maintenant
     }
 }

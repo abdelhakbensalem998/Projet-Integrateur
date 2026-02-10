@@ -2,6 +2,10 @@
 using Microsoft.EntityFrameworkCore;
 using GestionHoraire.Data;
 using GestionHoraire.Models;
+using Microsoft.AspNetCore.Http;
+using Microsoft.AspNetCore.Mvc.Rendering;
+using System.Security.Cryptography;
+using System.Text;
 
 namespace GestionHoraire.Controllers
 {
@@ -14,58 +18,211 @@ namespace GestionHoraire.Controllers
             _context = context;
         }
 
-        // Dashboard (Ticket 02)
-        public IActionResult Index() => View();
+        // Helper pour récupérer le département en session
+        private int? GetMonDeptId() => HttpContext.Session.GetInt32("DepartementId");
 
-        // Liste des Salles (Ticket 03)
-        public async Task<IActionResult> Salles()
+        // 1. ACCUEIL
+        public async Task<IActionResult> Index()
         {
-            var salles = await _context.Salles.ToListAsync();
-            return View(salles);
+            int? userId = HttpContext.Session.GetInt32("UserId");
+            if (userId == null) return RedirectToAction("Index", "Login");
+
+            var user = await _context.Utilisateurs
+                .Include(u => u.Departement)
+                .FirstOrDefaultAsync(u => u.Id == userId);
+
+            if (user == null) return RedirectToAction("Logout", "Login");
+
+            return View(user);
         }
 
-        // Liste des Professeurs (Ticket 04)
+        // 2. GESTION DES PROFESSEURS AVEC HASH
         public async Task<IActionResult> Profs()
         {
-            // 1. Simuler l'ID du département du responsable connecté (ex: ID = 1)
-            // Plus tard, tu récupéreras cela via User.Claims ou Session
-            int monDeptId = 1;
-
-            // 2. Récupérer les profs du même département
-            var listeProfs = await _context.Utilisateurs
-                .Include(u => u.Departement) // Indispensable pour afficher le nom du département
-                .Where(u => u.Role == "Professeur")
-                .Where(u => u.DepartementId == monDeptId) // Filtre strict
+            int? deptId = GetMonDeptId();
+            var profs = await _context.Utilisateurs
+                .Where(u => u.Role == "Professeur" && u.DepartementId == deptId)
                 .ToListAsync();
-
-            // 3. Envoyer à la vue "professeurs.cshtml" (Option B)
-            return View("professeurs", listeProfs);
+            return View(profs);
         }
-        // GET: Responsable/Groupes
-        public async Task<IActionResult> Groupes()
+
+        [HttpGet]
+        public IActionResult CreerProf() => View();
+
+        [HttpPost]
+        [ValidateAntiForgeryToken]
+        public async Task<IActionResult> CreerProf(Utilisateur prof, string password)
         {
-            // 1. On identifie le département du responsable (Simulé ici avec l'ID 1)
-            // Plus tard, ce sera : var user = await _context.Utilisateurs.FindAsync(GetUserId());
-            int monDeptId = 1;
+            int? monDeptId = GetMonDeptId();
+            prof.Role = "Professeur";
+            prof.DepartementId = monDeptId;
+            prof.DateCreation = DateTime.Now;
+            prof.Disponibilite = true;
 
-            // 2. On récupère UNIQUEMENT son département et les données liées
-            var monDepartement = await _context.Departements
-                .Include(d => d.Utilisateurs) // Pour compter les étudiants si nécessaire
-                .Where(d => d.Id == monDeptId)
-                .ToListAsync();
+            // Forcer le changement au premier login
+            prof.EstMotDePasseProvisoire = true;
 
-            return View(monDepartement);
+            if (!string.IsNullOrEmpty(password))
+            {
+                // Hachage SHA256 identique au LoginController
+                Guid salt = Guid.NewGuid();
+                prof.MotDePasseSalt = salt;
+                prof.MotDePasseHash = CalculerSHA256(password, salt);
+            }
+
+            // Nettoyage validation
+            ModelState.Remove("Departement");
+            ModelState.Remove("MotDePasseHash");
+            ModelState.Remove("MotDePasseSalt");
+            ModelState.Remove("Disponibilites");
+            ModelState.Remove("Role");
+            ModelState.Remove("DateCreation");
+
+            if (ModelState.IsValid)
+            {
+                _context.Utilisateurs.Add(prof);
+                await _context.SaveChangesAsync();
+                return RedirectToAction(nameof(Profs));
+            }
+            return View(prof);
         }
-        public async Task<IActionResult> ConsulterPlanning(int deptId)
+
+        [HttpGet]
+        public async Task<IActionResult> EditerProf(int id)
         {
-            // On récupère les cours pour les afficher dans la grille
-            var coursDuDept = await _context.Cours
+            var prof = await _context.Utilisateurs.FindAsync(id);
+            if (prof == null || prof.DepartementId != GetMonDeptId()) return NotFound();
+            return View(prof);
+        }
+
+        [HttpPost]
+        [ValidateAntiForgeryToken]
+        public async Task<IActionResult> EditerProf(int id, Utilisateur model)
+        {
+            var profEnDb = await _context.Utilisateurs.FindAsync(id);
+            if (profEnDb == null) return NotFound();
+
+            profEnDb.Nom = model.Nom;
+            profEnDb.Email = model.Email;
+
+            ModelState.Remove("MotDePasseHash");
+            ModelState.Remove("MotDePasseSalt");
+            ModelState.Remove("Departement");
+            ModelState.Remove("Role");
+            ModelState.Remove("Disponibilites");
+
+            if (ModelState.IsValid)
+            {
+                _context.Update(profEnDb);
+                await _context.SaveChangesAsync();
+                return RedirectToAction(nameof(Profs));
+            }
+            return View(model);
+        }
+
+        [HttpPost]
+        [ValidateAntiForgeryToken]
+        public async Task<IActionResult> SupprimerProf(int id)
+        {
+            var prof = await _context.Utilisateurs.FindAsync(id);
+            if (prof != null && prof.DepartementId == GetMonDeptId())
+            {
+                _context.Utilisateurs.Remove(prof);
+                await _context.SaveChangesAsync();
+            }
+            return RedirectToAction(nameof(Profs));
+        }
+
+        // 3. GESTION DES COURS
+        public async Task<IActionResult> Affectations()
+        {
+            int? monDeptId = GetMonDeptId();
+            if (monDeptId == null) return RedirectToAction("Index", "Login");
+
+            var cours = await _context.Cours
                 .Include(c => c.Utilisateur)
-                .Include(c => c.Salle)
-                .Where(c => c.DepartementId == deptId)
+                .Where(c => c.DepartementId == monDeptId)
                 .ToListAsync();
 
-            return View(coursDuDept);
+            return View(cours);
+        }
+
+        [HttpGet]
+        public IActionResult CreerCours() => View();
+
+        [HttpPost]
+        [ValidateAntiForgeryToken]
+        public async Task<IActionResult> CreerCours(Cours cours)
+        {
+            int? monDeptId = GetMonDeptId();
+            if (monDeptId == null) return RedirectToAction("Index", "Login");
+
+            cours.DepartementId = monDeptId.Value;
+            cours.Jour = DayOfWeek.Monday;
+            cours.HeureDebut = new TimeSpan(8, 0, 0);
+            cours.HeureFin = new TimeSpan(10, 0, 0);
+
+            ModelState.Remove("Departement");
+            ModelState.Remove("Utilisateur");
+            ModelState.Remove("Salle");
+
+            if (ModelState.IsValid)
+            {
+                _context.Add(cours);
+                await _context.SaveChangesAsync();
+                return RedirectToAction(nameof(Affectations));
+            }
+            return View(cours);
+        }
+
+        // 4. GESTION DES DISPONIBILITÉS
+        public async Task<IActionResult> VoirDispos(int id)
+        {
+            var prof = await _context.Utilisateurs.FindAsync(id);
+            if (prof == null) return NotFound();
+
+            var dispos = await _context.Disponibilites
+                .Where(d => d.UtilisateurId == id)
+                .OrderBy(d => d.Jour).ThenBy(d => d.HeureDebut)
+                .ToListAsync();
+
+            ViewBag.ProfNom = prof.Nom;
+            ViewBag.ProfId = prof.Id;
+            return View(dispos);
+        }
+
+        [HttpPost]
+        [ValidateAntiForgeryToken]
+        public async Task<IActionResult> AjouterDispo(int profId, int jour, TimeSpan debut, TimeSpan fin)
+        {
+            var dispo = new Disponibilite
+            {
+                UtilisateurId = profId,
+                Jour = (DayOfWeek)jour,
+                HeureDebut = debut,
+                HeureFin = fin,
+                Disponible = true
+            };
+
+            ModelState.Remove("Utilisateur");
+            if (ModelState.IsValid)
+            {
+                _context.Disponibilites.Add(dispo);
+                await _context.SaveChangesAsync();
+            }
+            return RedirectToAction(nameof(VoirDispos), new { id = profId });
+        }
+
+        
+        // OUTILS DE SÉCURITÉ (DOIT CORRESPONDRE AU LOGIN) sha256
+        private static byte[] CalculerSHA256(string motDePasse, Guid saltGuid)
+        {
+            byte[] salt = saltGuid.ToByteArray();
+            byte[] mdpBytes = Encoding.UTF8.GetBytes(motDePasse);
+            byte[] input = new byte[salt.Length + mdpBytes.Length];
+            Buffer.BlockCopy(salt, 0, input, 0, salt.Length);
+            Buffer.BlockCopy(mdpBytes, 0, input, salt.Length, mdpBytes.Length);
+            return SHA256.HashData(input);
         }
     }
 }

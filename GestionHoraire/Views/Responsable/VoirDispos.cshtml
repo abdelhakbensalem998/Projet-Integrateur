@@ -1,0 +1,132 @@
+﻿@model IEnumerable<GestionHoraire.Models.Disponibilite>
+
+@{
+    ViewData["Title"] = "Disponibilités de " + ViewBag.ProfNom;
+    // Liste pour traduire les index DayOfWeek (0-6) en Français
+    var joursFr = new[] { "Dimanche", "Lundi", "Mardi", "Mercredi", "Jeudi", "Vendredi", "Samedi" };
+}
+
+<div class="container mt-5">
+    <div class="d-flex justify-content-between align-items-center mb-4">
+        <div>
+            <h2 class="text-primary fw-bold mb-0">
+                <i class="bi bi-calendar3 me-2"></i>Gestion des disponibilités
+            </h2>
+            <p class="text-muted">Professeur : <strong>@ViewBag.ProfNom</strong></p>
+        </div>
+        <a asp-action="Profs" class="btn btn-outline-secondary">
+            <i class="bi bi-arrow-left"></i> Retour à la liste
+        </a>
+    </div>
+
+    <div class="row">
+        <div class="col-md-4">
+            <div class="card shadow-sm border-0">
+                <div class="card-header bg-dark text-white py-3">
+                    <h5 class="card-title mb-0 small text-uppercase fw-bold">Ajouter un créneau</h5>
+                </div>
+                <div class="card-body p-4">
+                    <form asp-action="AjouterDispo" method="post">
+                        @Html.AntiForgeryToken()
+                        <input type="hidden" name="profId" value="@ViewBag.ProfId" />
+
+                        <div class="mb-3">
+                            <label class="form-label fw-bold">Jour de la semaine</label>
+                            <select name="jour" class="form-select shadow-sm" required>
+                                <option value="1">Lundi</option>
+                                <option value="2">Mardi</option>
+                                <option value="3">Mercredi</option>
+                                <option value="4">Jeudi</option>
+                                <option value="5">Vendredi</option>
+                                <option value="6">Samedi</option>
+                                <option value="0">Dimanche</option>
+                            </select>
+                        </div>
+
+                        <div class="row">
+                            <div class="col-md-6 mb-3">
+                                <label class="form-label fw-bold">Heure Début</label>
+                                <input type="time" name="debut" class="form-control shadow-sm" value="08:00" required />
+                            </div>
+                            <div class="col-md-6 mb-3">
+                                <label class="form-label fw-bold">Heure Fin</label>
+                                <input type="time" name="fin" class="form-control shadow-sm" value="10:00" required />
+                            </div>
+                        </div>
+
+                        <button type="submit" class="btn btn-primary w-100 shadow-sm mt-2">
+                            <i class="bi bi-plus-circle me-1"></i> Ajouter la disponibilité
+                        </button>
+                    </form>
+                </div>
+            </div>
+        </div>
+
+        <div class="col-md-8">
+            <div class="card shadow-sm border-0">
+                <div class="card-body p-0">
+                    <div class="table-responsive">
+                        <table class="table table-hover align-middle mb-0">
+                            <thead class="table-light">
+                                <tr>
+                                    <th class="ps-4 py-3">Jour</th>
+                                    <th class="py-3">Plage Horaire</th>
+                                    <th class="text-end pe-4 py-3">Actions</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                @if (!Model.Any())
+                                {
+                                    <tr>
+                                        <td colspan="3" class="text-center py-5 text-muted">
+                                            <i class="bi bi-info-circle me-2"></i>Aucune disponibilité enregistrée pour le moment.
+                                        </td>
+                                    </tr>
+                                }
+                                else
+                                {
+                                    @foreach (var item in Model)
+                                    {
+                                        <tr>
+                                            <td class="ps-4">
+                                                <span class="badge bg-info-subtle text-info border border-info-subtle px-3 py-2 rounded-pill">
+                                                    @joursFr[(int)item.Jour]
+                                                </span>
+                                            </td>
+                                            <td>
+                                                <span class="fw-bold text-dark">
+                                                    @item.HeureDebut.ToString(@"hh\:mm")
+                                                </span>
+                                                <i class="bi bi-arrow-right mx-2 text-muted small"></i>
+                                                <span class="fw-bold text-dark">
+                                                    @item.HeureFin.ToString(@"hh\:mm")
+                                                </span>
+                                            </td>
+                                            <td class="text-end pe-4">
+                                                <form asp-action="SupprimerDispo" method="post"
+                                                      onsubmit="return confirm('Voulez-vous vraiment supprimer ce créneau ?');"
+                                                      style="display:inline;">
+                                                    @Html.AntiForgeryToken()
+                                                    <input type="hidden" name="id" value="@item.Id" />
+                                                    <input type="hidden" name="profId" value="@ViewBag.ProfId" />
+
+                                                    <button type="submit" class="btn btn-sm btn-outline-danger shadow-sm">
+                                                        <i class="bi bi-trash3"></i> Supprimer
+                                                    </button>
+                                                </form>
+                                            </td>
+                                        </tr>
+                                    }
+                                }
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+@section Scripts {
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.0/font/bootstrap-icons.css">
+}

@@ -1,0 +1,57 @@
+﻿@model GestionHoraire.Models.Utilisateur
+
+@{
+    ViewData["Title"] = "Ajouter un Enseignant";
+}
+
+<div class="container mt-5">
+    <div class="row justify-content-center">
+        <div class="col-md-5">
+            <div class="card shadow border-0">
+                <div class="card-header bg-success text-white py-3 text-center">
+                    <h4 class="mb-0"><i class="bi bi-person-plus me-2"></i>Nouvel Enseignant</h4>
+                </div>
+                <div class="card-body p-4">
+                    <form asp-action="CreerProf" method="post">
+                        @Html.AntiForgeryToken()
+
+                        <div asp-validation-summary="ModelOnly" class="text-danger mb-3"></div>
+
+                        <div class="mb-3">
+                            <label asp-for="Nom" class="form-label fw-bold">Nom Complet</label>
+                            <input asp-for="Nom" class="form-control" placeholder="Ex: Jean Dupont" required />
+                            <span asp-validation-for="Nom" class="text-danger"></span>
+                        </div>
+
+                        <div class="mb-3">
+                            <label asp-for="Email" class="form-label fw-bold">Adresse Email</label>
+                            <input asp-for="Email" type="email" class="form-control" placeholder="jean.dupont@ecole.com" required />
+                            <span asp-validation-for="Email" class="text-danger"></span>
+                        </div>
+
+                        <div class="mb-3">
+                            <label class="form-label fw-bold">Mot de passe provisoire</label>
+                            <input name="password" type="password" class="form-control" placeholder="******" required />
+                        </div>
+
+                        <div class="d-grid gap-2 mt-4">
+                            <button type="submit" class="btn btn-success shadow-sm">
+                                Enregistrer l'enseignant
+                            </button>
+                            <a asp-action="Profs" class="btn btn-outline-secondary">Annuler</a>
+                        </div>
+                    </form>
+                </div>
+            </div>
+            <div class="mt-3 text-center text-muted small">
+                <i class="bi bi-info-circle"></i> Le rôle "Professeur" et le département seront assignés automatiquement.
+            </div>
+        </div>
+    </div>
+</div>
+
+@section Scripts {
+    @{
+        await Html.RenderPartialAsync("_ValidationScriptsPartial");
+    }
+}

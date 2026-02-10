@@ -1,0 +1,50 @@
+﻿@model GestionHoraire.Models.Groupe
+
+<div class="container mt-5">
+    <div class="row justify-content-center">
+        <div class="col-md-6">
+            <div class="card shadow border-0 rounded-4">
+                <div class="card-header bg-warning py-3 text-center fw-bold text-dark">
+                    <i class="bi bi-plus-circle-fill me-2"></i>Créer un Nouveau Groupe
+                </div>
+                <div class="card-body p-4">
+                    <form asp-action="Ajouter" method="post">
+                        <div class="mb-3">
+                            <label class="form-label fw-bold">Nom du groupe</label>
+                            <input asp-for="Nom" class="form-control" placeholder="ex: Groupe Informatique 1A" />
+                        </div>
+
+                        <div class="mb-3">
+                            <label class="form-label fw-bold">Département de rattachement</label>
+                            <select asp-for="DepartementId" class="form-select" asp-items="ViewBag.Departements">
+                                <option value="">-- Sélectionner un département --</option>
+                            </select>
+                        </div>
+
+                        <div class="row mb-3">
+                            <div class="col-md-6">
+                                <label class="form-label fw-bold">Niveau</label>
+                                <select asp-for="Niveau" class="form-select">
+                                    <option value="Licence 1">Licence 1</option>
+                                    <option value="Licence 2">Licence 2</option>
+                                    <option value="Licence 3">Licence 3</option>
+                                    <option value="Master 1">Master 1</option>
+                                    <option value="Master 2">Master 2</option>
+                                </select>
+                            </div>
+                            <div class="col-md-6">
+                                <label class="form-label fw-bold">Effectif</label>
+                                <input asp-for="Effectif" type="number" class="form-control" />
+                            </div>
+                        </div>
+
+                        <div class="d-grid gap-2 mt-4">
+                            <button type="submit" class="btn btn-warning fw-bold shadow-sm">Enregistrer le groupe</button>
+                            <a asp-action="Index" class="btn btn-light">Annuler</a>
+                        </div>
+                    </form>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>

@@ -1,17 +1,53 @@
-﻿@{
+﻿@model GestionHoraire.Models.Utilisateur
+
+@{
     ViewData["Title"] = "Accueil Responsable";
 }
 
-<div class="container mt-5">
-    <h1 class="text-center mb-5 border-bottom pb-3">Tableau de Bord Responsable</h1>
+<style>
+    .hover-shadow {
+        transition: transform 0.2s ease-in-out, box-shadow 0.2s ease-in-out;
+    }
 
-    <div class="row g-4">
+        .hover-shadow:hover {
+            transform: translateY(-5px);
+            box-shadow: 0 0.5rem 1rem rgba(0,0,0,0.15) !important;
+        }
+
+    .card-module {
+        border-radius: 15px;
+    }
+</style>
+
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.0/font/bootstrap-icons.css">
+
+<div class="container mt-5">
+    <div class="d-flex justify-content-between align-items-center mb-5 border-bottom pb-4">
+        <div>
+            @if (Model != null)
+            {
+                <h1 class="display-6 fw-bold text-dark m-0">@Model.Nom</h1>
+                <p class="text-muted fs-5 m-0 mt-1">
+                    <i class="bi bi-mortarboard-fill me-2 text-primary"></i>
+                    @(Model.Departement?.Nom ?? "Département non défini")
+                </p>
+            }
+        </div>
+
+        <a asp-controller="Login" asp-action="Logout" class="btn btn-outline-danger d-flex align-items-center gap-2 rounded-pill px-4 shadow-sm fw-bold text-decoration-none">
+            <i class="bi bi-box-arrow-right"></i>
+            <span>Déconnexion</span>
+        </a>
+    </div>
+
+    <div class="row g-4 text-center">
         <div class="col-md-4">
-            <a asp-action="Salles" class="text-decoration-none text-dark">
-                <div class="card h-100 shadow-sm hover-shadow border-primary">
-                    <div class="card-body text-center py-5">
-                        <h3 class="card-title">Salles</h3>
-                        <p class="text-muted">Gérer les locaux et capacités</p>
+            <a asp-controller="Salles" asp-action="Index" class="text-decoration-none text-dark">
+                <div class="card h-100 shadow-sm hover-shadow border-0 border-top border-primary border-4 card-module">
+                    <div class="card-body py-5">
+                        <i class="bi bi-door-open display-4 text-primary mb-3"></i>
+                        <h3 class="fw-bold h4">Salles</h3>
+                        <p class="text-muted mb-0">Gestion des locaux</p>
                     </div>
                 </div>
             </a>
@@ -19,21 +55,47 @@
 
         <div class="col-md-4">
             <a asp-action="Profs" class="text-decoration-none text-dark">
-                <div class="card h-100 shadow-sm hover-shadow border-success">
-                    <div class="card-body text-center py-5">
-                        <h3 class="card-title">Professeurs</h3>
-                        <p class="text-muted">Disponibilités et affectations</p>
+                <div class="card h-100 shadow-sm hover-shadow border-0 border-top border-success border-4 card-module">
+                    <div class="card-body py-5">
+                        <i class="bi bi-people display-4 text-success mb-3"></i>
+                        <h3 class="fw-bold h4">Professeurs</h3>
+                        <p class="text-muted mb-0">Équipe pédagogique</p>
                     </div>
                 </div>
             </a>
         </div>
 
         <div class="col-md-4">
-            <a asp-action="Groupes" class="text-decoration-none text-dark">
-                <div class="card h-100 shadow-sm hover-shadow border-warning">
-                    <div class="card-body text-center py-5">
-                        <h3 class="card-title">Planning</h3>
-                        <p class="text-muted">Générer l'emploi du temps</p>
+            <a asp-controller="Groupes" asp-action="Index" class="text-decoration-none text-dark">
+                <div class="card h-100 shadow-sm hover-shadow border-0 border-top border-info border-4 card-module">
+                    <div class="card-body py-5">
+                        <i class="bi bi-mortarboard display-4 text-info mb-3"></i>
+                        <h3 class="fw-bold h4">Groupes</h3>
+                        <p class="text-muted mb-0">Gestion des classes</p>
+                    </div>
+                </div>
+            </a>
+        </div>
+
+        <div class="col-md-6">
+            <a asp-controller="Planning" asp-action="Index" class="text-decoration-none text-dark">
+                <div class="card h-100 shadow-sm hover-shadow border-0 border-top border-warning border-4 card-module">
+                    <div class="card-body py-5">
+                        <i class="bi bi-calendar3 display-4 text-warning mb-3"></i>
+                        <h3 class="fw-bold h4">Planning</h3>
+                        <p class="text-muted mb-0">Consulter les emplois du temps</p>
+                    </div>
+                </div>
+            </a>
+        </div>
+
+        <div class="col-md-6">
+            <a asp-action="Affectations" class="text-decoration-none text-dark">
+                <div class="card h-100 shadow-sm hover-shadow border-0 border-top border-danger border-4 card-module">
+                    <div class="card-body py-5">
+                        <i class="bi bi-node-plus display-4 text-danger mb-3"></i>
+                        <h3 class="fw-bold h4">Affectations</h3>
+                        <p class="text-muted mb-0">Attribuer cours et profs</p>
                     </div>
                 </div>
             </a>

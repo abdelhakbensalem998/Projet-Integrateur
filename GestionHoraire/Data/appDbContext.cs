@@ -16,15 +16,22 @@ namespace GestionHoraire.Data
         public DbSet<Salle> Salles { get; set; }
         public DbSet<Departement> Departements { get; set; }
         public DbSet<Disponibilite> Disponibilites { get; set; }
+        public DbSet<Groupe> Groupes { get; set; }
 
         protected override void OnModelCreating(ModelBuilder modelBuilder)
         {
-            // Conversion robuste : garantit que l'Enum DayOfWeek est stocké en NVARCHAR en base
+            base.OnModelCreating(modelBuilder);
+
+            // On force la conversion vers INT pour matcher ta DB
             modelBuilder.Entity<Disponibilite>()
                 .Property(d => d.Jour)
-                .HasConversion(new EnumToStringConverter<System.DayOfWeek>());
+                .HasConversion<int>();
 
-            base.OnModelCreating(modelBuilder);
+            // Configuration pour le mot de passe si nécessaire
+            modelBuilder.Entity<Utilisateur>()
+                .Property(u => u.MotDePasseSalt)
+                .HasColumnType("uniqueidentifier");
         }
+
     }
 }

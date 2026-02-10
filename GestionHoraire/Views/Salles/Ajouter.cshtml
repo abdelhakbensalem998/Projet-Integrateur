@@ -1,0 +1,85 @@
+﻿@model GestionHoraire.Models.Salle
+
+@{
+    ViewData["Title"] = "Ajouter une Salle";
+}
+
+<div class="container mt-5">
+    <div class="row justify-content-center">
+        <div class="col-md-6 col-lg-5">
+            <nav aria-label="breadcrumb" class="mb-4">
+                <ol class="breadcrumb">
+                    <li class="breadcrumb-item"><a asp-action="Index">Infrastructures</a></li>
+                    <li class="breadcrumb-item active" aria-current="page">Nouvelle salle</li>
+                </ol>
+            </nav>
+
+            <div class="card shadow-lg border-0 rounded-4">
+                <div class="card-header bg-success py-3 rounded-top-4">
+                    <h4 class="mb-0 fw-bold text-center text-white">
+                        <i class="bi bi-plus-circle-fill me-2"></i>Nouvelle Infrastructure
+                    </h4>
+                </div>
+
+                <div class="card-body p-4">
+                    <form asp-action="Ajouter" method="post">
+                        <div asp-validation-summary="ModelOnly" class="text-danger small mb-3"></div>
+
+                        <div class="mb-3">
+                            <label asp-for="Nom" class="form-label fw-bold">Nom de la salle</label>
+                            <div class="input-group">
+                                <span class="input-group-text bg-light"><i class="bi bi-tag"></i></span>
+                                <input asp-for="Nom" class="form-control" placeholder="Ex: Salle 204 ou Labo Info" required />
+                            </div>
+                            <span asp-validation-for="Nom" class="text-danger small"></span>
+                        </div>
+
+                        <div class="mb-3">
+                            <label asp-for="Capacite" class="form-label fw-bold">Capacité (places)</label>
+                            <div class="input-group">
+                                <span class="input-group-text bg-light"><i class="bi bi-people"></i></span>
+                                <input asp-for="Capacite" type="number" class="form-control" placeholder="Ex: 30" required min="1" />
+                            </div>
+                            <span asp-validation-for="Capacite" class="text-danger small"></span>
+                        </div>
+
+                        <div class="mb-4">
+                            <label asp-for="Type" class="form-label fw-bold">Type d'usage</label>
+                            <div class="input-group">
+                                <span class="input-group-text bg-light"><i class="bi bi-building"></i></span>
+                                <select asp-for="Type" class="form-select" required>
+                                    <option value="" disabled selected>Choisir un type...</option>
+                                    <option value="Cours">Salle de Cours</option>
+                                    <option value="Labo">Laboratoire</option>
+                                    <option value="Amphi">Amphithéâtre</option>
+                                    <option value="TP">Salle Informatique</option>
+                                </select>
+                            </div>
+                            <span asp-validation-for="Type" class="text-danger small"></span>
+                        </div>
+
+                        <div class="d-grid gap-2">
+                            <button type="submit" class="btn btn-success btn-lg fw-bold shadow-sm">
+                                <i class="bi bi-check-lg me-1"></i> Créer la salle
+                            </button>
+                            <a asp-action="Index" class="btn btn-outline-secondary">
+                                Annuler
+                            </a>
+                        </div>
+                    </form>
+                </div>
+            </div>
+
+            <div class="alert alert-info mt-4 border-0 shadow-sm" role="alert">
+                <i class="bi bi-lightbulb me-2"></i>
+                <strong>Astuce :</strong> Une fois créée, la salle sera immédiatement disponible pour les affectations de cours.
+            </div>
+        </div>
+    </div>
+</div>
+
+@section Scripts {
+    @{
+        await Html.RenderPartialAsync("_ValidationScriptsPartial");
+    }
+}
