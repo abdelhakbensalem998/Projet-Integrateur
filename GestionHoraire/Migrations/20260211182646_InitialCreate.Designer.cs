@@ -12,7 +12,7 @@ using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 namespace GestionHoraire.Migrations
 {
     [DbContext(typeof(AppDbContext))]
-    [Migration("20260210191753_InitialCreate")]
+    [Migration("20260211182646_InitialCreate")]
     partial class InitialCreate
     {
         /// <inheritdoc />
