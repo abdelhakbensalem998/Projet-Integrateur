@@ -56,7 +56,7 @@ namespace GestionHoraire.Controllers
                 return View();
             }
 
-            // ✅ Si mot de passe provisoire -> forcer changement AVANT d'ouvrir la session complète
+            //  Si mot de passe provisoire -> forcer changement AVANT d'ouvrir la session complète
             if (user.EstMotDePasseProvisoire)
             {
                 TempData["Info"] = "Vous devez changer votre mot de passe provisoire.";
@@ -88,26 +88,36 @@ namespace GestionHoraire.Controllers
 
         // =========================
         // CHANGER MOT DE PASSE PROVISOIRE
-        // (email + mdp provisoire + nouveau + confirmation)
+        // + configurer question de sécurité
         // =========================
 
         [HttpGet]
         public IActionResult ChangeTempPassword(string email)
         {
-            ViewBag.Email = email; // préremplissage si redirection depuis login
+            ViewBag.Email = email;
+            ViewBag.Questions = GetQuestionsSecurite();
             return View();
         }
 
         [HttpPost]
         [ValidateAntiForgeryToken]
-        public IActionResult ChangeTempPassword(string email, string motDePasseProvisoire, string nouveauMotDePasse, string confirmerMotDePasse)
+        public IActionResult ChangeTempPassword(
+            string email,
+            string motDePasseProvisoire,
+            string nouveauMotDePasse,
+            string confirmerMotDePasse,
+            string questionSecurite,
+            string reponseSecurite)
         {
             ViewBag.Email = email;
+            ViewBag.Questions = GetQuestionsSecurite();
 
             if (string.IsNullOrWhiteSpace(email) ||
                 string.IsNullOrWhiteSpace(motDePasseProvisoire) ||
                 string.IsNullOrWhiteSpace(nouveauMotDePasse) ||
-                string.IsNullOrWhiteSpace(confirmerMotDePasse))
+                string.IsNullOrWhiteSpace(confirmerMotDePasse) ||
+                string.IsNullOrWhiteSpace(questionSecurite) ||
+                string.IsNullOrWhiteSpace(reponseSecurite))
             {
                 ViewBag.Error = "Tous les champs sont obligatoires.";
                 return View();
@@ -133,27 +143,25 @@ namespace GestionHoraire.Controllers
                 return View();
             }
 
-            // ✅ obliger que ce soit vraiment un compte provisoire
             if (!user.EstMotDePasseProvisoire)
             {
                 ViewBag.Error = "Ce compte n'a pas de mot de passe provisoire actif.";
                 return View();
             }
 
-            // vérifier mdp provisoire = mdp actuel
             if (!VerifierMotDePasseSHA256AvecSalt(motDePasseProvisoire, user.MotDePasseSalt, user.MotDePasseHash))
             {
                 ViewBag.Error = "Informations invalides.";
                 return View();
             }
 
-            // interdire réutiliser l'ancien
             if (VerifierMotDePasseSHA256AvecSalt(nouveauMotDePasse, user.MotDePasseSalt, user.MotDePasseHash))
             {
                 ViewBag.Error = "Le nouveau mot de passe doit être différent de l'ancien.";
                 return View();
             }
 
+            // 1) Sauver nouveau mot de passe
             Guid salt = Guid.NewGuid();
             byte[] hash = CalculerSHA256AvecSalt(nouveauMotDePasse, salt);
 
@@ -161,9 +169,18 @@ namespace GestionHoraire.Controllers
             user.MotDePasseHash = hash;
             user.EstMotDePasseProvisoire = false;
 
+            // 2) Sauver question + réponse sécurité (hash + salt)
+            string normalized = (reponseSecurite ?? "").Trim().ToLowerInvariant();
+            Guid repSalt = Guid.NewGuid();
+            byte[] repHash = CalculerSHA256AvecSalt(normalized, repSalt);
+
+            user.QuestionSecurite = questionSecurite;
+            user.ReponseSecuriteSalt = repSalt;
+            user.ReponseSecuriteHash = repHash;
+
             _context.SaveChanges();
 
-            TempData["Success"] = "Mot de passe changé avec succès. Vous pouvez vous connecter.";
+            TempData["Success"] = "Mot de passe changé et question de sécurité enregistrée. Vous pouvez vous connecter.";
             return RedirectToAction("Index");
         }
 
@@ -189,19 +206,20 @@ namespace GestionHoraire.Controllers
 
             var user = _context.Utilisateurs.FirstOrDefault(u => u.Email == email);
 
-            // message neutre
+            
             if (user == null)
             {
-                ViewBag.Error = "Si ce compte existe, la procédure est disponible.";
+                ViewBag.Error = "Aucun compte trouvé avec cet email.";
                 return View();
             }
 
-            // aller à la question
             return RedirectToAction("ForgotPasswordReset", new { id = user.Id });
         }
 
         // =========================
-        // MOT DE PASSE OUBLIÉ (Étape 2 : question + réponse + nouveau mdp)
+        // MOT DE PASSE OUBLIÉ (Étape 2/3)
+        // Step 2: question/réponse
+        // Step 3: nouveau mot de passe (affiché seulement si réponse OK)
         // =========================
 
         [HttpGet]
@@ -219,71 +237,121 @@ namespace GestionHoraire.Controllers
                 return RedirectToAction("ForgotPassword");
             }
 
+            // Step 2 = afficher question + réponse uniquement
+            ViewBag.Step = 2;
             ViewBag.UserId = user.Id;
             ViewBag.Question = user.QuestionSecurite;
+
+            // Nettoyer une ancienne validation
+            HttpContext.Session.Remove("PwdResetVerifiedUserId");
+
             return View();
         }
 
         [HttpPost]
         [ValidateAntiForgeryToken]
-        public IActionResult ForgotPasswordReset(int userId, string reponseSecurite, string nouveauMotDePasse, string confirmerMotDePasse)
+        public IActionResult ForgotPasswordReset(
+            int userId,
+            string step,
+            string reponseSecurite,
+            string nouveauMotDePasse,
+            string confirmerMotDePasse)
         {
             var user = _context.Utilisateurs.FirstOrDefault(u => u.Id == userId);
 
             if (user == null)
             {
                 ViewBag.Error = "Informations invalides.";
+                ViewBag.Step = 2;
                 return View();
             }
 
             ViewBag.UserId = user.Id;
             ViewBag.Question = user.QuestionSecurite;
 
-            if (string.IsNullOrWhiteSpace(reponseSecurite) ||
-                string.IsNullOrWhiteSpace(nouveauMotDePasse) ||
-                string.IsNullOrWhiteSpace(confirmerMotDePasse))
+            // -------- STEP 2 : Vérifier réponse --------
+            if (step == "2")
             {
-                ViewBag.Error = "Tous les champs sont obligatoires.";
+                if (string.IsNullOrWhiteSpace(reponseSecurite))
+                {
+                    ViewBag.Error = "Veuillez répondre à la question.";
+                    ViewBag.Step = 2;
+                    return View();
+                }
+
+                if (!VerifierReponseSecurite(user, reponseSecurite))
+                {
+                    ViewBag.Error = "Réponse incorrecte.";
+                    ViewBag.Step = 2; //  ne pas afficher les champs mot de passe
+                    return View();
+                }
+
+                //  Réponse correcte -> autoriser l'étape 3
+                HttpContext.Session.SetInt32("PwdResetVerifiedUserId", user.Id);
+
+                ViewBag.Step = 3; //  afficher champs nouveau mdp + confirmation
                 return View();
             }
 
-            if (nouveauMotDePasse != confirmerMotDePasse)
+            // -------- STEP 3 : Changer mot de passe --------
+            if (step == "3")
             {
-                ViewBag.Error = "La confirmation ne correspond pas.";
-                return View();
+                var verifiedId = HttpContext.Session.GetInt32("PwdResetVerifiedUserId");
+                if (verifiedId == null || verifiedId.Value != user.Id)
+                {
+                    ViewBag.Error = "Veuillez répondre à la question de sécurité avant de changer le mot de passe.";
+                    ViewBag.Step = 2;
+                    return View();
+                }
+
+                if (string.IsNullOrWhiteSpace(nouveauMotDePasse) ||
+                    string.IsNullOrWhiteSpace(confirmerMotDePasse))
+                {
+                    ViewBag.Error = "Tous les champs sont obligatoires.";
+                    ViewBag.Step = 3;
+                    return View();
+                }
+
+                if (nouveauMotDePasse != confirmerMotDePasse)
+                {
+                    ViewBag.Error = "La confirmation ne correspond pas.";
+                    ViewBag.Step = 3;
+                    return View();
+                }
+
+                if (!MotDePasseValide(nouveauMotDePasse))
+                {
+                    ViewBag.Error = "Le mot de passe doit contenir au moins 8 caractères, une majuscule, une minuscule, un chiffre et un caractère spécial.";
+                    ViewBag.Step = 3;
+                    return View();
+                }
+
+                if (VerifierMotDePasseSHA256AvecSalt(nouveauMotDePasse, user.MotDePasseSalt, user.MotDePasseHash))
+                {
+                    ViewBag.Error = "Le nouveau mot de passe doit être différent de l'ancien.";
+                    ViewBag.Step = 3;
+                    return View();
+                }
+
+                Guid salt = Guid.NewGuid();
+                byte[] hash = CalculerSHA256AvecSalt(nouveauMotDePasse, salt);
+
+                user.MotDePasseSalt = salt;
+                user.MotDePasseHash = hash;
+                user.EstMotDePasseProvisoire = false;
+
+                _context.SaveChanges();
+
+                // nettoyer
+                HttpContext.Session.Remove("PwdResetVerifiedUserId");
+
+                TempData["Success"] = "Mot de passe réinitialisé. Vous pouvez vous connecter.";
+                return RedirectToAction("Index");
             }
 
-            if (!MotDePasseValide(nouveauMotDePasse))
-            {
-                ViewBag.Error = "Le mot de passe doit contenir au moins 8 caractères, une majuscule, une minuscule, un chiffre et un caractère spécial.";
-                return View();
-            }
-
-            // interdire réutiliser l'ancien
-            if (VerifierMotDePasseSHA256AvecSalt(nouveauMotDePasse, user.MotDePasseSalt, user.MotDePasseHash))
-            {
-                ViewBag.Error = "Le nouveau mot de passe doit être différent de l'ancien.";
-                return View();
-            }
-
-            // vérifier réponse sécurité (hash + salt)
-            if (!VerifierReponseSecurite(user, reponseSecurite))
-            {
-                ViewBag.Error = "Informations invalides.";
-                return View();
-            }
-
-            Guid salt = Guid.NewGuid();
-            byte[] hash = CalculerSHA256AvecSalt(nouveauMotDePasse, salt);
-
-            user.MotDePasseSalt = salt;
-            user.MotDePasseHash = hash;
-            user.EstMotDePasseProvisoire = false;
-
-            _context.SaveChanges();
-
-            TempData["Success"] = "Mot de passe réinitialisé. Vous pouvez vous connecter.";
-            return RedirectToAction("Index");
+            // fallback
+            ViewBag.Step = 2;
+            return View();
         }
 
         // =========================
@@ -302,6 +370,15 @@ namespace GestionHoraire.Controllers
                 _ => RedirectToAction("Index", "Home")
             };
         }
+
+        private static string[] GetQuestionsSecurite() => new[]
+        {
+            "Quel est le nom de ta première école ?",
+            "Quel est le prénom de ta mère ?",
+            "Quel est le nom de ton premier animal ?",
+            "Dans quelle ville es-tu née ?",
+            "Quel est ton plat préféré ?"
+        };
 
         private static bool MotDePasseValide(string motDePasse)
         {
@@ -339,7 +416,6 @@ namespace GestionHoraire.Controllers
             if (user.ReponseSecuriteSalt == null || user.ReponseSecuriteHash == null)
                 return false;
 
-            // normaliser
             string normalized = (reponse ?? "").Trim().ToLowerInvariant();
 
             byte[] hashCalcule = CalculerSHA256AvecSalt(normalized, user.ReponseSecuriteSalt.Value);
