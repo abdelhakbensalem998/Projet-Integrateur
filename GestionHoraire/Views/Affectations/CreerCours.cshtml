@@ -1,4 +1,4 @@
-﻿@model GestionHoraire.Models.Cours
+@model GestionHoraire.Models.Cours
 
 <div class="container mt-5">
     <div class="row justify-content-center">
@@ -24,7 +24,7 @@
                         <input type="hidden" name="HeureFin" value="10:00" />
 
                         <div class="d-flex justify-content-between mt-4">
-                            <a asp-action="Affectations" class="btn btn-outline-secondary">Annuler</a>
+                            <a asp-controller="Affectations" asp-action="Index" class="btn btn-outline-secondary">Annuler</a>
                             <button type="submit" class="btn btn-success px-5 shadow-sm">Créer le cours</button>
                         </div>
                     </form>
