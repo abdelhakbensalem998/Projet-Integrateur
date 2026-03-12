@@ -16,6 +16,18 @@
 
     .card-module {
         border-radius: 15px;
+        position: relative;
+        overflow: hidden;
+    }
+
+    .badge-counter {
+        position: absolute;
+        top: 15px;
+        right: 15px;
+        font-size: 0.9rem;
+        padding: 0.5em 0.8em;
+        border-radius: 50px;
+        box-shadow: 0 2px 4px rgba(0,0,0,0.1);
     }
 </style>
 
@@ -33,50 +45,41 @@
                 </p>
             }
         </div>
-
         <a asp-controller="Login" asp-action="Logout" class="btn btn-outline-danger d-flex align-items-center gap-2 rounded-pill px-4 shadow-sm fw-bold text-decoration-none">
             <i class="bi bi-box-arrow-right"></i>
             <span>Déconnexion</span>
         </a>
     </div>
 
-    <div class="row g-4 text-center">
-        <div class="col-md-4">
-            <a asp-controller="Salles" asp-action="Index" class="text-decoration-none text-dark">
-                <div class="card h-100 shadow-sm hover-shadow border-0 border-top border-primary border-4 card-module">
-                    <div class="card-body py-5">
-                        <i class="bi bi-door-open display-4 text-primary mb-3"></i>
-                        <h3 class="fw-bold h4">Salles</h3>
-                        <p class="text-muted mb-0">Gestion des locaux</p>
-                    </div>
-                </div>
-            </a>
-        </div>
-
-        <div class="col-md-4">
+    <div class="row g-4 text-center mb-4">
+        <div class="col-md-6">
             <a asp-action="Profs" class="text-decoration-none text-dark">
                 <div class="card h-100 shadow-sm hover-shadow border-0 border-top border-success border-4 card-module">
+                    <span class="badge bg-success badge-counter">@ViewBag.NbProfesseurs</span>
                     <div class="card-body py-5">
                         <i class="bi bi-people display-4 text-success mb-3"></i>
                         <h3 class="fw-bold h4">Professeurs</h3>
-                        <p class="text-muted mb-0">Équipe pédagogique</p>
+                        <p class="text-muted mb-0">Gestion de l'équipe pédagogique</p>
                     </div>
                 </div>
             </a>
         </div>
 
-        <div class="col-md-4">
+        <div class="col-md-6">
             <a asp-controller="Groupes" asp-action="Index" class="text-decoration-none text-dark">
                 <div class="card h-100 shadow-sm hover-shadow border-0 border-top border-info border-4 card-module">
+                    <span class="badge bg-info badge-counter">@ViewBag.NbGroupes</span>
                     <div class="card-body py-5">
                         <i class="bi bi-mortarboard display-4 text-info mb-3"></i>
                         <h3 class="fw-bold h4">Groupes</h3>
-                        <p class="text-muted mb-0">Gestion des classes</p>
+                        <p class="text-muted mb-0">Gestion des classes et étudiants</p>
                     </div>
                 </div>
             </a>
         </div>
+    </div>
 
+    <div class="row g-4 text-center">
         <div class="col-md-6">
             <a asp-controller="Planning" asp-action="Index" class="text-decoration-none text-dark">
                 <div class="card h-100 shadow-sm hover-shadow border-0 border-top border-warning border-4 card-module">
@@ -95,7 +98,7 @@
                     <div class="card-body py-5">
                         <i class="bi bi-node-plus display-4 text-danger mb-3"></i>
                         <h3 class="fw-bold h4">Affectations</h3>
-                        <p class="text-muted mb-0">Attribuer cours et profs</p>
+                        <p class="text-muted mb-0">Attribuer les cours aux professeurs</p>
                     </div>
                 </div>
             </a>
