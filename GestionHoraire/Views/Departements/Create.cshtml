@@ -1,0 +1,41 @@
+@model GestionHoraire.Models.Departement
+
+@{
+    ViewData["Title"] = "Ajouter un Département";
+}
+
+<div class="container mt-5">
+    <div class="row justify-content-center">
+        <div class="col-md-6">
+            <div class="card shadow border-0 rounded-4">
+                <div class="card-header bg-warning py-3 text-center fw-bold text-dark rounded-top-4">
+                    <i class="bi bi-plus-circle-fill me-2"></i>Créer un Nouveau Département
+                </div>
+                <div class="card-body p-4">
+                    <form asp-action="Create" method="post">
+                        <div asp-validation-summary="ModelOnly" class="text-danger mb-3"></div>
+                        
+                        <div class="mb-4">
+                            <label asp-for="Nom" class="form-label fw-bold">Nom du département</label>
+                            <input asp-for="Nom" class="form-control" placeholder="ex: Informatique" />
+                            <span asp-validation-for="Nom" class="text-danger small mt-1"></span>
+                        </div>
+
+                        <div class="d-grid gap-2 mt-4">
+                            <button type="submit" class="btn btn-warning fw-bold shadow-sm">
+                                <i class="bi bi-check-circle me-2"></i>Enregistrer
+                            </button>
+                            <a asp-action="Index" class="btn btn-light shadow-sm">
+                                <i class="bi bi-arrow-left me-2"></i>Retour à la liste
+                            </a>
+                        </div>
+                    </form>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+@section Scripts {
+    @{await Html.RenderPartialAsync("_ValidationScriptsPartial");}
+}

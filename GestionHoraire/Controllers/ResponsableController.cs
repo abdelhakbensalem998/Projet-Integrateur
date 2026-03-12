@@ -137,13 +137,25 @@ namespace GestionHoraire.Controllers
         public async Task<IActionResult> Affectations()
         {
             int? monDeptId = GetMonDeptId();
-            if (monDeptId == null) return RedirectToAction("Index", "Login");
+            string userRole = HttpContext.Session.GetString("UserRole");
 
-            var cours = await _context.Cours
-                .Include(c => c.Utilisateur)
-                .Where(c => c.DepartementId == monDeptId)
-                .ToListAsync();
+            IQueryable<Cours> query = _context.Cours.Include(c => c.Utilisateur);
 
+            if (userRole == "Administrateur")
+            {
+                // L'admin voit toutes les affectations de tous les départements
+            }
+            else if (monDeptId != null)
+            {
+                // Le responsable ne voit que celles de son département
+                query = query.Where(c => c.DepartementId == monDeptId);
+            }
+            else
+            {
+                return RedirectToAction("Index", "Login");
+            }
+
+            var cours = await query.ToListAsync();
             return View(cours);
         }
 
