@@ -18,16 +18,31 @@ namespace GestionHoraire.Controllers
         public async Task<IActionResult> Index(int? groupeId)
         {
             int? deptId = HttpContext.Session.GetInt32("DepartementId");
-            if (deptId == null) return RedirectToAction("Login", "Account");
+            string userRole = HttpContext.Session.GetString("UserRole");
 
-            var groupesDuDept = await _context.Groupes.Where(g => g.DepartementId == deptId).ToListAsync();
-            ViewBag.Groupes = new SelectList(groupesDuDept, "Id", "Nom", groupeId);
+            // Si ce n'est pas un admin et pas de département, on redirige
+            if (deptId == null && userRole != "Administrateur") 
+                return RedirectToAction("Login", "Account");
 
-            var query = _context.Cours
+            List<Models.Groupe> groupesDuDept;
+            IQueryable<Models.Cours> query = _context.Cours
                 .Include(c => c.Utilisateur)
                 .Include(c => c.Salle)
-                .Include(c => c.Groupe)
-                .Where(c => c.DepartementId == deptId);
+                .Include(c => c.Groupe);
+
+            if (userRole == "Administrateur")
+            {
+                // L'admin voit tous les groupes de tous les départements
+                groupesDuDept = await _context.Groupes.ToListAsync();
+            }
+            else
+            {
+                // Un responsable ne voit que les groupes de son département
+                groupesDuDept = await _context.Groupes.Where(g => g.DepartementId == deptId).ToListAsync();
+                query = query.Where(c => c.DepartementId == deptId);
+            }
+
+            ViewBag.Groupes = new SelectList(groupesDuDept, "Id", "Nom", groupeId);
 
             if (groupeId.HasValue)
             {
