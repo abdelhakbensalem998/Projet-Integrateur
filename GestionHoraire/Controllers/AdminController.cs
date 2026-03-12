@@ -5,6 +5,7 @@ using GestionHoraire.Data;
 using GestionHoraire.Models;
 using System;
 using System.Linq;
+using System.Threading.Tasks;
 
 namespace GestionHoraire.Controllers
 {
@@ -17,29 +18,33 @@ namespace GestionHoraire.Controllers
             _context = context;
         }
 
-        // Page par défaut -> Dashboard
+        // ==========================================
+        // 1. DASHBOARD (AVEC COMPTEURS DYNAMIQUES)
+        // ==========================================
         [HttpGet]
-        public IActionResult Index()
+        public async Task<IActionResult> Dashboard()
         {
-            return RedirectToAction(nameof(Dashboard));
-        }
-
-        // =========================
-        // DASHBOARD (1 seule carte)
-        // =========================
-        [HttpGet]
-        public IActionResult Dashboard()
-        {
+            // Informations de session pour l'affichage
             ViewBag.UserNom = HttpContext.Session.GetString("UserNom") ?? "Admin";
             ViewBag.UserRole = HttpContext.Session.GetString("UserRole") ?? "Administrateur";
+
+            // Calcul des statistiques pour les badges .badge-count
+            ViewBag.TotalUsers = await _context.Utilisateurs.CountAsync();
+            ViewBag.TotalSalles = await _context.Salles.CountAsync();
+            ViewBag.TotalGroupes = await _context.Groupes.CountAsync();
+            ViewBag.TotalDepts = await _context.Departements.CountAsync();
+
             return View();
         }
 
-        // =========================
-        // LISTE UTILISATEURS + FILTRE
-        // =========================
         [HttpGet]
-        public IActionResult Utilisateurs(string roleFilter)
+        public IActionResult Index() => RedirectToAction(nameof(Dashboard));
+
+        // ==========================================
+        // 2. GESTION DES UTILISATEURS (LISTE)
+        // ==========================================
+        [HttpGet]
+        public async Task<IActionResult> Utilisateurs(string roleFilter)
         {
             ViewBag.UserNom = HttpContext.Session.GetString("UserNom") ?? "Admin";
             ViewBag.UserRole = HttpContext.Session.GetString("UserRole") ?? "Administrateur";
@@ -53,107 +58,103 @@ namespace GestionHoraire.Controllers
                 query = query.Where(u => u.Role == roleFilter);
             }
 
-            return View(query.ToList());
+            var users = await query.OrderBy(u => u.Nom).ToListAsync();
+            return View(users);
         }
 
-        // =========================
-        // CREATE (GET)
-        // =========================
+        // ==========================================
+        // 3. CRÉATION D'UTILISATEUR
+        // ==========================================
         [HttpGet]
-        public IActionResult CreateUser()
+        public async Task<IActionResult> CreateUser()
         {
-            ViewBag.UserNom = HttpContext.Session.GetString("UserNom") ?? "Admin";
-            ViewBag.UserRole = HttpContext.Session.GetString("UserRole") ?? "Administrateur";
-            ViewBag.Departements = _context.Departements.ToList();
+            ViewBag.Departements = await _context.Departements.ToListAsync();
             return View();
         }
 
-        // =========================
-        // CREATE (POST)
-        // =========================
         [HttpPost]
         [ValidateAntiForgeryToken]
-        public IActionResult CreateUser(Utilisateur user)
+        public async Task<IActionResult> CreateUser(Utilisateur user)
         {
-            if (!ModelState.IsValid)
+            if (ModelState.IsValid)
             {
-                ViewBag.UserNom = HttpContext.Session.GetString("UserNom") ?? "Admin";
-                ViewBag.UserRole = HttpContext.Session.GetString("UserRole") ?? "Administrateur";
-                ViewBag.Departements = _context.Departements.ToList();
-                return View(user);
+                user.DateCreation = DateTime.Now;
+                _context.Utilisateurs.Add(user);
+                await _context.SaveChangesAsync();
+                TempData["Success"] = "Utilisateur créé avec succès !";
+                return RedirectToAction(nameof(Utilisateurs));
             }
 
-            user.DateCreation = DateTime.Now;
-            _context.Utilisateurs.Add(user);
-            _context.SaveChanges();
-
-            return RedirectToAction(nameof(Utilisateurs));
-        }
-
-        // =========================
-        // EDIT (GET)
-        // =========================
-        [HttpGet]
-        public IActionResult EditUser(int id)
-        {
-            ViewBag.UserNom = HttpContext.Session.GetString("UserNom") ?? "Admin";
-            ViewBag.UserRole = HttpContext.Session.GetString("UserRole") ?? "Administrateur";
-            ViewBag.Departements = _context.Departements.ToList();
-
-            var user = _context.Utilisateurs.Find(id);
-            if (user == null)
-                return NotFound();
-
+            ViewBag.Departements = await _context.Departements.ToListAsync();
             return View(user);
         }
 
-        // =========================
-        // EDIT (POST)
-        // =========================
+        // ==========================================
+        // 4. MODIFICATION D'UTILISATEUR
+        // ==========================================
+        [HttpGet]
+        public async Task<IActionResult> EditUser(int id)
+        {
+            var user = await _context.Utilisateurs.FindAsync(id);
+            if (user == null) return NotFound();
+
+            ViewBag.Departements = await _context.Departements.ToListAsync();
+            return View(user);
+        }
+
         [HttpPost]
         [ValidateAntiForgeryToken]
-        public IActionResult EditUser(int id, Utilisateur user)
+        public async Task<IActionResult> EditUser(int id, Utilisateur user)
         {
-            if (id != user.Id)
-                return BadRequest();
+            if (id != user.Id) return BadRequest();
 
-            if (!ModelState.IsValid)
+            if (ModelState.IsValid)
             {
-                ViewBag.UserNom = HttpContext.Session.GetString("UserNom") ?? "Admin";
-                ViewBag.UserRole = HttpContext.Session.GetString("UserRole") ?? "Administrateur";
-                ViewBag.Departements = _context.Departements.ToList();
-                return View(user);
+                try
+                {
+                    var existing = await _context.Utilisateurs.FindAsync(id);
+                    if (existing == null) return NotFound();
+
+                    existing.Nom = user.Nom;
+                    existing.Email = user.Email;
+                    existing.Role = user.Role;
+                    existing.DepartementId = user.DepartementId;
+
+                    await _context.SaveChangesAsync();
+                    TempData["Success"] = "Informations mises à jour.";
+                }
+                catch (DbUpdateConcurrencyException)
+                {
+                    if (!UserExists(id)) return NotFound();
+                    else throw;
+                }
+                return RedirectToAction(nameof(Utilisateurs));
             }
 
-            var existing = _context.Utilisateurs.Find(id);
-            if (existing == null)
-                return NotFound();
+            ViewBag.Departements = await _context.Departements.ToListAsync();
+            return View(user);
+        }
 
-            existing.Nom = user.Nom;
-            existing.Email = user.Email;
-            existing.Role = user.Role;
-            existing.DepartementId = user.DepartementId;
-
-            _context.SaveChanges();
-
+        // ==========================================
+        // 5. SUPPRESSION D'UTILISATEUR
+        // ==========================================
+        [HttpPost]
+        [ValidateAntiForgeryToken]
+        public async Task<IActionResult> DeleteUser(int id)
+        {
+            var user = await _context.Utilisateurs.FindAsync(id);
+            if (user != null)
+            {
+                _context.Utilisateurs.Remove(user);
+                await _context.SaveChangesAsync();
+                TempData["Success"] = "Utilisateur supprimé.";
+            }
             return RedirectToAction(nameof(Utilisateurs));
         }
 
-        // =========================
-        // DELETE (POST)
-        // =========================
-        [HttpPost]
-        [ValidateAntiForgeryToken]
-        public IActionResult DeleteUser(int id)
+        private bool UserExists(int id)
         {
-            var utilisateur = _context.Utilisateurs.Find(id);
-            if (utilisateur != null)
-            {
-                _context.Utilisateurs.Remove(utilisateur);
-                _context.SaveChanges();
-            }
-
-            return RedirectToAction(nameof(Utilisateurs));
+            return _context.Utilisateurs.Any(e => e.Id == id);
         }
     }
 }
