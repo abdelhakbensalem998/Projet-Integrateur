@@ -1,5 +1,7 @@
-﻿@model IEnumerable<GestionHoraire.Models.Groupe>
+@model IEnumerable<GestionHoraire.Models.Groupe>
 @using Microsoft.AspNetCore.Http
+
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.0/font/bootstrap-icons.css">
 
 @{
     ViewData["Title"] = "Gestion des Groupes";
@@ -16,9 +18,14 @@
                 Mode : <strong>@(Context.Session.GetString("UserRole") == "Administrateur" ? "Administration Globale" : "Départemental")</strong>
             </p>
         </div>
-        <a asp-controller="Groupes" asp-action="Ajouter" class="btn btn-warning shadow-sm rounded-pill px-4 fw-bold text-white transition-hover">
-            <i class="bi bi-plus-lg me-1"></i> Nouveau Groupe
-        </a>
+        <div class="d-flex gap-2">
+            <a asp-controller="Responsable" asp-action="Index" class="btn btn-outline-secondary shadow-sm rounded-pill px-3 fw-bold transition-hover">
+                <i class="bi bi-house-door me-1"></i> Tableau de bord
+            </a>
+            <a asp-controller="Groupes" asp-action="Ajouter" class="btn btn-warning shadow-sm rounded-pill px-4 fw-bold text-white transition-hover">
+                <i class="bi bi-plus-lg me-1"></i> Nouveau Groupe
+            </a>
+        </div>
     </div>
 
     @* --- ZONE DE FILTRE --- *@

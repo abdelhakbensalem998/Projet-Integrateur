@@ -15,8 +15,8 @@
             <p class="text-muted mb-0">Gérez les cours du département et assignez les professeurs.</p>
         </div>
         <div class="d-flex gap-2">
-            <a asp-action="Index" class="btn btn-outline-secondary rounded-pill px-3">
-                <i class="bi bi-house-door"></i> Accueil
+            <a asp-controller="Responsable" asp-action="Index" class="btn btn-outline-secondary rounded-pill px-3 shadow-sm">
+                <i class="bi bi-house-door me-1"></i> Tableau de bord
             </a>
             <a asp-action="CreerCours" class="btn btn-success rounded-pill px-4 shadow-sm">
                 <i class="bi bi-plus-circle me-1"></i> Nouveau Cours
@@ -80,7 +80,7 @@
                                 <td class="text-end pe-4">
                                     <div class="btn-group shadow-sm rounded">
                                         <a asp-action="EditerAffectation" asp-route-id="@item.Id"
-                                           class="btn btn-sm btn-white border" title="Modifier le professeur">
+                                           class="btn btn-sm btn-white border btn-dynamic" title="Modifier le professeur">
                                             <i class="bi bi-person-plus text-primary"></i> Affecter
                                         </a>
 
@@ -88,7 +88,7 @@
                                               method="post" onsubmit="return confirm('Êtes-vous sûr de vouloir supprimer ce cours ?');"
                                               style="display:inline;">
                                             @Html.AntiForgeryToken()
-                                            <button type="submit" class="btn btn-sm btn-white border border-start-0" title="Supprimer">
+                                            <button type="submit" class="btn btn-sm btn-white border border-start-0 btn-dynamic" title="Supprimer">
                                                 <i class="bi bi-trash text-danger"></i>
                                             </button>
                                         </form>
@@ -122,4 +122,17 @@
         .btn-white:hover {
             background: #f8f9fa;
         }
+
+    .btn-dynamic {
+        transition: all 0.3s ease;
+    }
+
+    .btn-dynamic:hover {
+        transform: translateY(-2px);
+        box-shadow: 0 4px 8px rgba(0,0,0,0.15) !important;
+    }
+
+    .btn-dynamic:active {
+        transform: translateY(0);
+    }
 </style>

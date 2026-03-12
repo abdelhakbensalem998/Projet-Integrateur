@@ -87,6 +87,57 @@ namespace GestionHoraire.Controllers
             return View(prof);
         }
 
+        [HttpGet]
+        public async Task<IActionResult> EditerProf(int id)
+        {
+            var prof = await _context.Utilisateurs.FindAsync(id);
+            if (prof == null || prof.DepartementId != GetMonDeptId())
+            {
+                return NotFound();
+            }
+            return View(prof);
+        }
+
+        [HttpPost]
+        [ValidateAntiForgeryToken]
+        public async Task<IActionResult> EditerProf(int id, [Bind("Id,Nom,Email")] Utilisateur prof)
+        {
+            if (id != prof.Id) return NotFound();
+
+            var existingProf = await _context.Utilisateurs.FindAsync(id);
+            if (existingProf == null || existingProf.DepartementId != GetMonDeptId())
+            {
+                return NotFound();
+            }
+
+            existingProf.Nom = prof.Nom;
+            existingProf.Email = prof.Email;
+
+            // Remove non-edited fields from validation
+            ModelState.Remove("MotDePasseHash");
+            ModelState.Remove("MotDePasseSalt");
+            ModelState.Remove("Role");
+            ModelState.Remove("Departement");
+
+            if (ModelState.IsValid)
+            {
+                try
+                {
+                    _context.Update(existingProf);
+                    await _context.SaveChangesAsync();
+                }
+                catch (DbUpdateConcurrencyException)
+                {
+                    if (!ProfExists(prof.Id)) return NotFound();
+                    else throw;
+                }
+                return RedirectToAction(nameof(Profs));
+            }
+            return View(prof);
+        }
+
+        private bool ProfExists(int id) => _context.Utilisateurs.Any(e => e.Id == id);
+
         [HttpPost]
         [ValidateAntiForgeryToken]
         public async Task<IActionResult> SupprimerProf(int id)
