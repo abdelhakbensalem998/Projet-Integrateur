@@ -3,6 +3,9 @@ using Microsoft.AspNetCore.Mvc.Rendering;
 using Microsoft.EntityFrameworkCore;
 using GestionHoraire.Data;
 using GestionHoraire.Models;
+using Microsoft.AspNetCore.Http;
+using System.Linq;
+using System.Threading.Tasks;
 
 namespace GestionHoraire.Controllers
 {
@@ -15,45 +18,67 @@ namespace GestionHoraire.Controllers
             _context = context;
         }
 
-        // 1. LISTE DES GROUPES
-
-        public async Task<IActionResult> Index()
+        // ==========================================
+        // 1. LISTE DES GROUPES (INDEX)
+        // ==========================================
+        public async Task<IActionResult> Index(int? idDept)
         {
-            // 1. Récupérer l'ID du département depuis la SESSION
-            int? departementId = HttpContext.Session.GetInt32("DepartementId");
+            // Récupération des infos de session
+            string userRole = HttpContext.Session.GetString("UserRole") ?? "";
+            int? sessionDeptId = HttpContext.Session.GetInt32("DepartementId");
 
-            // 2. Vérifier si l'ID existe
-            if (departementId == null)
+            // Requête de base avec jointure sur le département
+            var query = _context.Groupes.Include(g => g.Departement).AsQueryable();
+
+            if (userRole == "Administrateur")
             {
-                // Si pas de session, on peut rediriger vers le login ou afficher liste vide
-                return RedirectToAction("Index", "Login");
+                // Pour l'Admin : on prépare la liste de tous les départements pour le filtre
+                var listeDepts = await _context.Departements.OrderBy(d => d.Nom).ToListAsync();
+                ViewBag.Departements = new SelectList(listeDepts, "Id", "Nom", idDept);
+
+                // Application du filtre si sélectionné
+                if (idDept.HasValue && idDept > 0)
+                {
+                    query = query.Where(g => g.DepartementId == idDept.Value);
+                }
+            }
+            else
+            {
+                // Pour le Responsable : filtrage strict sur son département de session
+                if (sessionDeptId == null) return RedirectToAction("Index", "Login");
+                query = query.Where(g => g.DepartementId == sessionDeptId.Value);
             }
 
-            // 3. Filtrer les groupes par ce DepartementId
-            var groupes = await _context.Groupes
-                                        .Include(g => g.Departement)
-                                        .Where(g => g.DepartementId == departementId.Value)
-                                        .OrderBy(g => g.Nom)
-                                        .ToListAsync();
+            var groupes = await query
+                .OrderBy(g => g.Departement.Nom)
+                .ThenBy(g => g.Nom)
+                .ToListAsync();
 
             return View("groupe", groupes);
         }
 
-        // 3. AJOUTER - POST
+        // ==========================================
+        // 2. AJOUTER UN GROUPE
+        // ==========================================
+        [HttpGet]
+        public async Task<IActionResult> Ajouter()
+        {
+            // On passe la liste des départements pour que l'admin puisse choisir
+            ViewBag.Departements = new SelectList(await _context.Departements.ToListAsync(), "Id", "Nom");
+            return View();
+        }
+
         [HttpPost]
         [ValidateAntiForgeryToken]
         public async Task<IActionResult> Ajouter(Groupe groupe)
         {
-            int? departementId = HttpContext.Session.GetInt32("DepartementId");
+            string userRole = HttpContext.Session.GetString("UserRole") ?? "";
 
-            if (departementId != null)
+            // Sécurité : si ce n'est pas un admin, on force le département du responsable
+            if (userRole != "Administrateur")
             {
-                groupe.DepartementId = departementId.Value; // On force son département
+                groupe.DepartementId = HttpContext.Session.GetInt32("DepartementId") ?? 0;
             }
-
-            // On retire les erreurs de validation liées au département puisqu'on le gère en interne
-            ModelState.Remove("Departement");
-            ModelState.Remove("DepartementId");
 
             if (ModelState.IsValid)
             {
@@ -61,40 +86,35 @@ namespace GestionHoraire.Controllers
                 await _context.SaveChangesAsync();
                 return RedirectToAction(nameof(Index));
             }
+
+            ViewBag.Departements = new SelectList(await _context.Departements.ToListAsync(), "Id", "Nom", groupe.DepartementId);
             return View(groupe);
         }
-        // AJOUTER - GET (C'est cette méthode qui ouvre la page !)
-        [HttpGet]
-        public IActionResult Ajouter()
-        {
-            ViewData["Title"] = "Ajouter un nouveau groupe";
-            return View();
-        }
 
-        // 4. MODIFIER - GET
-        // 4. MODIFIER - GET : Affiche le formulaire avec les données actuelles
+        // ==========================================
+        // 3. MODIFIER UN GROUPE
+        // ==========================================
         [HttpGet]
         public async Task<IActionResult> Modifier(int? id)
         {
             if (id == null) return NotFound();
 
-            // On cherche le groupe dans la base
             var groupe = await _context.Groupes.FindAsync(id);
-
             if (groupe == null) return NotFound();
 
-            // On vérifie que le groupe appartient bien au département du responsable (Sécurité)
-            int? userDeptId = HttpContext.Session.GetInt32("DepartementId");
-            if (groupe.DepartementId != userDeptId)
+            // Vérification de sécurité pour les responsables
+            string userRole = HttpContext.Session.GetString("UserRole") ?? "";
+            int? sessionDeptId = HttpContext.Session.GetInt32("DepartementId");
+
+            if (userRole != "Administrateur" && groupe.DepartementId != sessionDeptId)
             {
-                return Unauthorized(); // Le responsable ne peut pas modifier un groupe d'un autre département
+                return Unauthorized();
             }
 
+            ViewBag.Departements = new SelectList(await _context.Departements.ToListAsync(), "Id", "Nom", groupe.DepartementId);
             return View(groupe);
         }
 
-
-        // 5. MODIFIER - POST
         [HttpPost]
         [ValidateAntiForgeryToken]
         public async Task<IActionResult> Modifier(int id, Groupe groupe)
@@ -119,21 +139,30 @@ namespace GestionHoraire.Controllers
             return View(groupe);
         }
 
-        // 6. SUPPRIMER - POST
+        // ==========================================
+        // 4. SUPPRIMER UN GROUPE
+        // ==========================================
         [HttpPost]
         [ValidateAntiForgeryToken]
         public async Task<IActionResult> Supprimer(int id)
         {
             var groupe = await _context.Groupes.FindAsync(id);
-            if (groupe != null)
+            if (groupe == null) return NotFound();
+
+            // Sécurité additionnelle
+            string userRole = HttpContext.Session.GetString("UserRole") ?? "";
+            int? sessionDeptId = HttpContext.Session.GetInt32("DepartementId");
+
+            if (userRole != "Administrateur" && groupe.DepartementId != sessionDeptId)
             {
-                _context.Groupes.Remove(groupe);
-                await _context.SaveChangesAsync();
+                return Unauthorized();
             }
+
+            _context.Groupes.Remove(groupe);
+            await _context.SaveChangesAsync();
             return RedirectToAction(nameof(Index));
         }
 
-        // Vérification d'existence (Helper)
         private bool GroupeExists(int id)
         {
             return _context.Groupes.Any(e => e.Id == id);

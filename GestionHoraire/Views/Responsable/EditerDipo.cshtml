@@ -1,4 +1,4 @@
-﻿@model GestionHoraire.Models.Disponibilite
+@model GestionHoraire.Models.Disponibilite
 
 <div class="container mt-5">
     <div class="row justify-content-center">
@@ -40,7 +40,7 @@
 
                         <div class="d-grid gap-2 mt-4">
                             <button type="submit" class="btn btn-primary">Enregistrer les modifications</button>
-                            <a asp-action="VoirDispos" asp-route-id="@Model.UtilisateurId" class="btn btn-outline-secondary">Annuler</a>
+                            <a asp-controller="Affectations" asp-action="VoirDispos" asp-route-id="@Model.UtilisateurId" class="btn btn-outline-secondary">Annuler</a>
                         </div>
                     </form>
                 </div>

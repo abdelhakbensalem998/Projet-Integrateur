@@ -1,4 +1,4 @@
-﻿@model IEnumerable<GestionHoraire.Models.Disponibilite>
+@model IEnumerable<GestionHoraire.Models.Disponibilite>
 
 @{
     ViewData["Title"] = "Disponibilités de " + ViewBag.ProfNom;
@@ -26,7 +26,7 @@
                     <h5 class="card-title mb-0 small text-uppercase fw-bold">Ajouter un créneau</h5>
                 </div>
                 <div class="card-body p-4">
-                    <form asp-action="AjouterDispo" method="post">
+                    <form asp-controller="Affectations" asp-action="AjouterDispo" method="post">
                         @Html.AntiForgeryToken()
                         <input type="hidden" name="profId" value="@ViewBag.ProfId" />
 
@@ -103,7 +103,7 @@
                                                 </span>
                                             </td>
                                             <td class="text-end pe-4">
-                                                <form asp-action="SupprimerDispo" method="post"
+                                                <form asp-controller="Affectations" asp-action="SupprimerDispo" method="post"
                                                       onsubmit="return confirm('Voulez-vous vraiment supprimer ce créneau ?');"
                                                       style="display:inline;">
                                                     @Html.AntiForgeryToken()
