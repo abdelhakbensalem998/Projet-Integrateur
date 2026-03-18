@@ -35,6 +35,13 @@ namespace GestionHoraire.Controllers
         {
             if (ModelState.IsValid)
             {
+                // Vérifier si le département existe déjà (insensible à la casse)
+                if (await _context.Departements.AnyAsync(d => d.Nom.ToLower() == departement.Nom.ToLower()))
+                {
+                    ModelState.AddModelError("Nom", "Ce département existe déjà.");
+                    return View(departement);
+                }
+
                 _context.Add(departement);
                 await _context.SaveChangesAsync();
                 TempData["SuccessMessage"] = "Département ajouté avec succès.";
@@ -71,6 +78,13 @@ namespace GestionHoraire.Controllers
 
             if (ModelState.IsValid)
             {
+                // Vérifier si un autre département avec le même nom existe déjà (insensible à la casse)
+                if (await _context.Departements.AnyAsync(d => d.Nom.ToLower() == departement.Nom.ToLower() && d.Id != id))
+                {
+                    ModelState.AddModelError("Nom", "Ce département existe déjà.");
+                    return View(departement);
+                }
+
                 try
                 {
                     _context.Update(departement);
