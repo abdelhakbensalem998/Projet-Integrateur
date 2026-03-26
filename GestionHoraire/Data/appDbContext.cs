@@ -1,16 +1,13 @@
-﻿using Microsoft.EntityFrameworkCore;
-using GestionHoraire.Models;
-using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
+﻿using GestionHoraire.Models;
+using Microsoft.EntityFrameworkCore;
 
 namespace GestionHoraire.Data
 {
     public class AppDbContext : DbContext
     {
-        public AppDbContext(DbContextOptions<AppDbContext> options)
-            : base(options)
-        {
-        }
+        public AppDbContext(DbContextOptions<AppDbContext> options) : base(options) { }
 
+        // ===== Tables principales =====
         public DbSet<Utilisateur> Utilisateurs { get; set; }
         public DbSet<Cours> Cours { get; set; }
         public DbSet<Salle> Salles { get; set; }
@@ -18,20 +15,22 @@ namespace GestionHoraire.Data
         public DbSet<Disponibilite> Disponibilites { get; set; }
         public DbSet<Groupe> Groupes { get; set; }
 
+        // ===== Sécurité / OTP / Logs =====
+        public DbSet<EmailOtp> EmailOtps { get; set; }
+        public DbSet<SecurityLog> SecurityLogs { get; set; }
+        public DbSet<TrustedDevice> TrustedDevices { get; set; }
+
         protected override void OnModelCreating(ModelBuilder modelBuilder)
         {
             base.OnModelCreating(modelBuilder);
 
-            // On force la conversion vers INT pour matcher ta DB
             modelBuilder.Entity<Disponibilite>()
                 .Property(d => d.Jour)
                 .HasConversion<int>();
 
-            // Configuration pour le mot de passe si nécessaire
             modelBuilder.Entity<Utilisateur>()
                 .Property(u => u.MotDePasseSalt)
                 .HasColumnType("uniqueidentifier");
         }
-
     }
 }
