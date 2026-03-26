@@ -1,0 +1,227 @@
+﻿@{
+    ViewData["Title"] = "Vérifier le code";
+}
+
+<style>
+    .page-wrap {
+        min-height: 100vh;
+        display: flex;
+        justify-content: center;
+        align-items: center;
+        padding: 24px;
+        background: #f4f7ff;
+    }
+
+    .auth-shell {
+        width: min(1100px,95vw);
+        min-height: 560px;
+        display: grid;
+        grid-template-columns: 1.05fr 1fr;
+        border-radius: 22px;
+        overflow: hidden;
+        box-shadow: 0 18px 55px rgba(0,0,0,.18);
+    }
+
+    .left-panel {
+        padding: 56px 52px;
+        color: #fff;
+        background: linear-gradient(180deg,#1b4ed8 0%,#143aa6 100%);
+        position: relative;
+    }
+
+    .brand-title {
+        font-size: 52px;
+        font-weight: 800;
+        margin: 0 0 18px 0;
+    }
+
+    .brand-sub {
+        font-size: 20px;
+        opacity: .92;
+        margin: 0 0 30px 0;
+        line-height: 1.5;
+    }
+
+    .feature-list {
+        margin: 18px 0 0 0;
+        padding: 0;
+        list-style: none;
+        display: grid;
+        gap: 14px;
+        font-size: 18px;
+    }
+
+    .feature-item {
+        display: flex;
+        gap: 12px;
+        align-items: center;
+        opacity: .95;
+    }
+
+    .feature-ico {
+        width: 34px;
+        height: 34px;
+        border-radius: 10px;
+        display: grid;
+        place-items: center;
+        background: rgba(255,255,255,.14);
+        font-size: 18px;
+    }
+
+    .right-panel {
+        background: #fff;
+        padding: 56px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+    }
+
+    .card {
+        width: 100%;
+        max-width: 520px;
+    }
+
+        .card h1 {
+            font-size: 40px;
+            font-weight: 800;
+            margin: 0 0 18px 0;
+            color: #111827;
+            text-align: center;
+        }
+
+    .mini-info {
+        text-align: center;
+        margin-bottom: 18px;
+        color: #374151;
+        font-size: 14.5px;
+    }
+
+    .alert {
+        border-radius: 14px;
+        padding: 12px 14px;
+        margin: 10px 0 18px 0;
+        font-weight: 600;
+        font-size: 14px;
+    }
+
+    .alert-danger {
+        background: #fff1f2;
+        color: #9f1239;
+        border: 1px solid #fecdd3;
+    }
+
+    .form-group {
+        margin-bottom: 16px;
+    }
+
+    .label {
+        font-weight: 700;
+        color: #111827;
+        margin-bottom: 8px;
+        display: block;
+    }
+
+    .input {
+        width: 100%;
+        padding: 14px;
+        border-radius: 12px;
+        border: 1px solid #e5e7eb;
+        outline: none;
+        font-size: 16px;
+        transition: .15s;
+    }
+
+        .input:focus {
+            border-color: #3b82f6;
+            box-shadow: 0 0 0 4px rgba(59,130,246,.14);
+        }
+
+    .btn-primary {
+        width: 100%;
+        border: none;
+        border-radius: 12px;
+        padding: 14px;
+        background: #1366ff;
+        color: #fff;
+        font-size: 18px;
+        font-weight: 800;
+        cursor: pointer;
+        margin-top: 10px;
+    }
+
+        .btn-primary:hover {
+            transform: translateY(-1px);
+            box-shadow: 0 12px 30px rgba(19,102,255,.25);
+        }
+
+    .back-link {
+        display: block;
+        text-align: center;
+        margin-top: 16px;
+        color: #2563eb;
+        font-weight: 700;
+        text-decoration: none;
+    }
+
+        .back-link:hover {
+            text-decoration: underline;
+        }
+</style>
+
+<div class="page-wrap">
+    <div class="auth-shell">
+
+        <div class="left-panel">
+
+            <h2 class="brand-title">Gestion Horaire</h2>
+
+            <p class="brand-sub">
+                Nous avons envoyé un code de vérification à votre email.
+                <br />
+                Entrez ce code pour continuer la récupération du mot de passe.
+            </p>
+
+            <ul class="feature-list">
+                <li class="feature-item"><span class="feature-ico">📧</span> Code envoyé par email</li>
+                <li class="feature-item"><span class="feature-ico">⏱️</span> Code valide 10 minutes</li>
+                <li class="feature-item"><span class="feature-ico">🔒</span> Vérification sécurisée</li>
+                <li class="feature-item"><span class="feature-ico">🔑</span> Accès restauré</li>
+            </ul>
+
+        </div>
+
+        <div class="right-panel">
+
+            <div class="card">
+
+                <h1>Entrer le code</h1>
+
+                <div class="mini-info">
+                    Veuillez entrer le code de vérification reçu par email.
+                </div>
+
+                @if (ViewBag.Error != null)
+                {
+                    <div class="alert alert-danger">@ViewBag.Error</div>
+                }
+
+                <form asp-action="VerifyCode" method="post">
+                    @Html.AntiForgeryToken()
+
+                    <div class="form-group">
+                        <label class="label">Code de vérification</label>
+                        <input class="input" name="code" placeholder="Ex : 458921" />
+                    </div>
+
+                    <button class="btn-primary" type="submit">Vérifier le code</button>
+
+                </form>
+
+                <a class="back-link" asp-controller="Login" asp-action="ForgotPassword">← Retour</a>
+
+            </div>
+
+        </div>
+
+    </div>
+</div>
