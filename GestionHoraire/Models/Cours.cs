@@ -7,6 +7,8 @@ namespace GestionHoraire.Models
     {
         [Key]
         public int Id { get; set; }
+
+        [Required]
         public string Titre { get; set; }
 
         [Required]
@@ -18,14 +20,19 @@ namespace GestionHoraire.Models
         [Required]
         public TimeSpan HeureFin { get; set; }
 
+        // ✅ AJOUT : correspond à dbo.Cours.Type (NVARCHAR)
+        [MaxLength(50)]
+        public string? Type { get; set; }
+
         public int DepartementId { get; set; }
         public Departement Departement { get; set; }
 
-        public int? UtilisateurId { get; set; } 
+        public int? UtilisateurId { get; set; }
         public Utilisateur Utilisateur { get; set; }
 
         public int? SalleId { get; set; }
         public Salle Salle { get; set; }
+
         public int? GroupeId { get; set; }
         public Groupe Groupe { get; set; }
     }

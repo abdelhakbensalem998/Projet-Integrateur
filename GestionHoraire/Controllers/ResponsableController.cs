@@ -1,10 +1,14 @@
-using Microsoft.AspNetCore.Mvc;
-using Microsoft.EntityFrameworkCore;
 using GestionHoraire.Data;
 using GestionHoraire.Models;
+using GestionHoraire.Services;
 using Microsoft.AspNetCore.Http;
+using Microsoft.AspNetCore.Mvc;
+using Microsoft.EntityFrameworkCore;
+using System;
+using System.Linq;
 using System.Security.Cryptography;
 using System.Text;
+using System.Threading.Tasks;
 
 namespace GestionHoraire.Controllers
 {
@@ -17,189 +21,168 @@ namespace GestionHoraire.Controllers
             _context = context;
         }
 
-        private int? GetMonDeptId() => HttpContext.Session.GetInt32("DepartementId");
+        private int? GetDeptId() => HttpContext.Session.GetInt32("DepartementId");
+        private int? GetUserId() => HttpContext.Session.GetInt32("UserId");
 
-        // 1. ACCUEIL (Tableau de bord sans les Salles)
+        // =========================
+        // DASHBOARD RESPONSABLE
+        // =========================
         public async Task<IActionResult> Index()
         {
-            int? userId = HttpContext.Session.GetInt32("UserId");
-            int? deptId = GetMonDeptId();
-
+            var userId = GetUserId();
+            var deptId = GetDeptId();
             if (userId == null || deptId == null) return RedirectToAction("Index", "Login");
 
-            var user = await _context.Utilisateurs
+            var responsable = await _context.Utilisateurs
                 .Include(u => u.Departement)
-                .FirstOrDefaultAsync(u => u.Id == userId);
+                .FirstOrDefaultAsync(u => u.Id == userId.Value);
 
-            if (user == null) return RedirectToAction("Logout", "Login");
+            if (responsable == null) return RedirectToAction("Logout", "Login");
 
-            // Compteurs pour les badges
             ViewBag.NbProfesseurs = await _context.Utilisateurs
-                .CountAsync(u => u.Role == "Professeur" && u.DepartementId == deptId);
+                .CountAsync(u => u.Role == "Professeur" && u.DepartementId == deptId.Value);
 
             ViewBag.NbGroupes = await _context.Groupes
-                .CountAsync(g => g.DepartementId == deptId);
+                .CountAsync(g => g.DepartementId == deptId.Value);
 
-            return View(user);
+            return View(responsable);
         }
 
-        // 2. GESTION DES PROFESSEURS
+        // =========================
+        // LISTE DES PROFESSEURS
+        // =========================
         public async Task<IActionResult> Profs()
         {
-            int? deptId = GetMonDeptId();
+            var deptId = GetDeptId();
+            if (deptId == null) return RedirectToAction("Index", "Login");
+
             var profs = await _context.Utilisateurs
-                .Where(u => u.Role == "Professeur" && u.DepartementId == deptId)
+                .Where(u => u.Role == "Professeur" && u.DepartementId == deptId.Value)
+                .OrderBy(u => u.Nom)
                 .ToListAsync();
+
             return View(profs);
         }
 
+        // =========================
+        // CREER PROF (GET)
+        // =========================
         [HttpGet]
-        public IActionResult CreerProf() => View();
-
-        [HttpPost]
-        [ValidateAntiForgeryToken]
-        public async Task<IActionResult> CreerProf(Utilisateur prof, string password)
+        public IActionResult CreerProf()
         {
-            prof.Role = "Professeur";
-            prof.DepartementId = GetMonDeptId();
-            prof.DateCreation = DateTime.Now;
-            prof.Disponibilite = true;
-            prof.EstMotDePasseProvisoire = true;
-
-            if (!string.IsNullOrEmpty(password))
-            {
-                Guid salt = Guid.NewGuid();
-                prof.MotDePasseSalt = salt;
-                prof.MotDePasseHash = CalculerSHA256(password, salt);
-            }
-
-            ModelState.Remove("Departement");
-            ModelState.Remove("MotDePasseHash");
-            ModelState.Remove("MotDePasseSalt");
-            ModelState.Remove("Role");
-
-            if (ModelState.IsValid)
-            {
-                _context.Utilisateurs.Add(prof);
-                await _context.SaveChangesAsync();
-                return RedirectToAction(nameof(Profs));
-            }
-            return View(prof);
+            return View();
         }
 
-        [HttpGet]
-        public async Task<IActionResult> EditerProf(int id)
-        {
-            var prof = await _context.Utilisateurs.FindAsync(id);
-            if (prof == null || prof.DepartementId != GetMonDeptId())
-            {
-                return NotFound();
-            }
-            return View(prof);
-        }
-
+        // =========================
+        // CREER PROF (POST) + EMAIL
+        // =========================
         [HttpPost]
         [ValidateAntiForgeryToken]
-        public async Task<IActionResult> EditerProf(int id, [Bind("Id,Nom,Email")] Utilisateur prof)
+        public async Task<IActionResult> CreerProf(
+            string nom,
+            string email,
+            string motDePasseProvisoire,
+            [FromServices] EmailService emailService)
         {
-            if (id != prof.Id) return NotFound();
+            var deptId = GetDeptId();
+            if (deptId == null) return RedirectToAction("Index", "Login");
 
-            var existingProf = await _context.Utilisateurs.FindAsync(id);
-            if (existingProf == null || existingProf.DepartementId != GetMonDeptId())
+            if (string.IsNullOrWhiteSpace(nom) ||
+                string.IsNullOrWhiteSpace(email) ||
+                string.IsNullOrWhiteSpace(motDePasseProvisoire))
             {
-                return NotFound();
+                ViewBag.Error = "Tous les champs sont obligatoires.";
+                return View();
             }
 
-            existingProf.Nom = prof.Nom;
-            existingProf.Email = prof.Email;
-
-            // Remove non-edited fields from validation
-            ModelState.Remove("MotDePasseHash");
-            ModelState.Remove("MotDePasseSalt");
-            ModelState.Remove("Role");
-            ModelState.Remove("Departement");
-
-            if (ModelState.IsValid)
+            // email unique
+            if (_context.Utilisateurs.Any(u => u.Email == email))
             {
-                try
-                {
-                    _context.Update(existingProf);
-                    await _context.SaveChangesAsync();
-                }
-                catch (DbUpdateConcurrencyException)
-                {
-                    if (!ProfExists(prof.Id)) return NotFound();
-                    else throw;
-                }
-                return RedirectToAction(nameof(Profs));
+                ViewBag.Error = "Un compte avec cet email existe déjà.";
+                return View();
             }
-            return View(prof);
-        }
 
-        private bool ProfExists(int id) => _context.Utilisateurs.Any(e => e.Id == id);
-
-        [HttpPost]
-        [ValidateAntiForgeryToken]
-        public async Task<IActionResult> SupprimerProf(int id)
-        {
-            var prof = await _context.Utilisateurs.FindAsync(id);
-            if (prof != null && prof.DepartementId == GetMonDeptId())
+            // mot de passe provisoire doit respecter règles
+            if (!MotDePasseValide(motDePasseProvisoire))
             {
-                _context.Utilisateurs.Remove(prof);
-                await _context.SaveChangesAsync();
+                ViewBag.Error = "Le mot de passe provisoire doit contenir au moins 8 caractères, une majuscule, une minuscule, un chiffre et un caractère spécial.";
+                return View();
             }
+
+            // créer user prof
+            Guid salt = Guid.NewGuid();
+            byte[] hash = CalculerSHA256AvecSalt(motDePasseProvisoire, salt);
+
+            var prof = new Utilisateur
+            {
+                Nom = nom,
+                Email = email,
+                Role = "Professeur",
+                DepartementId = deptId.Value,
+                MotDePasseSalt = salt,
+                MotDePasseHash = hash,
+                EstMotDePasseProvisoire = true,
+                DateCreation = DateTime.Now
+            };
+
+            _context.Utilisateurs.Add(prof);
+            await _context.SaveChangesAsync();
+
+            // ✅ EMAIL : confirmation + mdp provisoire + instructions
+            string body =
+$@"Bonjour {nom},
+
+Votre compte professeur a été créé dans l'application Gestion Horaire.
+
+Email : {email}
+Mot de passe provisoire : {motDePasseProvisoire}
+
+Étapes à suivre :
+1) Connectez-vous avec l'email et le mot de passe provisoire.
+2) Changez votre mot de passe (obligatoire).
+3) Configurez votre question de sécurité.
+
+Merci.";
+
+            try
+            {
+                emailService.Send(email, "Création de votre compte - Gestion Horaire", body);
+                TempData["Success"] = "Professeur créé avec succès. Un email a été envoyé.";
+            }
+            catch
+            {
+                // si SMTP pas configuré ou erreur d'envoi, on ne bloque pas la création
+                TempData["Success"] = "Professeur créé avec succès. (Email non envoyé : configuration SMTP manquante)";
+            }
+
             return RedirectToAction(nameof(Profs));
         }
 
-        // 3. AFFECTATIONS ET COURS
-        public async Task<IActionResult> Affectations()
+        // =========================
+        // UTILITAIRES
+        // =========================
+        private static bool MotDePasseValide(string motDePasse)
         {
-            int? monDeptId = GetMonDeptId();
-            string userRole = HttpContext.Session.GetString("UserRole");
+            if (string.IsNullOrWhiteSpace(motDePasse) || motDePasse.Length < 8)
+                return false;
 
-            IQueryable<Cours> query = _context.Cours.Include(c => c.Utilisateur);
+            bool hasUpper = motDePasse.Any(char.IsUpper);
+            bool hasLower = motDePasse.Any(char.IsLower);
+            bool hasDigit = motDePasse.Any(char.IsDigit);
+            bool hasSpecial = motDePasse.Any(ch => !char.IsLetterOrDigit(ch));
 
-            if (userRole == "Administrateur")
-            {
-                // L'admin voit toutes les affectations de tous les départements
-            }
-            else if (monDeptId != null)
-            {
-                // Le responsable ne voit que celles de son département
-                query = query.Where(c => c.DepartementId == monDeptId);
-            }
-            else
-            {
-                return RedirectToAction("Index", "Login");
-            }
-
-            var cours = await query.ToListAsync();
-            return View(cours);
+            return hasUpper && hasLower && hasDigit && hasSpecial;
         }
 
-        // 4. DISPONIBILITÉS
-        public async Task<IActionResult> VoirDispos(int id)
-        {
-            var prof = await _context.Utilisateurs.FindAsync(id);
-            if (prof == null) return NotFound();
-
-            var dispos = await _context.Disponibilites
-                .Where(d => d.UtilisateurId == id)
-                .OrderBy(d => d.Jour).ThenBy(d => d.HeureDebut)
-                .ToListAsync();
-
-            ViewBag.ProfNom = prof.Nom;
-            ViewBag.ProfId = prof.Id;
-            return View(dispos);
-        }
-
-        private static byte[] CalculerSHA256(string motDePasse, Guid saltGuid)
+        private static byte[] CalculerSHA256AvecSalt(string motDePasse, Guid saltGuid)
         {
             byte[] salt = saltGuid.ToByteArray();
             byte[] mdpBytes = Encoding.UTF8.GetBytes(motDePasse);
+
             byte[] input = new byte[salt.Length + mdpBytes.Length];
             Buffer.BlockCopy(salt, 0, input, 0, salt.Length);
             Buffer.BlockCopy(mdpBytes, 0, input, salt.Length, mdpBytes.Length);
+
             return SHA256.HashData(input);
         }
     }
