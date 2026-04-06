@@ -1,22 +1,41 @@
-﻿using System.ComponentModel.DataAnnotations;
-using System.ComponentModel.DataAnnotations.Schema;
+﻿using System;
+using System.Collections.Generic;
 
 namespace GestionHoraire.Models
 {
     public class Utilisateur
     {
+        // ===== Identité =====
         public int Id { get; set; }
-        public string Nom { get; set; }
-        public string Email { get; set; }
-        public DateTime DateCreation { get; set; }
-        public string Role { get; set; }
-        public int? DepartementId { get; set; }
-        public Departement Departement { get; set; }
+        public string? Nom { get; set; }
+        public string? Email { get; set; }
+        public string? Role { get; set; } // "Administrateur", "ResponsableDépartement", "Professeur"
+
+        // ===== Sécurité Mot de Passe =====
+        public Guid MotDePasseSalt { get; set; }
+        public byte[] MotDePasseHash { get; set; } = Array.Empty<byte>();
+        public bool EstMotDePasseProvisoire { get; set; }
+
+        // ===== Question de sécurité =====
+        public string? QuestionSecurite { get; set; }
+        public Guid? ReponseSecuriteSalt { get; set; }
+        public byte[]? ReponseSecuriteHash { get; set; }
+
+        // ===== Lockout (anti brute-force) =====
+        public int FailedLoginAttempts { get; set; }
+        public DateTime? LockoutUntil { get; set; }
+
+        // ===== 2FA =====
+        public bool TwoFactorEnabled { get; set; }
+
+        // ===== État et Relations =====
         public bool Disponibilite { get; set; }
-        public byte[] MotDePasseHash { get; set; }   // VARBINARY en SQL
-        public Guid MotDePasseSalt { get; set; }     // UNIQUEIDENTIFIER en SQL\
-        public ICollection<Disponibilite> Disponibilites { get; set; } = new List<Disponibilite>();
+        public int? DepartementId { get; set; }
+        public virtual Departement? Departement { get; set; }
+
+        public virtual ICollection<Cours> Cours { get; set; } = new List<Cours>();
+        public virtual ICollection<Disponibilite> Disponibilites { get; set; } = new List<Disponibilite>();
+
+        public DateTime DateCreation { get; set; } = DateTime.Now;
     }
-
 }
-

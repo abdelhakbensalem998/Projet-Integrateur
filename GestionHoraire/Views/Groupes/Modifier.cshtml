@@ -1,0 +1,64 @@
+﻿@model GestionHoraire.Models.Groupe
+
+@{
+    ViewData["Title"] = "Modifier le Groupe";
+}
+
+<div class="container mt-5">
+    <div class="row justify-content-center">
+        <div class="col-md-6">
+            <div class="card shadow-sm border-0">
+                <div class="card-header bg-warning text-white py-3">
+                    <h4 class="mb-0 fw-bold"><i class="bi bi-pencil-square me-2"></i>Modifier le Groupe</h4>
+                </div>
+                <div class="card-body p-4">
+                    <form asp-action="Modifier" method="post">
+                        <div asp-validation-summary="ModelOnly" class="text-danger mb-3"></div>
+
+                        <input type="hidden" asp-for="Id" />
+                        <input type="hidden" asp-for="DepartementId" />
+
+                        <div class="mb-3">
+                            <label asp-for="Nom" class="form-label fw-bold">Nom du Groupe</label>
+                            <input asp-for="Nom" class="form-control" placeholder="Ex: Informatique 1A" />
+                            <span asp-validation-for="Nom" class="text-danger small"></span>
+                        </div>
+
+                        <div class="mb-3">
+                            <label asp-for="Niveau" class="form-label fw-bold">Niveau</label>
+                            <select asp-for="Niveau" class="form-select">
+                                <option value="L1">Licence 1</option>
+                                <option value="L2">Licence 2</option>
+                                <option value="L3">Licence 3</option>
+                                <option value="M1">Master 1</option>
+                                <option value="M2">Master 2</option>
+                            </select>
+                            <span asp-validation-for="Niveau" class="text-danger small"></span>
+                        </div>
+
+                        <div class="mb-4">
+                            <label asp-for="Effectif" class="form-label fw-bold">Effectif (Nombre d'étudiants)</label>
+                            <input asp-for="Effectif" type="number" class="form-control" />
+                            <span asp-validation-for="Effectif" class="text-danger small"></span>
+                        </div>
+
+                        <div class="d-flex gap-2">
+                            <button type="submit" class="btn btn-warning text-white fw-bold px-4 rounded-pill">
+                                <i class="bi bi-check-lg me-1"></i>Enregistrer les modifications
+                            </button>
+                            <a asp-action="Index" class="btn btn-outline-secondary px-4 rounded-pill">
+                                Annuler
+                            </a>
+                        </div>
+                    </form>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+@section Scripts {
+    @{
+        await Html.RenderPartialAsync("_ValidationScriptsPartial");
+    }
+}

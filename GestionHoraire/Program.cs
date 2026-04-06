@@ -1,20 +1,25 @@
 using System;
 using GestionHoraire.Data;
-using GestionHoraire.Models;
+using GestionHoraire.Services;
 using Microsoft.EntityFrameworkCore;
 
 var builder = WebApplication.CreateBuilder(args);
 
-// Services (UNE SEULE FOIS)
+// Services
 builder.Services.AddControllersWithViews();
+
 builder.Services.AddDbContext<AppDbContext>(options =>
     options.UseSqlServer(builder.Configuration.GetConnectionString("DefaultConnection")));
 
+builder.Services.AddDistributedMemoryCache();
 builder.Services.AddSession(options =>
 {
     options.IdleTimeout = TimeSpan.FromMinutes(30);
 });
-builder.Services.AddDistributedMemoryCache();
+// DI Services
+builder.Services.AddScoped<PlanningService>();
+builder.Services.AddScoped<EmailService>();
+
 var app = builder.Build();
 
 // Pipeline HTTP
@@ -25,15 +30,17 @@ if (!app.Environment.IsDevelopment())
 }
 
 app.UseHttpsRedirection();
-app.UseStaticFiles();           // ? Remplace MapStaticAssets
-app.UseSession(); // ? AJOUTE �A AVANT app.UseRouting()
-app.UseRouting();
-app.UseAuthorization();
+app.UseStaticFiles();
 
+app.UseRouting();
+
+// Session doit être après UseRouting et avant MapControllerRoute
+app.UseSession();
+
+app.UseAuthorization();
 
 app.MapControllerRoute(
     name: "default",
-    pattern: "{controller=Home}/{action=Index}/{id?}");  // ? Syntaxe correcte
+    pattern: "{controller=Home}/{action=Index}/{id?}");
 
 app.Run();
-

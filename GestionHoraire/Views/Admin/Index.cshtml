@@ -1,112 +1,217 @@
-﻿@{
-    ViewData["Title"] = "Admin Dashboard";
+@model IEnumerable<GestionHoraire.Models.Utilisateur>
+
+@{
+    ViewData["Title"] = "Accueil Admin - Utilisateurs";
+
+    // Infos session déjà envoyées depuis ton controller
+    string userNom = ViewBag.UserNom as string ?? "Admin";
+    string userRole = ViewBag.UserRole as string ?? "Administrateur";
+
+    // Pour garder la sélection du filtre
+    string roleFilter = Context.Request.Query["roleFilter"];
 }
 
-<div class="row">
-    <div class="col-12">
-        <div class="d-flex justify-content-between align-items-center mb-4">
-            <h1 class="h3 mb-0 text-gray-800">
-                <i class="fas fa-crown text-warning me-2"></i>
-                Tableau de bord Admin
-            </h1>
-            <div>
-                <span class="badge bg-warning text-dark fs-6 px-3 py-2">
-                    <i class="fas fa-user-crown me-1"></i>@ViewBag.UserRole
-                </span>
-                <span class="ms-2">Bonjour, @ViewBag.UserNom</span>
-            </div>
-        </div>
-    </div>
-</div>
+<style>
+    .hover-shadow {
+        transition: transform 0.2s ease-in-out, box-shadow 0.2s ease-in-out;
+    }
 
-<div class="row">
-    <!-- Stats Cards -->
-    <div class="col-xl-3 col-md-6 mb-4">
-        <div class="card border-left-primary shadow h-100 py-2">
-            <div class="card-body">
-                <div class="row no-gutters align-items-center">
-                    <div class="col mr-2">
-                        <div class="text-xs font-weight-bold text-primary text-uppercase mb-1">
-                            Utilisateurs Total
+        .hover-shadow:hover {
+            transform: translateY(-5px);
+            box-shadow: 0 0.5rem 1rem rgba(0,0,0,0.15) !important;
+        }
+
+    .card-module {
+        border-radius: 15px;
+    }
+
+    .table-card {
+        border-radius: 15px;
+        overflow: hidden;
+    }
+</style>
+
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.0/font/bootstrap-icons.css">
+
+<div class="container mt-5">
+
+    <!-- Header comme ta page -->
+    <div class="d-flex justify-content-between align-items-center mb-5 border-bottom pb-4">
+        <div>
+            <h1 class="display-6 fw-bold text-dark m-0">@userNom</h1>
+            <p class="text-muted fs-5 m-0 mt-1">
+                <i class="bi bi-shield-lock-fill me-2 text-primary"></i>
+                @userRole
+            </p>
+        </div>
+
+        <a asp-controller="Login" asp-action="Logout"
+           class="btn btn-outline-danger d-flex align-items-center gap-2 rounded-pill px-4 shadow-sm fw-bold text-decoration-none">
+            <i class="bi bi-box-arrow-right"></i>
+            <span>Déconnexion</span>
+        </a>
+    </div>
+
+    <!-- 1ère rangée : 3 cartes (Ajouter / Filtrer / Total) -->
+    <div class="row g-4 text-center mb-4">
+
+        <!-- Ajouter -->
+        <div class="col-md-4">
+            <a asp-controller="Admin" asp-action="CreateUser" class="text-decoration-none text-dark">
+                <div class="card h-100 shadow-sm hover-shadow border-0 border-top border-primary border-4 card-module">
+                    <div class="card-body py-5">
+                        <i class="bi bi-person-plus-fill display-4 text-primary mb-3"></i>
+                        <h3 class="fw-bold h4">Ajouter</h3>
+                        <p class="text-muted mb-0">Créer un nouvel utilisateur</p>
+                    </div>
+                </div>
+            </a>
+        </div>
+
+        <!-- Filtre -->
+        <div class="col-md-4">
+            <div class="card h-100 shadow-sm border-0 border-top border-success border-4 card-module">
+                <div class="card-body py-4 text-start">
+                    <div class="d-flex align-items-center mb-2">
+                        <i class="bi bi-funnel-fill fs-3 text-success me-2"></i>
+                        <h3 class="fw-bold h5 m-0">Filtrer</h3>
+                    </div>
+
+                    <form asp-controller="Admin" asp-action="Index" method="get">
+                        <label class="form-label fw-bold">Rôle</label>
+                        <select name="roleFilter" class="form-select mb-3">
+                            <option value="" selected="@(string.IsNullOrEmpty(roleFilter))">-- Tous --</option>
+                            <option value="Administrateur" selected="@(roleFilter == "Administrateur")">Administrateur</option>
+                            <option value="ResponsableDépartement" selected="@(roleFilter == "ResponsableDépartement")">Responsable Département</option>
+                            <option value="Professeur" selected="@(roleFilter == "Professeur")">Professeur</option>
+                        </select>
+
+                        <div class="d-flex gap-2">
+                            <button class="btn btn-success w-100">
+                                <i class="bi bi-check2-circle me-1"></i> Appliquer
+                            </button>
+                            <a asp-controller="Admin" asp-action="Index" class="btn btn-outline-secondary w-100">
+                                <i class="bi bi-arrow-counterclockwise me-1"></i> Reset
+                            </a>
                         </div>
-                        <div class="h5 mb-0 font-weight-bold text-gray-800">35</div>
-                    </div>
-                    <div class="col-auto">
-                        <i class="fas fa-users fa-2x text-gray-300"></i>
-                    </div>
+                    </form>
+                </div>
+            </div>
+        </div>
+
+        <!-- Total -->
+        <div class="col-md-4">
+            <div class="card h-100 shadow-sm hover-shadow border-0 border-top border-info border-4 card-module">
+                <div class="card-body py-5">
+                    <i class="bi bi-people-fill display-4 text-info mb-3"></i>
+                    <h3 class="fw-bold h4">Total</h3>
+                    <p class="text-muted mb-0">
+                        @(Model?.Count() ?? 0) utilisateur(s)
+                    </p>
                 </div>
             </div>
         </div>
     </div>
 
-    <div class="col-xl-3 col-md-6 mb-4">
-        <div class="card border-left-success shadow h-100 py-2">
-            <div class="card-body">
-                <div class="row no-gutters align-items-center">
-                    <div class="col mr-2">
-                        <div class="text-xs font-weight-bold text-success text-uppercase mb-1">
-                            Admins Actifs
-                        </div>
-                        <div class="h5 mb-0 font-weight-bold text-gray-800">3</div>
-                    </div>
-                    <div class="col-auto">
-                        <i class="fas fa-user-shield fa-2x text-gray-300"></i>
-                    </div>
+    <!-- Table des utilisateurs dans une "carte" comme ton style -->
+    <div class="card shadow-sm border-0 table-card">
+        <div class="card-header bg-white border-0 pt-4 px-4">
+            <div class="d-flex justify-content-between align-items-center">
+                <div>
+                    <h3 class="fw-bold h5 m-0">
+                        <i class="bi bi-table me-2 text-primary"></i>
+                        Liste des utilisateurs
+                    </h3>
+                    <p class="text-muted mb-0 mt-1">Gestion (Modifier / Supprimer)</p>
                 </div>
+            </div>
+        </div>
+
+        <div class="card-body p-0">
+            <div class="table-responsive">
+                <table class="table table-hover align-middle mb-0">
+                    <thead class="bg-light text-secondary text-uppercase small fw-bold">
+                        <tr>
+                            <th class="ps-4">Nom</th>
+                            <th>Email</th>
+                            <th>Rôle</th>
+                            <th>Département</th>
+                            <th class="text-end pe-4">Actions</th>
+                        </tr>
+                    </thead>
+
+                    <tbody>
+                        @if (Model != null && Model.Any())
+                        {
+                            foreach (var user in Model)
+                            {
+                                <tr>
+                                    <td class="ps-4 fw-bold">@user.Nom</td>
+                                    <td>@user.Email</td>
+
+                                    <td>
+                                        @if (user.Role == "Administrateur")
+                                        {
+                                            <span class="badge rounded-pill bg-info text-dark">@user.Role</span>
+                                        }
+                                        else if (user.Role == "ResponsableDépartement")
+                                        {
+                                            <span class="badge rounded-pill bg-primary">@user.Role</span>
+                                        }
+                                        else
+                                        {
+                                            <span class="badge rounded-pill bg-secondary">@user.Role</span>
+                                        }
+                                    </td>
+
+                                    <td>
+                                        @(user.Departement != null ? user.Departement.Nom : "—")
+                                    </td>
+
+                                    <td class="text-end pe-4">
+                                        <div class="d-flex justify-content-end gap-2">
+
+                                            <!-- Modifier -->
+                                            <a asp-controller="Admin"
+                                               asp-action="EditUser"
+                                               asp-route-id="@user.Id"
+                                               class="btn btn-sm btn-outline-primary rounded-pill"
+                                               title="Modifier">
+                                                <i class="bi bi-pencil-square"></i>
+                                            </a>
+
+                                            <!-- Supprimer -->
+                                            <form asp-controller="Admin"
+                                                  asp-action="DeleteUser"
+                                                  asp-route-id="@user.Id"
+                                                  method="post"
+                                                  onsubmit="return confirm('Supprimer @user.Nom ?');"
+                                                  class="m-0">
+                                                @Html.AntiForgeryToken()
+                                                <button type="submit"
+                                                        class="btn btn-sm btn-outline-danger rounded-pill"
+                                                        title="Supprimer">
+                                                    <i class="bi bi-trash3"></i>
+                                                </button>
+                                            </form>
+
+                                        </div>
+                                    </td>
+                                </tr>
+                            }
+                        }
+                        else
+                        {
+                            <tr>
+                                <td colspan="5" class="text-center py-4 text-muted">
+                                    Aucun utilisateur trouvé.
+                                </td>
+                            </tr>
+                        }
+                    </tbody>
+                </table>
             </div>
         </div>
     </div>
 
-    <div class="col-xl-3 col-md-6 mb-4">
-        <div class="card border-left-info shadow h-100 py-2">
-            <div class="card-body">
-                <div class="row no-gutters align-items-center">
-                    <div class="col mr-2">
-                        <div class="text-xs font-weight-bold text-info text-uppercase mb-1">
-                            Départements
-                        </div>
-                        <div class="h5 mb-0 font-weight-bold text-gray-800">4</div>
-                    </div>
-                    <div class="col-auto">
-                        <i class="fas fa-building fa-2x text-gray-300"></i>
-                    </div>
-                </div>
-            </div>
-        </div>
-    </div>
 </div>
-
-<div class="row">
-    <div class="col-xl-12 col-lg-12">
-        <div class="card shadow mb-4">
-            <div class="card-header py-3 d-flex flex-row align-items-center justify-content-between">
-                <h6 class="m-0 font-weight-bold text-primary">Actions rapides</h6>
-            </div>
-            <div class="card-body">
-                <div class="row">
-                    <div class="col-md-3 mb-3">
-                        <a href="#" class="btn btn-primary w-100">
-                            <i class="fas fa-users me-2"></i>Gestion Utilisateurs
-                        </a>
-                    </div>
-                    <div class="col-md-3 mb-3">
-                        <a href="#" class="btn btn-success w-100">
-                            <i class="fas fa-calendar me-2"></i>Horaires
-                        </a>
-                    </div>
-                    <div class="col-md-3 mb-3">
-                        <a href="#" class="btn btn-info w-100">
-                            <i class="fas fa-cogs me-2"></i>Paramètres
-                        </a>
-                    </div>
-                    <div class="col-md-3 mb-3">
-                        <a asp-controller="Login" asp-action="Logout" class="btn btn-danger w-100">
-                            <i class="fas fa-sign-out-alt me-2"></i>Déconnexion
-                        </a>
-                    </div>
-                </div>
-            </div>
-        </div>
-    </div>
-</div>
-

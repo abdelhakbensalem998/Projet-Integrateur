@@ -1,0 +1,57 @@
+@model GestionHoraire.Models.Cours
+
+<div class="container mt-5">
+    <div class="row justify-content-center">
+        <div class="col-md-6">
+            <div class="card shadow border-0">
+                <div class="card-header bg-primary text-white py-3">
+                    <h4 class="mb-0"><i class="bi bi-person-plus me-2"></i>Affecter : @Model.Titre</h4>
+                </div>
+                <div class="card-body p-4">
+                    <form asp-action="EditerAffectation" method="post">
+                        @Html.AntiForgeryToken()
+                        <input type="hidden" asp-for="Id" />
+
+                        <div class="mb-3">
+                            <label class="form-label fw-bold">Professeurs (Sélectionnez un ou plusieurs)</label>
+                            <select name="profIds" class="form-select border-primary" multiple style="height: 120px;">
+                                @foreach (var item in (List<GestionHoraire.Models.Utilisateur>)ViewBag.ProfesseursList)
+                                {
+                                    var isSelected = ((string[])ViewBag.CurrentProfIds).Contains(item.Id.ToString());
+                                    <option value="@item.Id" selected="@isSelected">@item.Nom</option>
+                                }
+                            </select>
+                            <div class="form-text text-muted">Maintenez Ctrl pour plusieurs.</div>
+                        </div>
+
+                        <div class="mb-3">
+                            <label class="form-label fw-bold">Groupes (Sélectionnez un ou plusieurs)</label>
+                            <select name="groupeIds" class="form-select border-primary" multiple style="height: 120px;" required>
+                                @foreach (var item in (List<GestionHoraire.Models.Groupe>)ViewBag.GroupesList)
+                                {
+                                    var isSelected = ((string[])ViewBag.CurrentGroupeIds).Contains(item.Id.ToString());
+                                    <option value="@item.Id" selected="@isSelected">@item.Nom</option>
+                                }
+                            </select>
+                            <div class="form-text text-muted">Ce cours sera accessible pour tous les groupes sélectionnés.</div>
+                        </div>
+
+                        <div class="mb-3">
+                            <label class="form-label fw-bold">Salle (optionnel)</label>
+                            <select name="salleId" class="form-select border-primary" asp-items="ViewBag.Salles">
+                                <option value="">-- Pas de salle --</option>
+                            </select>
+                        </div>
+
+                        <div id="editError" class="alert alert-danger d-none small p-2"></div>
+
+                        <div class="d-flex justify-content-between mt-4">
+                            <a asp-controller="Affectations" asp-action="Index" class="btn btn-outline-secondary">Annuler</a>
+                            <button type="submit" class="btn btn-primary px-5 shadow-sm">Enregistrer</button>
+                        </div>
+                    </form>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>

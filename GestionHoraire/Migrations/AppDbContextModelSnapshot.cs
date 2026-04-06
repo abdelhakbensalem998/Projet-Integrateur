@@ -30,8 +30,35 @@ namespace GestionHoraire.Migrations
 
                     SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("Id"));
 
+                    b.Property<string>("CodeMinisteriel")
+                        .HasColumnType("nvarchar(max)");
+
                     b.Property<int>("DepartementId")
                         .HasColumnType("int");
+
+                    b.Property<string>("GroupeIds")
+                        .HasColumnType("nvarchar(max)");
+
+                    b.Property<TimeSpan>("HeureDebut")
+                        .HasColumnType("time");
+
+                    b.Property<TimeSpan>("HeureFin")
+                        .HasColumnType("time");
+
+                    b.Property<int>("HeuresLabo")
+                        .HasColumnType("int");
+
+                    b.Property<int>("HeuresTheorie")
+                        .HasColumnType("int");
+
+                    b.Property<int>("HeuresTravailPersonnel")
+                        .HasColumnType("int");
+
+                    b.Property<int>("Jour")
+                        .HasColumnType("int");
+
+                    b.Property<string>("ProfesseurIds")
+                        .HasColumnType("nvarchar(max)");
 
                     b.Property<int?>("SalleId")
                         .HasColumnType("int");
@@ -45,11 +72,55 @@ namespace GestionHoraire.Migrations
 
                     b.HasKey("Id");
 
+                    b.HasIndex("DepartementId");
+
                     b.HasIndex("SalleId");
 
                     b.HasIndex("UtilisateurId");
 
-                    b.ToTable("Cours", (string)null);
+                    b.ToTable("Cours");
+                });
+
+            modelBuilder.Entity("GestionHoraire.Models.Demande", b =>
+                {
+                    b.Property<int>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("int");
+
+                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("Id"));
+
+                    b.Property<DateTime>("DateCreation")
+                        .HasColumnType("datetime2");
+
+                    b.Property<string>("Description")
+                        .IsRequired()
+                        .HasColumnType("nvarchar(max)");
+
+                    b.Property<bool>("EstUrgent")
+                        .HasColumnType("bit");
+
+                    b.Property<string>("FichierJoint")
+                        .HasColumnType("nvarchar(max)");
+
+                    b.Property<string>("NoteResponsable")
+                        .HasColumnType("nvarchar(max)");
+
+                    b.Property<string>("Statut")
+                        .IsRequired()
+                        .HasColumnType("nvarchar(max)");
+
+                    b.Property<string>("Type")
+                        .IsRequired()
+                        .HasColumnType("nvarchar(max)");
+
+                    b.Property<int>("UtilisateurId")
+                        .HasColumnType("int");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("UtilisateurId");
+
+                    b.ToTable("Demandes");
                 });
 
             modelBuilder.Entity("GestionHoraire.Models.Departement", b =>
@@ -66,7 +137,7 @@ namespace GestionHoraire.Migrations
 
                     b.HasKey("Id");
 
-                    b.ToTable("Departements", (string)null);
+                    b.ToTable("Departements");
                 });
 
             modelBuilder.Entity("GestionHoraire.Models.Disponibilite", b =>
@@ -96,7 +167,36 @@ namespace GestionHoraire.Migrations
 
                     b.HasIndex("UtilisateurId");
 
-                    b.ToTable("Disponibilites", (string)null);
+                    b.ToTable("Disponibilites");
+                });
+
+            modelBuilder.Entity("GestionHoraire.Models.Groupe", b =>
+                {
+                    b.Property<int>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("int");
+
+                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("Id"));
+
+                    b.Property<int>("DepartementId")
+                        .HasColumnType("int");
+
+                    b.Property<int>("Effectif")
+                        .HasColumnType("int");
+
+                    b.Property<string>("Niveau")
+                        .IsRequired()
+                        .HasColumnType("nvarchar(max)");
+
+                    b.Property<string>("Nom")
+                        .IsRequired()
+                        .HasColumnType("nvarchar(max)");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("DepartementId");
+
+                    b.ToTable("Groupes");
                 });
 
             modelBuilder.Entity("GestionHoraire.Models.Salle", b =>
@@ -110,13 +210,23 @@ namespace GestionHoraire.Migrations
                     b.Property<int>("Capacite")
                         .HasColumnType("int");
 
+                    b.Property<string>("Logiciels")
+                        .HasColumnType("nvarchar(max)");
+
+                    b.Property<string>("Materiel")
+                        .HasColumnType("nvarchar(max)");
+
                     b.Property<string>("Nom")
+                        .IsRequired()
+                        .HasColumnType("nvarchar(max)");
+
+                    b.Property<string>("Type")
                         .IsRequired()
                         .HasColumnType("nvarchar(max)");
 
                     b.HasKey("Id");
 
-                    b.ToTable("Salles", (string)null);
+                    b.ToTable("Salles");
                 });
 
             modelBuilder.Entity("GestionHoraire.Models.Utilisateur", b =>
@@ -127,39 +237,80 @@ namespace GestionHoraire.Migrations
 
                     SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("Id"));
 
-                    b.Property<int>("DepartementId")
+                    b.Property<DateTime>("DateCreation")
+                        .HasColumnType("datetime2");
+
+                    b.Property<int?>("DepartementId")
                         .HasColumnType("int");
 
+                    b.Property<bool>("Disponibilite")
+                        .HasColumnType("bit");
+
                     b.Property<string>("Email")
-                        .IsRequired()
                         .HasColumnType("nvarchar(max)");
+
+                    b.Property<bool>("EstMotDePasseProvisoire")
+                        .HasColumnType("bit");
+
+                    b.Property<byte[]>("MotDePasseHash")
+                        .IsRequired()
+                        .HasColumnType("varbinary(max)");
+
+                    b.Property<Guid>("MotDePasseSalt")
+                        .HasColumnType("uniqueidentifier");
 
                     b.Property<string>("Nom")
-                        .IsRequired()
                         .HasColumnType("nvarchar(max)");
 
+                    b.Property<string>("QuestionSecurite")
+                        .HasColumnType("nvarchar(max)");
+
+                    b.Property<byte[]>("ReponseSecuriteHash")
+                        .HasColumnType("varbinary(max)");
+
+                    b.Property<Guid?>("ReponseSecuriteSalt")
+                        .HasColumnType("uniqueidentifier");
+
                     b.Property<string>("Role")
-                        .IsRequired()
                         .HasColumnType("nvarchar(max)");
 
                     b.HasKey("Id");
 
                     b.HasIndex("DepartementId");
 
-                    b.ToTable("Utilisateurs", (string)null);
+                    b.ToTable("Utilisateurs");
                 });
 
             modelBuilder.Entity("GestionHoraire.Models.Cours", b =>
                 {
+                    b.HasOne("GestionHoraire.Models.Departement", "Departement")
+                        .WithMany()
+                        .HasForeignKey("DepartementId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
                     b.HasOne("GestionHoraire.Models.Salle", "Salle")
                         .WithMany()
                         .HasForeignKey("SalleId");
 
                     b.HasOne("GestionHoraire.Models.Utilisateur", "Utilisateur")
-                        .WithMany()
+                        .WithMany("Cours")
                         .HasForeignKey("UtilisateurId");
 
+                    b.Navigation("Departement");
+
                     b.Navigation("Salle");
+
+                    b.Navigation("Utilisateur");
+                });
+
+            modelBuilder.Entity("GestionHoraire.Models.Demande", b =>
+                {
+                    b.HasOne("GestionHoraire.Models.Utilisateur", "Utilisateur")
+                        .WithMany()
+                        .HasForeignKey("UtilisateurId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
 
                     b.Navigation("Utilisateur");
                 });
@@ -175,13 +326,22 @@ namespace GestionHoraire.Migrations
                     b.Navigation("Utilisateur");
                 });
 
+            modelBuilder.Entity("GestionHoraire.Models.Groupe", b =>
+                {
+                    b.HasOne("GestionHoraire.Models.Departement", "Departement")
+                        .WithMany()
+                        .HasForeignKey("DepartementId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.Navigation("Departement");
+                });
+
             modelBuilder.Entity("GestionHoraire.Models.Utilisateur", b =>
                 {
                     b.HasOne("GestionHoraire.Models.Departement", "Departement")
                         .WithMany("Utilisateurs")
-                        .HasForeignKey("DepartementId")
-                        .OnDelete(DeleteBehavior.Cascade)
-                        .IsRequired();
+                        .HasForeignKey("DepartementId");
 
                     b.Navigation("Departement");
                 });
@@ -193,6 +353,8 @@ namespace GestionHoraire.Migrations
 
             modelBuilder.Entity("GestionHoraire.Models.Utilisateur", b =>
                 {
+                    b.Navigation("Cours");
+
                     b.Navigation("Disponibilites");
                 });
 #pragma warning restore 612, 618

@@ -1,4 +1,4 @@
-﻿@model GestionHoraire.Models.Disponibilite
+@model GestionHoraire.Models.Disponibilite
 @{
     ViewData["Title"] = Model.Id == 0 ? "Nouveau créneau" : "Modifier créneau";
     var isEdit = Model.Id != 0;
@@ -14,6 +14,8 @@
         </div>
         <div class="card-body">
             <form asp-action="@(isEdit ? "Edit" : "Create")" method="post">
+                <div asp-validation-summary="All" class="text-danger mb-3"></div>
+                <input type="hidden" name="returnUrl" value="@ViewBag.ReturnUrl" />
                 @if (isEdit)
                 {
                     <input type="hidden" asp-for="Id" />
@@ -54,8 +56,15 @@
                         <i class="bi bi-save"></i>
                         @(isEdit ? "💾 Modifier" : "➕ Ajouter")
                     </button>
-                    <a asp-action="Index" asp-route-professeurId="@Model.UtilisateurId"
-                       class="btn btn-secondary btn-lg">← Retour</a>
+                    @if (!string.IsNullOrEmpty(ViewBag.ReturnUrl))
+                    {
+                        <a href="@ViewBag.ReturnUrl" class="btn btn-secondary btn-lg">← Retour</a>
+                    }
+                    else
+                    {
+                        <a asp-action="Index" asp-route-professeurId="@Model.UtilisateurId"
+                           class="btn btn-secondary btn-lg">← Retour</a>
+                    }
                 </div>
             </form>
         </div>

@@ -1,0 +1,39 @@
+﻿@model GestionHoraire.Models.Utilisateur
+
+<div class="container mt-5">
+    <div class="row justify-content-center">
+        <div class="col-md-5">
+            <div class="card shadow border-0">
+                <div class="card-header bg-primary text-white py-3">
+                    <h5 class="mb-0"><i class="bi bi-pencil-square me-2"></i>Modifier l'Enseignant</h5>
+                </div>
+                <div class="card-body p-4">
+                    <form asp-action="EditerProf" method="post">
+                        @Html.AntiForgeryToken()
+
+                        <input type="hidden" asp-for="Id" />
+
+                        <div asp-validation-summary="All" class="text-danger fw-bold mb-3"></div>
+
+                        <div class="mb-3">
+                            <label asp-for="Nom" class="form-label fw-bold">Nom Complet</label>
+                            <input asp-for="Nom" class="form-control" required />
+                        </div>
+
+                        <div class="mb-3">
+                            <label asp-for="Email" class="form-label fw-bold">Adresse Email</label>
+                            <input asp-for="Email" type="email" class="form-control" required />
+                        </div>
+
+                        <div class="d-grid gap-2 mt-4">
+                            <button type="submit" class="btn btn-primary shadow-sm">
+                                Enregistrer les modifications
+                            </button>
+                            <a asp-action="Profs" class="btn btn-outline-secondary">Annuler</a>
+                        </div>
+                    </form>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>

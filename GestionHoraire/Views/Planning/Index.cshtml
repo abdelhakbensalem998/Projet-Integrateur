@@ -1,0 +1,336 @@
+@model IEnumerable<GestionHoraire.Models.Cours>
+
+@{
+    ViewData["Title"] = "Planning Hebdomadaire";
+    var joursNoms = new[] { "Lundi", "Mardi", "Mercredi", "Jeudi", "Vendredi" };
+}
+
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.0/font/bootstrap-icons.css">
+
+<div class="container-fluid mt-4">
+    <div class="d-flex justify-content-between align-items-center mb-4 bg-white p-3 shadow-sm rounded border-start border-4 border-primary">
+        <div>
+            <h2 class="fw-bold text-dark m-0">
+                <i class="bi bi-calendar3 text-primary me-2"></i>Planning : @(ViewBag.SelectedGroupeName ?? "Sélectionnez un groupe")
+            </h2>
+            <div id="statusMessage" class="small mt-1 text-muted">Affiche uniquement les cours du groupe sélectionné</div>
+        </div>
+        <div class="d-flex gap-2">
+            <div class="d-flex align-items-center gap-2">
+                <button onclick="genererPlanning()" id="btnGenerate" class="btn btn-warning shadow-sm fw-bold px-4 rounded-pill">
+                    <i class="bi bi-magic me-2"></i>Générer Planning Auto
+                </button>
+                <div id="genStatus" class="small fw-medium text-success d-none">
+                    <div class="spinner-border spinner-border-sm me-1" role="status"></div> Génération en cours...
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="card mb-4 border-0 shadow-sm bg-light">
+        <div class="card-body">
+            <form method="get" class="row align-items-end justify-content-center">
+                <div class="col-md-6">
+                    <label class="form-label fw-bold text-secondary small text-uppercase">Changer de Groupe :</label>
+                    <div class="input-group shadow-sm">
+                        <span class="input-group-text bg-white border-primary"><i class="bi bi-people text-primary"></i></span>
+                        <select name="groupeId" class="form-select border-primary fw-bold" onchange="this.form.submit()" asp-items="ViewBag.Groupes">
+                            <option value="">-- Choisir un groupe --</option>
+                        </select>
+                    </div>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    @if (ViewBag.SelectedGroupeId == null)
+    {
+        <div class="text-center py-5">
+            <i class="bi bi-arrow-up-circle display-1 text-muted opacity-25"></i>
+            <h3 class="text-secondary mt-3">Veuillez sélectionner un groupe en haut pour voir son planning</h3>
+        </div>
+    }
+    else
+    {
+        @if (ViewBag.TotalCoursDuGroupe == 0)
+        {
+            <div class="alert alert-warning border-start border-4 border-warning shadow-sm mb-4 p-4 text-center">
+                <i class="bi bi-exclamation-triangle display-6 d-block mb-3"></i>
+                <h4 class="fw-bold">Aucun cours n'est assigné à "@ViewBag.SelectedGroupeName"</h4>
+                <p>Allez dans <strong>Affectations</strong> pour créer ou assigner des cours à ce groupe.</p>
+                <a href="@Url.Action("Index", "Affectations")" class="btn btn-warning btn-sm fw-bold px-4">Aller aux Affectations</a>
+            </div>
+        }
+        else
+        {
+            <div class="alert alert-info border-start border-4 border-info shadow-sm mb-3 py-2 px-3 small d-flex justify-content-between align-items-center">
+                <div>
+                   <i class="bi bi-info-circle-fill me-2"></i>
+                   <strong>Diagnostic pour @ViewBag.SelectedGroupeName :</strong> 
+                   @ViewBag.TotalCoursDuGroupe cours assignés | @ViewBag.CoursPlanifies déjà placés
+                </div>
+                <div class="badge bg-white text-info border border-info">ID Groupe: @ViewBag.SelectedGroupeId</div>
+            </div>
+
+            <div class="row">
+                <div class="col-lg-10">
+                    <div class="card shadow border-0 overflow-hidden rounded-4">
+                        <div class="table-responsive">
+                            <table class="table table-bordered mb-0 text-center">
+                                <thead class="bg-primary text-white text-uppercase small">
+                                    <tr>
+                                        <th style="width: 100px; background: #0d6efd !important;">Heure</th>
+                                        @foreach (var j in joursNoms)
+                                        {
+                                            <th class="py-3" style="background: #0d6efd !important;">@j</th>
+                                        }
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    @for (int h = 8; h <= 18; h += 2)
+                                    {
+                                        var hDebut = new TimeSpan(h, 0, 0);
+                                        <tr>
+                                            <td class="bg-light fw-bold text-primary align-middle">@h:00</td>
+                                            @for (int i = 1; i <= 5; i++)
+                                            {
+                                                var jour = i;
+                                                var heureStr = hDebut.ToString(@"hh\:mm\:ss");
+                                                <td ondrop="drop(event, @jour, '@heureStr')"
+                                                    ondragover="allowDrop(event)"
+                                                    ondragleave="dragLeave(event)"
+                                                    class="p-2 cell-hover" style="height: 150px; width: 18%; vertical-align: top; background: #fff;">
+                                                            @foreach (var item in Model.Where(c => (int)c.Jour == i && c.HeureDebut == hDebut))
+                                                            {
+                                                                <div class="card border-0 border-start border-5 border-primary shadow-sm p-2 text-start bg-white h-100 course-card mb-2"
+                                                                     draggable="true" ondragstart="drag(event, @item.Id)"
+                                                                     onclick="ouvrirEditeur(@item.Id)"
+                                                                     style="cursor: pointer; border-radius: 10px; transition: all 0.2s;">
+                                                                    <div class="fw-bold text-dark lh-sm mb-1" style="font-size: 0.8rem;">@item.Titre</div>
+                                                                    <div class="text-secondary small" style="font-size: 0.7rem;">
+                                                                        <div class="text-truncate mb-1"><i class="bi bi-person me-1"></i> @(item.Utilisateur?.Nom ?? "N/A")</div>
+                                                                        <div class="text-truncate"><i class="bi bi-geo-alt me-1"></i> @(item.Salle?.Nom ?? "N/A")</div>
+                                                                    </div>
+                                                                </div>
+                                                            }
+                                                </td>
+                                            }
+                                        </tr>
+                                    }
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Liste des cours non-planifiés -->
+                <div class="col-lg-2">
+                    <div class="card border-0 shadow-sm rounded-4 h-100 bg-white">
+                        <div class="card-header bg-secondary bg-opacity-10 py-3 border-0">
+                            <h6 class="m-0 fw-bold text-secondary text-uppercase small"><i class="bi bi-list-task me-2"></i>À planifier</h6>
+                        </div>
+                        <div class="card-body p-2 overflow-auto" style="max-height: 800px;">
+                            @{
+                                var nonPlanifies = Model.Where(c => c.HeureDebut == TimeSpan.Zero).ToList();
+                            }
+                            @if (nonPlanifies.Any())
+                            {
+                                foreach (var item in nonPlanifies)
+                                {
+                                    <div class="card border-0 border-start border-4 border-warning shadow-sm p-2 mb-2 course-card bg-light"
+                                         draggable="true" ondragstart="drag(event, @item.Id)"
+                                         onclick="ouvrirEditeur(@item.Id)"
+                                         style="cursor: grab; border-radius: 8px;">
+                                        <div class="fw-bold text-dark small mb-1">@item.Titre</div>
+                                        <div class="text-muted" style="font-size: 0.65rem;">
+                                            <i class="bi bi-tag me-1"></i> #@item.Id
+                                        </div>
+                                    </div>
+                                }
+                            }
+                            else
+                            {
+                                <div class="text-center py-4 text-muted small px-2">
+                                    <i class="bi bi-check2-circle fs-3 d-block mb-1 opacity-50"></i>
+                                    Tous les cours sont placés !
+                                </div>
+                            }
+                        </div>
+                    </div>
+                </div>
+            </div>
+        }
+    }
+</div>
+
+<!-- Modal Editeur -->
+<div class="modal fade" id="modalEditeur" tabindex="-1">
+    <div class="modal-dialog modal-dialog-centered">
+        <div class="modal-content border-0 shadow-lg rounded-4 overflow-hidden">
+            <div class="modal-header bg-primary text-white border-0 py-3">
+                <h5 class="modal-title fw-bold"><i class="bi bi-pencil-square me-2"></i>Détails du créneau</h5>
+                <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body p-4">
+                <form id="formEditeur">
+                    <input type="hidden" id="editId" />
+                    <div class="mb-3">
+                        <label class="form-label fw-bold text-secondary">Nom du Cours</label>
+                        <input type="text" id="editTitre" class="form-control bg-light fw-bold" disabled />
+                    </div>
+                    <div class="row">
+                        <div class="col-6 mb-3">
+                            <label class="form-label fw-bold text-secondary">Jour</label>
+                            <select id="editJour" class="form-select border-primary shadow-sm">
+                                <option value="1">Lundi</option>
+                                <option value="2">Mardi</option>
+                                <option value="3">Mercredi</option>
+                                <option value="4">Jeudi</option>
+                                <option value="5">Vendredi</option>
+                            </select>
+                        </div>
+                        <div class="col-6 mb-3">
+                            <label class="form-label fw-bold text-secondary">Heure</label>
+                            <select id="editHeure" class="form-select border-primary shadow-sm">
+                                <option value="08:00:00">08:00</option>
+                                <option value="10:00:00">10:00</option>
+                                <option value="14:00:00">14:00</option>
+                                <option value="16:00:00">16:00</option>
+                            </select>
+                        </div>
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label fw-bold text-secondary">Professeur</label>
+                        <select id="editProf" class="form-select border-primary shadow-sm"></select>
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label fw-bold text-secondary">Salle</label>
+                        <select id="editSalle" class="form-select border-primary shadow-sm"></select>
+                    </div>
+                    <div id="editError" class="alert alert-danger d-none small p-2 mt-2"></div>
+                </form>
+            </div>
+            <div class="modal-footer border-0 p-3 bg-light">
+                <button type="button" class="btn btn-outline-secondary rounded-pill px-4" data-bs-dismiss="modal">Annuler</button>
+                <button type="button" onclick="sauvegarderModification()" class="btn btn-primary rounded-pill px-4 shadow-sm">Sauvegarder</button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Diagnostics / Helper (Debug only) -->
+<div class="container-fluid mt-4 opacity-75">
+    <div class="card bg-light border p-2 small">
+        <div class="text-muted"><i class="bi bi-bug me-1"></i> Debug : Groupe @ViewBag.SelectedGroupeId | @Model.Count() cours dans le model actuel.</div>
+    </div>
+</div>
+
+<div class="toast-container position-fixed bottom-0 end-0 p-3">
+    <div id="expertToast" class="toast align-items-center text-white border-0 shadow-lg p-1" role="alert" style="border-radius: 12px;">
+        <div class="d-flex">
+            <div class="toast-body fw-bold" id="toastMessage"></div>
+            <button type="button" class="btn-close btn-close-white me-2 m-auto" data-bs-dismiss="toast"></button>
+        </div>
+    </div>
+</div>
+
+<style>
+    .cell-hover { transition: background 0.2s; border: 1px solid #f0f0f0 !important; }
+    .cell-hover:hover { background-color: #f8f9fa !important; }
+    .drag-over { background-color: #e3f2fd !important; border: 2px dashed #2196f3 !important; }
+    .course-card:hover { transform: translateY(-3px); box-shadow: 0 8px 15px rgba(0,0,0,0.1) !important; filter: brightness(0.98); }
+    .table-bordered th, .table-bordered td { border: 1px solid #eee !important; }
+</style>
+
+@section Scripts {
+    <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+    <script>
+        var draggedId = null;
+
+        function showToast(msg, type = 'success') {
+            var el = $('#expertToast');
+            el.removeClass('bg-success bg-danger bg-warning').addClass('bg-' + type);
+            $('#toastMessage').text(msg);
+            new bootstrap.Toast(el).show();
+        }
+
+        function allowDrop(e) { e.preventDefault(); $(e.target).closest('td').addClass('drag-over'); }
+        function dragLeave(e) { $(e.target).closest('td').removeClass('drag-over'); }
+        function drag(e, id) { draggedId = id; }
+
+        function drop(e, j, h) {
+            e.preventDefault();
+            $(e.target).closest('td').removeClass('drag-over');
+            if (!draggedId) return;
+
+            $.post('@Url.Action("MettreAJourPosition", "Planning")', { id: draggedId, jour: j, heureDebut: h }, function(r) {
+                if (r.success) { showToast("Position mise à jour !"); setTimeout(() => location.reload(), 500); }
+                else showToast(r.message, 'danger');
+            });
+            draggedId = null;
+        }
+
+        $(document).ready(function() {
+            // The old #btnGenererAjax click handler was removed as per instructions.
+        });
+
+        function genererPlanning() {
+        const btn = document.getElementById('btnGenerate');
+        const status = document.getElementById('genStatus');
+        
+        if (!confirm("Attention : Cela réinitialisera tout le planning du département. Continuer ?")) return;
+
+        btn.disabled = true;
+        status.classList.remove('d-none');
+
+        $.post('@Url.Action("GenererPlanningAleatoire", "Planning")', function (res) {
+            btn.disabled = false;
+            status.classList.add('d-none');
+            
+            if (res.success) {
+                alert("Succès : " + res.message);
+                location.reload();
+            } else {
+                alert("Erreur : " + res.message);
+            }
+        });
+    }
+                    
+        function ouvrirEditeur(id) {
+            $.get('@Url.Action("GetCoursInfo", "Planning")', { id: id }, function(r) {
+                if (r.success) {
+                    var d = r.data;
+                    $("#editId").val(d.id);
+                    $("#editTitre").val(d.titre);
+                    $("#editJour").val(d.jour);
+                    $("#editHeure").val(d.heureDebut + ":00");
+                    
+                    var p = $("#editProf").empty();
+                    r.profs.forEach(x => p.append(new Option(x.nom, x.id)));
+                    p.val(d.profId);
+
+                    var s = $("#editSalle").empty();
+                    r.salles.forEach(x => s.append(new Option(x.nom, x.id)));
+                    s.val(d.salleId);
+
+                    new bootstrap.Modal(document.getElementById('modalEditeur')).show();
+                }
+            });
+        }
+
+        function sauvegarderModification() {
+            var params = {
+                id: $("#editId").val(),
+                jour: $("#editJour").val(),
+                heureDebut: $("#editHeure").val(),
+                profId: $("#editProf").val(),
+                salleId: $("#editSalle").val()
+            };
+            $.post('@Url.Action("MettreAJourPosition", "Planning")', params, function(r) {
+                if (r.success) location.reload();
+                else $("#editError").removeClass("d-none").text(r.message);
+            });
+        }
+    </script>
+}

@@ -1,42 +1,197 @@
-﻿@{
+@model GestionHoraire.Models.Utilisateur
+
+@{
     ViewData["Title"] = "Accueil Responsable";
 }
 
+<style>
+    .hover-shadow {
+        transition: transform 0.2s ease-in-out, box-shadow 0.2s ease-in-out;
+    }
+
+        .hover-shadow:hover {
+            transform: translateY(-5px);
+            box-shadow: 0 0.5rem 1rem rgba(0,0,0,0.15) !important;
+        }
+
+    .card-module {
+        border-radius: 15px;
+        position: relative;
+        overflow: hidden;
+    }
+
+    .badge-counter {
+        position: absolute;
+        top: 15px;
+        right: 15px;
+        font-size: 0.9rem;
+        padding: 0.5em 0.8em;
+        border-radius: 50px;
+        box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+    }
+</style>
+
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.0/font/bootstrap-icons.css">
+
 <div class="container mt-5">
-    <h1 class="text-center mb-5 border-bottom pb-3">Tableau de Bord Responsable</h1>
-
-    <div class="row g-4">
-        <div class="col-md-4">
-            <a asp-action="Salles" class="text-decoration-none text-dark">
-                <div class="card h-100 shadow-sm hover-shadow border-primary">
-                    <div class="card-body text-center py-5">
-                        <h3 class="card-title">Salles</h3>
-                        <p class="text-muted">Gérer les locaux et capacités</p>
-                    </div>
-                </div>
-            </a>
+    <div class="d-flex justify-content-between align-items-center mb-5 border-bottom pb-4">
+        <div>
+            @if (Model != null)
+            {
+                <h1 class="display-6 fw-bold text-dark m-0">@Model.Nom</h1>
+                <p class="text-muted fs-5 m-0 mt-1">
+                    <i class="bi bi-mortarboard-fill me-2 text-primary"></i>
+                    @(Model.Departement?.Nom ?? "Département non défini")
+                </p>
+            }
         </div>
+        <a asp-controller="Login" asp-action="Logout" class="btn btn-outline-danger d-flex align-items-center gap-2 rounded-pill px-4 shadow-sm fw-bold text-decoration-none">
+            <i class="bi bi-box-arrow-right"></i>
+            <span>Déconnexion</span>
+        </a>
+    </div>
 
-        <div class="col-md-4">
+    <!-- Première rangée : Professeurs et Groupes -->
+    <div class="row g-4 text-center mb-4">
+        <div class="col-md-6">
             <a asp-action="Profs" class="text-decoration-none text-dark">
-                <div class="card h-100 shadow-sm hover-shadow border-success">
-                    <div class="card-body text-center py-5">
-                        <h3 class="card-title">Professeurs</h3>
-                        <p class="text-muted">Disponibilités et affectations</p>
+                <div class="card h-100 shadow-sm hover-shadow border-0 border-top border-success border-4 card-module">
+                    <span class="badge bg-success badge-counter">@ViewBag.NbProfesseurs</span>
+                    <div class="card-body py-5">
+                        <i class="bi bi-people display-4 text-success mb-3"></i>
+                        <h3 class="fw-bold h4">Professeurs</h3>
+                        <p class="text-muted mb-0">Gestion de l'équipe pédagogique</p>
                     </div>
                 </div>
             </a>
         </div>
 
-        <div class="col-md-4">
-            <a asp-action="Groupes" class="text-decoration-none text-dark">
-                <div class="card h-100 shadow-sm hover-shadow border-warning">
-                    <div class="card-body text-center py-5">
-                        <h3 class="card-title">Planning</h3>
-                        <p class="text-muted">Générer l'emploi du temps</p>
+        <div class="col-md-6">
+            <a asp-controller="Groupe" asp-action="Index" class="text-decoration-none text-dark">
+                <div class="card h-100 shadow-sm hover-shadow border-0 border-top border-info border-4 card-module">
+                    <span class="badge bg-info badge-counter">@ViewBag.NbGroupes</span>
+                    <div class="card-body py-5">
+                        <i class="bi bi-mortarboard display-4 text-info mb-3"></i>
+                        <h3 class="fw-bold h4">Groupes</h3>
+                        <p class="text-muted mb-0">Gestion des classes et étudiants</p>
                     </div>
                 </div>
             </a>
+        </div>
+    </div>
+
+    <!-- Deuxième rangée : Planning et Affectations -->
+    <div class="row g-4 text-center mb-4">
+        <div class="col-md-6">
+            <a asp-controller="Planning" asp-action="Index" class="text-decoration-none text-dark">
+                <div class="card h-100 shadow-sm hover-shadow border-0 border-top border-warning border-4 card-module">
+                    <div class="card-body py-5">
+                        <i class="bi bi-calendar3 display-4 text-warning mb-3"></i>
+                        <h3 class="fw-bold h4">Planning</h3>
+                        <p class="text-muted mb-0">Consulter les emplois du temps</p>
+                    </div>
+                </div>
+            </a>
+        </div>
+
+        <div class="col-md-6">
+            <a asp-controller="Affectations" asp-action="Index" class="text-decoration-none text-dark">
+                <div class="card h-100 shadow-sm hover-shadow border-0 border-top border-danger border-4 card-module">
+                    <div class="card-body py-5">
+                        <i class="bi bi-node-plus display-4 text-danger mb-3"></i>
+                        <h3 class="fw-bold h4">Affectations</h3>
+                        <p class="text-muted mb-0">Attribuer les cours aux professeurs</p>
+                    </div>
+                </div>
+            </a>
+        </div>
+    </div>
+
+    <!-- Troisième rangée : Demandes et Locaux/Labos -->
+    <div class="row g-4 text-center mb-4">
+        <div class="col-md-6">
+            <a asp-action="Demandes" class="text-decoration-none text-dark">
+                <div class="card h-100 shadow-sm hover-shadow border-0 border-top border-primary border-4 card-module">
+                    <span class="badge bg-primary badge-counter">@ViewBag.NbDemandesEnAttente</span>
+                    @if (ViewBag.NbDemandesUrgentes > 0)
+                    {
+                        <span class="badge bg-danger position-absolute" style="top: 15px; right: 65px; border-radius: 50px;">
+                            <i class="bi bi-exclamation-triangle-fill me-1"></i> @ViewBag.NbDemandesUrgentes Urgents
+                        </span>
+                    }
+                    <div class="card-body py-5">
+                        <i class="bi bi-chat-left-text display-4 text-primary mb-3"></i>
+                        <h3 class="fw-bold h4">Demandes / Notifications</h3>
+                        <p class="text-muted mb-0">Gérer les vacances, documents et requêtes profs</p>
+                    </div>
+                </div>
+            </a>
+        </div>
+
+        <div class="col-md-6">
+            <a asp-controller="Salles" asp-action="Index" class="text-decoration-none text-dark">
+                <div class="card h-100 shadow-sm hover-shadow border-0 border-top border-dark border-4 card-module">
+                    <span class="badge bg-dark badge-counter">@ViewBag.NbSalles</span>
+                    <div class="card-body py-5">
+                        <i class="bi bi-building display-4 text-dark mb-3"></i>
+                        <h3 class="fw-bold h4">Locaux / Laboratoires</h3>
+                        <p class="text-muted mb-0">Gestion des salles et équipements informatiques</p>
+                    </div>
+                </div>
+            </a>
+        </div>
+    </div>
+
+    <!-- Carte Rapports & Statistiques (Pleine largeur) -->
+    <div class="row g-4 mb-5">
+        <div class="col-12">
+            <div class="card shadow-sm border-0 border-top border-secondary border-4 card-module">
+                <div class="card-body p-4">
+                    <div class="d-flex align-items-center mb-4">
+                        <i class="bi bi-speedometer2 fs-2 text-secondary me-3"></i>
+                        <h3 class="fw-bold h4 m-0">Rapports & Statistiques</h3>
+                    </div>
+                    
+                    <div class="row text-center g-4">
+                        <div class="col-md-4">
+                            <div class="p-3 bg-light rounded-3">
+                                <h5 class="text-muted small text-uppercase fw-bold">Taux d'assignation</h5>
+                                <div class="display-6 fw-bold text-dark">@ViewBag.TauxAssignation%</div>
+                                <div class="progress mt-2" style="height: 6px;">
+                                    <div class="progress-bar bg-success" role="progressbar" style="width: @ViewBag.TauxAssignation%"></div>
+                                </div>
+                                <small class="text-muted">@ViewBag.NbCoursTotal cours au total</small>
+                            </div>
+                        </div>
+                        
+                        <div class="col-md-4">
+                            <div class="p-3 bg-light rounded-3">
+                                <h5 class="text-muted small text-uppercase fw-bold">Conflits détectés</h5>
+                                <div class="display-6 fw-bold @((int)ViewBag.NbConflits > 0 ? "text-danger" : "text-success")">@ViewBag.NbConflits</div>
+                                <p class="text-muted m-0"><small>Chevauchements détectés</small></p>
+                                @if(ViewBag.NbConflits > 0) {
+                                    <span class="badge bg-danger">Action requise</span>
+                                } else {
+                                    <span class="badge bg-success">Tout est en ordre</span>
+                                }
+                            </div>
+                        </div>
+
+                        <div class="col-md-4">
+                            <div class="p-3 bg-light rounded-3">
+                                <h5 class="text-muted small text-uppercase fw-bold">Surcharge Professeurs</h5>
+                                <div class="display-6 fw-bold @((int)ViewBag.NbSurcharges > 0 ? "text-warning" : "text-dark")">@ViewBag.NbSurcharges</div>
+                                <p class="text-muted m-0"><small>Dépassement de 18h/sem</small></p>
+                                @if(ViewBag.NbSurcharges > 0) {
+                                    <span class="badge bg-warning text-dark">Vérifier les charges</span>
+                                } else {
+                                    <span class="badge bg-info text-white">Charge optimale</span>
+                                }
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
         </div>
     </div>
 </div>

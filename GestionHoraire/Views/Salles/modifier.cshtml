@@ -1,0 +1,39 @@
+﻿@model GestionHoraire.Models.Salle
+
+<div class="container mt-5">
+    <div class="row justify-content-center">
+        <div class="col-md-5">
+            <div class="card shadow border-0">
+                <div class="card-header bg-warning py-3 text-center">
+                    <h4 class="mb-0 fw-bold">Modifier la salle</h4>
+                </div>
+                <div class="card-body p-4">
+                    <form asp-action="Modifier">
+                        <input type="hidden" asp-for="Id" />
+                        <div class="mb-3">
+                            <label asp-for="Nom" class="form-label fw-bold"></label>
+                            <input asp-for="Nom" class="form-control" required />
+                        </div>
+                        <div class="mb-3">
+                            <label asp-for="Capacite" class="form-label fw-bold"></label>
+                            <input asp-for="Capacite" type="number" class="form-control" required />
+                        </div>
+                        <div class="mb-4">
+                            <label asp-for="Type" class="form-label fw-bold"></label>
+                            <select asp-for="Type" class="form-select">
+                                <option value="Cours">Salle de Cours</option>
+                                <option value="Labo">Laboratoire</option>
+                                <option value="Amphi">Amphithéâtre</option>
+                                <option value="TP">Salle Informatique</option>
+                            </select>
+                        </div>
+                        <div class="d-grid gap-2">
+                            <button type="submit" class="btn btn-warning fw-bold">Enregistrer</button>
+                            <a asp-action="Index" class="btn btn-light">Annuler</a>
+                        </div>
+                    </form>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>

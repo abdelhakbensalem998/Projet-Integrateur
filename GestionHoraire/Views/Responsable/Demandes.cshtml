@@ -1,0 +1,153 @@
+@model IEnumerable<GestionHoraire.Models.Demande>
+
+@{
+    ViewData["Title"] = "Gestion des Demandes";
+}
+
+<div class="container mt-4">
+    <div class="d-flex justify-content-between align-items-center mb-4 border-bottom pb-3">
+        <h2 class="fw-bold"><i class="bi bi-chat-left-text-fill me-2 text-primary"></i>Demandes des Professeurs @(ViewBag.VoirArchives ? "(Archivées)" : "")</h2>
+        <div class="d-flex gap-2">
+            @if (ViewBag.VoirArchives)
+            {
+                <a asp-action="Demandes" asp-route-voirArchives="false" class="btn btn-outline-primary rounded-pill px-4">
+                    <i class="bi bi-list-task"></i> Voir Actives
+                </a>
+            }
+            else
+            {
+                <a asp-action="Demandes" asp-route-voirArchives="true" class="btn btn-outline-secondary rounded-pill px-4">
+                    <i class="bi bi-archive"></i> Voir Archives
+                </a>
+            }
+            <a asp-action="Index" class="btn btn-outline-secondary rounded-pill pe-4 ps-4">
+                <i class="bi bi-arrow-left"></i> Retour
+            </a>
+        </div>
+    </div>
+
+    @if (Model.Any(d => d.EstUrgent && d.Statut == "En attente"))
+    {
+        <div class="alert alert-danger shadow-sm border-0 d-flex align-items-center" role="alert">
+            <i class="bi bi-exclamation-triangle-fill fs-4 me-3"></i>
+            <div>
+                <strong>Urgences détectées !</strong> Vous avez des absences ou imprévus à traiter immédiatement.
+            </div>
+        </div>
+    }
+
+    <div class="table-responsive shadow-sm rounded-3">
+        <table class="table table-hover align-middle bg-white m-0">
+            <thead class="bg-light text-uppercase small fw-bold">
+                <tr>
+                    <th>Professeur</th>
+                    <th>Catégorie</th>
+                    <th>Détails / Description</th>
+                    <th>Date</th>
+                    <th>Statut</th>
+                    <th class="text-end">Actions</th>
+                </tr>
+            </thead>
+            <tbody>
+                @foreach (var item in Model)
+                {
+                    <tr class="@(item.EstUrgent && item.Statut == "En attente" ? "table-danger" : "")">
+                        <td class="fw-bold">@item.Utilisateur?.Nom</td>
+                        <td>
+                            @if (item.Type == "Absence")
+                            {
+                                <span class="badge bg-danger"><i class="bi bi-person-x-fill me-1"></i> Absence</span>
+                            }
+                            else if (item.Type == "Technique")
+                            {
+                                <span class="badge bg-info text-dark"><i class="bi bi-gear-fill me-1"></i> Technique</span>
+                            }
+                            else if (item.Type == "Plan de cours")
+                            {
+                                <span class="badge bg-primary"><i class="bi bi-file-earmark-pdf-fill me-1"></i> Plan de cours</span>
+                            }
+                            else
+                            {
+                                <span class="badge bg-secondary">@item.Type</span>
+                            }
+                            
+                            @if (item.EstUrgent)
+                            {
+                                <span class="badge bg-dark ms-1">URGENT</span>
+                            }
+                        </td>
+                        <td>
+                            <div class="text-wrap" style="max-width: 350px;">
+                                @item.Description
+                                @if (!string.IsNullOrEmpty(item.FichierJoint))
+                                {
+                                    <div class="mt-1">
+                                        <a asp-action="TelechargerDocument" asp-route-id="@item.Id" class="btn btn-sm btn-outline-primary py-0"><i class="bi bi-download"></i> Voir document</a>
+                                    </div>
+                                }
+                            </div>
+                        </td>
+                        <td class="text-muted small">@item.DateCreation.ToString("dd/MM/yyyy HH:mm")</td>
+                        <td>
+                            @if (item.Statut == "En attente")
+                            {
+                                <span class="badge bg-secondary">@item.Statut</span>
+                            }
+                            else if (item.Statut == "Approuvé")
+                            {
+                                <span class="badge bg-success">@item.Statut</span>
+                            }
+                            else
+                            {
+                                <span class="badge bg-danger">@item.Statut</span>
+                            }
+                        </td>
+                        <td class="text-end">
+                            <div class="d-flex justify-content-end gap-1">
+                                @if (item.Statut == "En attente")
+                                {
+                                    <form asp-action="TraiterDemande" method="post" class="d-inline">
+                                        <input type="hidden" name="id" value="@item.Id" />
+                                        <input type="text" name="note" placeholder="Note ou remplaçant" class="form-control form-control-sm d-inline-block w-auto me-1" />
+                                        <button type="submit" name="action" value="Approuver" class="btn btn-sm btn-success">Valider</button>
+                                        <button type="submit" name="action" value="Refuser" class="btn btn-sm btn-danger shadow-sm">Refuser</button>
+                                    </form>
+                                }
+                                else if (item.Statut != "Archivé")
+                                {
+                                    <span class="text-muted small fst-italic me-2">Note : @item.NoteResponsable</span>
+                                    <form asp-action="ArchiveDemande" method="post" class="d-inline">
+                                        <input type="hidden" name="id" value="@item.Id" />
+                                        <button type="submit" class="btn btn-sm btn-outline-secondary" title="Archiver">
+                                            <i class="bi bi-archive-fill"></i>
+                                        </button>
+                                    </form>
+                                }
+                                else
+                                {
+                                    <span class="text-muted small fst-italic me-2">Note : @item.NoteResponsable</span>
+                                }
+
+                                <form asp-action="SupprimerDemande" method="post" class="d-inline" onsubmit="return confirm('Êtes-vous sûr de vouloir supprimer cette demande ?');">
+                                    <input type="hidden" name="id" value="@item.Id" />
+                                    <button type="submit" class="btn btn-sm btn-outline-danger" title="Supprimer">
+                                        <i class="bi bi-trash-fill"></i>
+                                    </button>
+                                </form>
+                            </div>
+                        </td>
+                    </tr>
+                }
+                @if (!Model.Any())
+                {
+                    <tr>
+                        <td colspan="6" class="text-center py-5 text-muted">
+                            <i class="bi bi-inbox display-6 d-block mb-3 opacity-25"></i>
+                            Aucune demande active dans votre département.
+                        </td>
+                    </tr>
+                }
+            </tbody>
+        </table>
+    </div>
+</div>

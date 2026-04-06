@@ -1,51 +1,142 @@
 ﻿@{
-    ViewData["Title"] = "Connexion - Gestion Horaire";
-    Layout = "_Layout";
+    ViewData["Title"] = "Connexion";
 }
 
-<div class="container mt-5">
-    <div class="row justify-content-center">
-        <div class="col-md-5 col-sm-8">
-            <div class="card shadow-lg border-0">
-                <div class="card-header bg-gradient-primary text-white text-center py-4">
-                    <h2 class="mb-0"><i class="fas fa-user-shield me-2"></i>Gestion Horaire</h2>
-                    <h5 class="opacity-90 mt-1">Authentification</h5>
-                </div>
-                <div class="card-body p-4">
+<div class="login-page">
+    <div class="login-wrapper">
+        <div class="login-card">
+
+            <!-- LEFT SIDE -->
+            <div class="login-left">
+                <h1>Gestion Horaire</h1>
+                <p>
+                    Plateforme intelligente de gestion des horaires académiques.
+                </p>
+                <ul>
+                    <li>📅 Organisation des cours</li>
+                    <li>👩‍🏫 Gestion des professeurs</li>
+                    <li>🏢 Suivi par département</li>
+                    <li>🔐 Accès sécurisé</li>
+                </ul>
+            </div>
+
+            <!-- RIGHT SIDE -->
+            <div class="login-right">
+                <h3 class="text-center mb-4">Connexion</h3>
+
+                <form method="post">
+                    @Html.AntiForgeryToken()
+
+                    <div class="mb-3">
+                        <label class="form-label">Email</label>
+                        <input type="email" name="email" class="form-control" placeholder="exemple@gestionhoraire.com" required />
+                    </div>
+
+                    <div class="mb-3">
+                        <label class="form-label">Mot de passe</label>
+                        <input type="password" name="motDePasse" class="form-control" placeholder="••••••••" required />
+                    </div>
+
                     @if (ViewBag.Error != null)
                     {
-                        <div class="alert alert-danger alert-dismissible fade show" role="alert">
-                            <i class="fas fa-exclamation-triangle me-2"></i>@ViewBag.Error
-                            <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+                        <div class="alert alert-danger">
+                            @ViewBag.Error
                         </div>
                     }
 
-                    <form asp-action="Index" method="post">
-                        <div class="mb-4">
-                            <label class="form-label fw-bold">Email institutionnel</label>
-                            <div class="input-group">
-                                <span class="input-group-text"><i class="fas fa-envelope"></i></span>
-                                <input type="email" name="email" class="form-control form-control-lg"
-                                       placeholder="nom@gestionhoraire.com" required autofocus>
-                            </div>
-                        </div>
+                    <button type="submit" class="btn btn-primary w-100 mt-3">
+                        Se connecter
+                    </button>
+                </form>
 
-                        <div class="mb-4">
-                            <label class="form-label fw-bold">Mot de passe</label>
-                            <div class="input-group">
-                                <span class="input-group-text"><i class="fas fa-lock"></i></span>
-                                <input type="password" name="motDePasse" class="form-control form-control-lg" required>
-                            </div>
-                        </div>
-
-                        <button type="submit" class="btn btn-primary btn-lg w-100 py-2 fw-bold">
-                            <i class="fas fa-sign-in-alt me-2"></i>Se connecter
-                        </button>
-                    </form>
-
-                
+                <div class="mt-3 text-center">
+                    <a asp-controller="Login" asp-action="ForgotPassword">Mot de passe oublié ?</a>
                 </div>
+
+
             </div>
+
         </div>
     </div>
 </div>
+
+<style>
+    .login-page {
+        background: linear-gradient(135deg, #2563eb, #1e3a8a);
+        min-height: 100vh;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        padding: 20px;
+    }
+
+    .login-wrapper {
+        width: 100%;
+        display: flex;
+        justify-content: center;
+        align-items: center;
+    }
+
+    .login-card {
+        display: flex;
+        width: 900px;
+        max-width: 100%;
+        background: white;
+        border-radius: 16px;
+        overflow: hidden;
+        box-shadow: 0 20px 40px rgba(0,0,0,0.25);
+        animation: fadeIn 0.6s ease-in-out;
+    }
+
+    @@keyframes fadeIn {
+        from { opacity: 0; transform: translateY(20px); }
+        to { opacity: 1; transform: translateY(0); }
+    }
+
+    .login-left {
+        flex: 1;
+        padding: 40px;
+        background: linear-gradient(160deg, #1e40af, #2563eb);
+        color: white;
+    }
+
+    .login-left h1 {
+        font-weight: 700;
+        margin-bottom: 20px;
+    }
+
+    .login-left p {
+        font-size: 16px;
+        margin-bottom: 25px;
+        opacity: 0.9;
+    }
+
+    .login-left ul {
+        list-style: none;
+        padding: 0;
+    }
+
+    .login-left li {
+        margin-bottom: 10px;
+        font-size: 15px;
+    }
+
+    .login-right {
+        flex: 1;
+        padding: 40px;
+    }
+
+    .login-right h3 {
+        font-weight: 600;
+    }
+
+    @@media (max-width: 768px) {
+        .login-card {
+            flex-direction: column;
+        }
+
+        .login-left {
+            text-align: center;
+        }
+    }
+</style>
