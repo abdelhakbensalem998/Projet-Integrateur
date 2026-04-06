@@ -1,4 +1,4 @@
-﻿@model IEnumerable<GestionHoraire.Models.Salle>
+@model IEnumerable<GestionHoraire.Models.Salle>
 <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.0/font/bootstrap-icons.css">
 
 <div class="container mt-4">
@@ -19,7 +19,15 @@
                             <h5 class="fw-bold">@salle.Nom</h5>
                             <span class="badge bg-info text-dark rounded-pill">@salle.Capacite places</span>
                         </div>
-                        <p class="text-muted mt-2 small text-uppercase">Type : @salle.Type</p>
+                        <p class="text-muted mt-2 small text-uppercase mb-1">Type : @salle.Type</p>
+                        @if (!string.IsNullOrEmpty(salle.Logiciels))
+                        {
+                            <div class="small mb-1"><i class="bi bi-cpu me-1"></i> <strong>Logiciels :</strong> @salle.Logiciels</div>
+                        }
+                        @if (!string.IsNullOrEmpty(salle.Materiel))
+                        {
+                            <div class="small"><i class="bi bi-pc-display me-1"></i> <strong>Matériel :</strong> @salle.Materiel</div>
+                        }
                     </div>
                     <div class="card-footer bg-transparent border-0 d-flex justify-content-end gap-2 pb-3">
                         <a asp-action="Modifier" asp-route-id="@salle.Id" class="btn btn-sm btn-outline-warning">Modifier</a>

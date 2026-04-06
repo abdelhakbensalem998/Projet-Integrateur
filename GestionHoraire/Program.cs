@@ -1,4 +1,4 @@
-﻿using System;
+using System;
 using GestionHoraire.Data;
 using GestionHoraire.Services;
 using Microsoft.EntityFrameworkCore;
@@ -16,8 +16,7 @@ builder.Services.AddSession(options =>
 {
     options.IdleTimeout = TimeSpan.FromMinutes(30);
 });
-
-// ✅ DI Services (AVANT builder.Build())
+// DI Services
 builder.Services.AddScoped<PlanningService>();
 builder.Services.AddScoped<EmailService>();
 
@@ -35,7 +34,7 @@ app.UseStaticFiles();
 
 app.UseRouting();
 
-// ✅ Session doit être après UseRouting et avant MapControllerRoute
+// Session doit être après UseRouting et avant MapControllerRoute
 app.UseSession();
 
 app.UseAuthorization();

@@ -15,9 +15,6 @@
             <p class="text-muted mb-0">Gérez les cours du département et assignez les professeurs.</p>
         </div>
         <div class="d-flex gap-2">
-            <a asp-controller="Responsable" asp-action="Index" class="btn btn-outline-secondary rounded-pill px-3 shadow-sm">
-                <i class="bi bi-house-door me-1"></i> Tableau de bord
-            </a>
             <a asp-action="CreerCours" class="btn btn-success rounded-pill px-4 shadow-sm">
                 <i class="bi bi-plus-circle me-1"></i> Nouveau Cours
             </a>
@@ -40,35 +37,80 @@
                     <thead class="table-dark">
                         <tr>
                             <th class="ps-4 py-3">Titre du Cours</th>
+                            <th>Groupe</th>
                             <th>Professeur Assigné</th>
                             <th class="text-center">Statut</th>
                             <th class="text-end pe-4">Actions</th>
                         </tr>
                     </thead>
                     <tbody>
-                        @foreach (var item in Model)
+                        @foreach (var courseGroup in Model.GroupBy(c => new { 
+                            Titre = (c.Titre ?? "").Trim().ToLower(), 
+                            c.UtilisateurId, 
+                            ProfesseurIds = (c.ProfesseurIds ?? "").Trim().TrimEnd(','), 
+                            c.SalleId 
+                        }))
                         {
+                            var firstItem = courseGroup.First();
                             <tr>
                                 <td class="ps-4">
-                                    <span class="fw-bold fs-5 text-dark">@item.Titre</span>
+                                    <span class="fw-bold fs-5 text-dark">@firstItem.Titre</span>
                                 </td>
                                 <td>
-                                    @if (item.Utilisateur != null)
+                                    @foreach (var item in courseGroup)
                                     {
-                                        <div class="d-flex align-items-center">
-                                            <div class="bg-primary-subtle p-2 rounded-circle me-2">
-                                                <i class="bi bi-person-fill text-primary"></i>
-                                            </div>
-                                            <span class="fw-medium">@item.Utilisateur.Nom</span>
-                                        </div>
+                                        var gids = string.IsNullOrEmpty(item.GroupeIds) ? new string[0] : item.GroupeIds.Split(',');
+                                        var allGrps = (List<GestionHoraire.Models.Groupe>)ViewBag.AllGroupes;
+                                        
+                                        foreach (var gid in gids)
+                                        {
+                                            var gn = allGrps?.FirstOrDefault(g => g.Id.ToString() == gid.Trim())?.Nom ?? "Inconnu";
+                                            <span class="badge bg-info-subtle text-info border border-info px-2 mb-1 d-inline-block">
+                                                <i class="bi bi-people-fill me-1"></i> @gn
+                                            </span>
+                                        }
                                     }
-                                    else
+                                    @if (!courseGroup.Any(c => !string.IsNullOrEmpty(c.GroupeIds)))
+                                    {
+                                        <span class="badge bg-secondary-subtle text-secondary border px-2">Aucun groupe</span>
+                                    }
+                                </td>
+                                <td>
+                                    @{
+                                        var pids = string.IsNullOrEmpty(firstItem.ProfesseurIds) 
+                                                   ? (firstItem.UtilisateurId.HasValue ? new string[] { firstItem.UtilisateurId.Value.ToString() } : new string[0])
+                                                   : firstItem.ProfesseurIds.Split(',');
+                                        var allUsers = (List<GestionHoraire.Models.Utilisateur>)ViewBag.AllUsers;
+                                    }
+                                    @if (!pids.Any())
                                     {
                                         <span class="text-muted small italic">Aucun professeur</span>
                                     }
+                                    else
+                                    {
+                                        foreach (var pid in pids)
+                                        {
+                                            var prof = allUsers?.FirstOrDefault(u => u.Id.ToString() == pid.Trim());
+                                            if (prof != null)
+                                            {
+                                                <div class="d-flex align-items-center mb-1">
+                                                    <div class="bg-primary-subtle p-1 rounded-circle me-2" style="font-size: 0.8rem;">
+                                                        <i class="bi bi-person-fill text-primary"></i>
+                                                    </div>
+                                                    <span class="fw-medium small">@prof.Nom</span>
+                                                    <a asp-controller="Disponibilite" asp-action="Index" 
+                                                       asp-route-professeurId="@prof.Id" 
+                                                       asp-route-returnUrl="/Affectations/Index" 
+                                                       class="text-info ms-2" title="Gérer disponibilités">
+                                                        <i class="bi bi-calendar-event"></i>
+                                                    </a>
+                                                </div>
+                                            }
+                                        }
+                                    }
                                 </td>
                                 <td class="text-center">
-                                    @if (item.Utilisateur != null)
+                                    @if (firstItem.UtilisateurId != null || !string.IsNullOrEmpty(firstItem.ProfesseurIds))
                                     {
                                         <span class="badge bg-success-subtle text-success border border-success px-3">Assigné</span>
                                     }
@@ -79,13 +121,13 @@
                                 </td>
                                 <td class="text-end pe-4">
                                     <div class="btn-group shadow-sm rounded">
-                                        <a asp-action="EditerAffectation" asp-route-id="@item.Id"
+                                        <a asp-action="EditerAffectation" asp-route-id="@firstItem.Id"
                                            class="btn btn-sm btn-white border btn-dynamic" title="Modifier le professeur">
                                             <i class="bi bi-person-plus text-primary"></i> Affecter
                                         </a>
 
-                                        <form asp-controller="Affectations" asp-action="SupprimerCours" asp-route-id="@item.Id"
-                                              method="post" onsubmit="return confirm('Êtes-vous sûr de vouloir supprimer ce cours ?');"
+                                        <form asp-controller="Affectations" asp-action="SupprimerCours" asp-route-id="@firstItem.Id"
+                                              method="post" onsubmit="return confirm('Êtes-vous sûr de vouloir supprimer tous les records liés à ce cours (@firstItem.Titre) pour ces groupes ?');"
                                               style="display:inline;">
                                             @Html.AntiForgeryToken()
                                             <button type="submit" class="btn btn-sm btn-white border border-start-0 btn-dynamic" title="Supprimer">

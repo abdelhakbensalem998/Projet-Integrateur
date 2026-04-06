@@ -1,0 +1,102 @@
+@model IEnumerable<GestionHoraire.Models.Demande>
+@{
+    ViewData["Title"] = "Historique des Demandes";
+}
+
+<div class="container py-5">
+    <div class="d-flex justify-content-between align-items-center mb-5 border-bottom pb-4 px-2">
+        <div>
+            <h1 class="fw-bold text-dark m-0"><i class="bi bi-clock-history text-primary me-3"></i>Historique des Demandes</h1>
+            <p class="text-muted m-0 mt-1 small">Suivez le statut de vos communications avec le responsable.</p>
+        </div>
+        <a asp-action="Index" class="btn btn-outline-secondary rounded-pill px-4 shadow-sm border-2">
+            <i class="bi bi-arrow-left-short fs-4 align-middle"></i> Retour Dashboard
+        </a>
+    </div>
+
+    <div class="card border-0 shadow-sm rounded-4 overflow-hidden">
+        <div class="table-responsive">
+            <table class="table table-hover align-middle mb-0">
+                <thead class="bg-light">
+                    <tr class="text-uppercase text-muted small fw-bold">
+                        <th class="ps-4 py-3">Date</th>
+                        <th class="py-3">Type</th>
+                        <th class="py-3">Description</th>
+                        <th class="py-3">Fichier</th>
+                        <th class="py-3 text-center">Statut</th>
+                        <th class="py-3 text-end pe-4">Note Responsable</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    @if (Model != null && Model.Any())
+                    {
+                        foreach (var d in Model)
+                        {
+                            <tr>
+                                <td class="ps-4">
+                                    <div class="fw-bold text-dark mb-0">@d.DateCreation.ToString("dd MMM yyyy")</div>
+                                    <div class="text-muted" style="font-size: 0.75rem;">@d.DateCreation.ToString("HH:mm")</div>
+                                </td>
+                                <td>
+                                    <span class="badge @(d.Type == "Absence" ? "bg-warning bg-opacity-10 text-warning" : "bg-info bg-opacity-10 text-info") rounded-pill px-3 py-2 border border-info border-opacity-25 border-1">
+                                        @d.Type
+                                    </span>
+                                </td>
+                                <td>
+                                    <div class="text-dark small text-truncate" style="max-width: 200px;" title="@d.Description">
+                                        @d.Description
+                                    </div>
+                                </td>
+                                <td>
+                                    @if (!string.IsNullOrEmpty(d.FichierJoint))
+                                    {
+                                        <a href="#" class="btn btn-sm btn-light border rounded-pill px-3 py-1">
+                                            <i class="bi bi-file-earmark-check text-success me-1"></i> @d.FichierJoint
+                                        </a>
+                                    }
+                                    else
+                                    {
+                                        <span class="text-muted small">Aucun</span>
+                                    }
+                                </td>
+                                <td class="text-center">
+                                    @if (d.Statut == "Approuvé")
+                                    {
+                                        <span class="badge bg-success rounded-pill px-3 py-2"><i class="bi bi-check-circle-fill me-1"></i>@d.Statut</span>
+                                    }
+                                    else if (d.Statut == "Refusé")
+                                    {
+                                        <span class="badge bg-danger rounded-pill px-3 py-2"><i class="bi bi-x-circle-fill me-1"></i>@d.Statut</span>
+                                    }
+                                    else
+                                    {
+                                        <span class="badge bg-secondary bg-opacity-50 text-white rounded-pill px-3 py-2 animate-pulse">
+                                            <i class="bi bi-hourglass-split me-1"></i>@d.Statut
+                                        </span>
+                                    }
+                                </td>
+                                <td class="text-end pe-4">
+                                    <em class="text-muted small">@(d.NoteResponsable ?? "--")</em>
+                                </td>
+                            </tr>
+                        }
+                    }
+                    else
+                    {
+                        <tr>
+                            <td colspan="6" class="text-center py-5 text-muted">
+                                <i class="bi bi-inbox fs-1 mb-2 d-block opacity-25"></i>
+                                Vous n'avez envoyé aucune demande pour le moment.
+                            </td>
+                        </tr>
+                    }
+                </tbody>
+            </table>
+        </div>
+    </div>
+</div>
+
+<style>
+    .animate-pulse { animation: pulse 2s infinite; }
+    @@keyframes pulse { 0% { opacity: 0.5; } 50% { opacity: 1; } 100% { opacity: 0.5; } }
+</style>

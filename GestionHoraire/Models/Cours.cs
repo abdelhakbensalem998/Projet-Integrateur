@@ -1,4 +1,4 @@
-﻿using System;
+using System;
 using System.ComponentModel.DataAnnotations;
 
 namespace GestionHoraire.Models
@@ -25,15 +25,25 @@ namespace GestionHoraire.Models
         public string? Type { get; set; }
 
         public int DepartementId { get; set; }
-        public Departement Departement { get; set; }
+        public virtual Departement? Departement { get; set; }
 
-        public int? UtilisateurId { get; set; }
-        public Utilisateur Utilisateur { get; set; }
+        public int? UtilisateurId { get; set; } 
+        public virtual Utilisateur? Utilisateur { get; set; }
+
+        public string? ProfesseurIds { get; set; } // Multiple professors support (ex: "1,2,5")
 
         public int? SalleId { get; set; }
-        public Salle Salle { get; set; }
+        public virtual Salle? Salle { get; set; }
 
         public int? GroupeId { get; set; }
-        public Groupe Groupe { get; set; }
+        public virtual Groupe? Groupe { get; set; }
+
+        // Multi-groupe support via string IDs (ex: "1,2,5")
+        public string? GroupeIds { get; set; }
+
+        public string? CodeMinisteriel { get; set; }
+        public int HeuresTheorie { get; set; } = 0;
+        public int HeuresLabo { get; set; } = 0;
+        public int HeuresTravailPersonnel { get; set; } = 0;
     }
 }

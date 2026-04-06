@@ -1,5 +1,6 @@
-﻿using GestionHoraire.Models;
+using GestionHoraire.Models;
 using Microsoft.EntityFrameworkCore;
+using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 
 namespace GestionHoraire.Data
 {
@@ -14,6 +15,7 @@ namespace GestionHoraire.Data
         public DbSet<Departement> Departements { get; set; }
         public DbSet<Disponibilite> Disponibilites { get; set; }
         public DbSet<Groupe> Groupes { get; set; }
+        public DbSet<Demande> Demandes { get; set; }
 
         // ===== Sécurité / OTP / Logs =====
         public DbSet<EmailOtp> EmailOtps { get; set; }

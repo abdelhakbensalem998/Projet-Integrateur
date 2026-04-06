@@ -4,6 +4,7 @@ using GestionHoraire.Data;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Infrastructure;
 using Microsoft.EntityFrameworkCore.Metadata;
+using Microsoft.EntityFrameworkCore.Migrations;
 using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 
 #nullable disable
@@ -11,9 +12,11 @@ using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 namespace GestionHoraire.Migrations
 {
     [DbContext(typeof(AppDbContext))]
-    partial class AppDbContextModelSnapshot : ModelSnapshot
+    [Migration("20260318204048_AddReferentielEtStatsFields")]
+    partial class AddReferentielEtStatsFields
     {
-        protected override void BuildModel(ModelBuilder modelBuilder)
+        /// <inheritdoc />
+        protected override void BuildTargetModel(ModelBuilder modelBuilder)
         {
 #pragma warning disable 612, 618
             modelBuilder
@@ -79,48 +82,6 @@ namespace GestionHoraire.Migrations
                     b.HasIndex("UtilisateurId");
 
                     b.ToTable("Cours");
-                });
-
-            modelBuilder.Entity("GestionHoraire.Models.Demande", b =>
-                {
-                    b.Property<int>("Id")
-                        .ValueGeneratedOnAdd()
-                        .HasColumnType("int");
-
-                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("Id"));
-
-                    b.Property<DateTime>("DateCreation")
-                        .HasColumnType("datetime2");
-
-                    b.Property<string>("Description")
-                        .IsRequired()
-                        .HasColumnType("nvarchar(max)");
-
-                    b.Property<bool>("EstUrgent")
-                        .HasColumnType("bit");
-
-                    b.Property<string>("FichierJoint")
-                        .HasColumnType("nvarchar(max)");
-
-                    b.Property<string>("NoteResponsable")
-                        .HasColumnType("nvarchar(max)");
-
-                    b.Property<string>("Statut")
-                        .IsRequired()
-                        .HasColumnType("nvarchar(max)");
-
-                    b.Property<string>("Type")
-                        .IsRequired()
-                        .HasColumnType("nvarchar(max)");
-
-                    b.Property<int>("UtilisateurId")
-                        .HasColumnType("int");
-
-                    b.HasKey("Id");
-
-                    b.HasIndex("UtilisateurId");
-
-                    b.ToTable("Demandes");
                 });
 
             modelBuilder.Entity("GestionHoraire.Models.Departement", b =>
@@ -300,17 +261,6 @@ namespace GestionHoraire.Migrations
                     b.Navigation("Departement");
 
                     b.Navigation("Salle");
-
-                    b.Navigation("Utilisateur");
-                });
-
-            modelBuilder.Entity("GestionHoraire.Models.Demande", b =>
-                {
-                    b.HasOne("GestionHoraire.Models.Utilisateur", "Utilisateur")
-                        .WithMany()
-                        .HasForeignKey("UtilisateurId")
-                        .OnDelete(DeleteBehavior.Cascade)
-                        .IsRequired();
 
                     b.Navigation("Utilisateur");
                 });

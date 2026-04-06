@@ -26,7 +26,9 @@ namespace GestionHoraire.Controllers
             int? monDeptId = GetMonDeptId();
             string userRole = HttpContext.Session.GetString("UserRole");
 
-            IQueryable<Cours> query = _context.Cours.Include(c => c.Utilisateur);
+            IQueryable<Cours> query = _context.Cours
+                .Include(c => c.Utilisateur)
+                .Include(c => c.Salle); // Added .Include(c => c.Salle) as per the provided Code Edit example
 
             if (userRole == "Administrateur")
             {
@@ -43,37 +45,72 @@ namespace GestionHoraire.Controllers
             }
 
             var cours = await query.ToListAsync();
+            ViewBag.AllGroupes = await _context.Groupes.ToListAsync();
+            ViewBag.AllUsers = await _context.Utilisateurs.ToListAsync();
             return View(cours);
         }
 
         // 2. CREER UN NOUVEAU COURS
         [HttpGet]
-        public IActionResult CreerCours()
+        public async Task<IActionResult> CreerCours()
         {
+            int? deptId = GetMonDeptId();
+            var groupesQuery = _context.Groupes.AsQueryable();
+            if (deptId != null) 
+                groupesQuery = groupesQuery.Where(g => g.DepartementId == deptId);
+            
+            var profsQuery = _context.Utilisateurs.Where(u => u.Role == "Professeur");
+            if (deptId != null) profsQuery = profsQuery.Where(u => u.DepartementId == deptId);
+
+            ViewBag.Groupes = new SelectList(await groupesQuery.ToListAsync(), "Id", "Nom");
+            ViewBag.Professeurs = await profsQuery.ToListAsync();
+            ViewBag.Salles = new SelectList(await _context.Salles.ToListAsync(), "Id", "Nom");
             return View();
         }
 
         [HttpPost]
         [ValidateAntiForgeryToken]
-        public async Task<IActionResult> CreerCours([Bind("Titre,Jour,HeureDebut,HeureFin")] Cours cours)
+        public async Task<IActionResult> CreerCours([Bind("Titre")] Cours cours, int[] groupeIds, int[] profIds, int? salleId)
         {
             var deptId = GetMonDeptId();
-            if (deptId == null) return Unauthorized();
+            if (deptId == null) return RedirectToAction("Index", "Login");
             
-            cours.DepartementId = deptId.Value;
-            
-            ModelState.Remove("Utilisateur");
-            ModelState.Remove("Departement");
-            ModelState.Remove("Salle");
-            ModelState.Remove("Groupe");
-
-            if (ModelState.IsValid)
+            var profIdsStr = (profIds != null && profIds.Length > 0) ? string.Join(",", profIds) : null;
+            var primaryProfId = (profIds != null && profIds.Length > 0) ? (int?)profIds[0] : null;
+            if (groupeIds == null || groupeIds.Length == 0)
             {
+                // Fallback (should not happen with required attribute)
+                cours.DepartementId = deptId.Value;
+                cours.SalleId = salleId;
                 _context.Add(cours);
-                await _context.SaveChangesAsync();
-                return RedirectToAction(nameof(Index));
             }
-            return View(cours);
+            else
+            {
+                foreach (var gid in groupeIds)
+                {
+                    string targetGid = gid.ToString();
+                    // Check if already exists for this group and title
+                    var exists = await _context.Cours.AnyAsync(c => c.DepartementId == deptId.Value && c.Titre == cours.Titre && c.GroupeIds == targetGid);
+                    if (exists) continue;
+
+                    var newCours = new Cours
+                    {
+                        Titre = cours.Titre,
+                        DepartementId = deptId.Value,
+                        SalleId = salleId,
+                        GroupeIds = targetGid,
+                        ProfesseurIds = profIdsStr,
+                        UtilisateurId = primaryProfId,
+                        Jour = DayOfWeek.Monday,
+                        HeureDebut = TimeSpan.Zero,
+                        HeureFin = TimeSpan.Zero
+                    };
+                    _context.Add(newCours);
+                }
+            }
+
+            await _context.SaveChangesAsync();
+            return RedirectToAction(nameof(Index));
         }
 
         [HttpPost]
@@ -86,10 +123,21 @@ namespace GestionHoraire.Controllers
                 int? deptId = GetMonDeptId();
                 string userRole = HttpContext.Session.GetString("UserRole");
                 
-                // Allow delete if Admin or if it belongs to Responsable's department
                 if (userRole == "Administrateur" || cours.DepartementId == deptId)
                 {
-                    _context.Cours.Remove(cours);
+                    // Group deletion: find all related courses (same title, same professor(s))
+                    // Normalize for comparison
+                    string nTitre = (cours.Titre ?? "").Trim().ToLower();
+                    string nPhIds = (cours.ProfesseurIds ?? "").Trim().TrimEnd(',');
+                    
+                    var allCourses = await _context.Cours.Where(c => c.DepartementId == cours.DepartementId).ToListAsync();
+                    var related = allCourses
+                        .Where(c => (c.Titre ?? "").Trim().ToLower() == nTitre && 
+                                    c.UtilisateurId == cours.UtilisateurId &&
+                                    (c.ProfesseurIds ?? "").Trim().TrimEnd(',') == nPhIds)
+                        .ToList();
+                    
+                    _context.Cours.RemoveRange(related);
                     await _context.SaveChangesAsync();
                 }
             }
@@ -106,23 +154,32 @@ namespace GestionHoraire.Controllers
             int? deptId = GetMonDeptId();
             string userRole = HttpContext.Session.GetString("UserRole");
             
-            // Check permissions
             if (userRole != "Administrateur" && cours.DepartementId != deptId)
-                return Unauthorized();
+                return RedirectToAction("Index", "Login");
 
             var profsQuery = _context.Utilisateurs.Where(u => u.Role == "Professeur");
+            var groupesQuery = _context.Groupes.AsQueryable();
+
             if (userRole != "Administrateur")
+            {
                 profsQuery = profsQuery.Where(u => u.DepartementId == deptId);
+                groupesQuery = groupesQuery.Where(g => g.DepartementId == deptId);
+            }
 
-            var profs = await profsQuery.ToListAsync();
+            // Current IDs for selection
+            ViewBag.CurrentProfIds = cours.ProfesseurIds?.Split(',') ?? new string[0];
+            ViewBag.CurrentGroupeIds = cours.GroupeIds?.Split(',') ?? new string[0];
 
-            ViewBag.Professeurs = new SelectList(profs, "Id", "Nom", cours.UtilisateurId);
+            ViewBag.ProfesseursList = await profsQuery.ToListAsync();
+            ViewBag.GroupesList = await groupesQuery.ToListAsync();
+            ViewBag.Salles = new SelectList(await _context.Salles.ToListAsync(), "Id", "Nom", cours.SalleId);
+            
             return View(cours);
         }
 
         [HttpPost]
         [ValidateAntiForgeryToken]
-        public async Task<IActionResult> EditerAffectation(int id, int? utilisateurId)
+        public async Task<IActionResult> EditerAffectation(int id, int[] profIds, int[] groupeIds, int? salleId)
         {
             var cours = await _context.Cours.FindAsync(id);
             if (cours == null) return NotFound();
@@ -130,11 +187,47 @@ namespace GestionHoraire.Controllers
             int? deptId = GetMonDeptId();
             string userRole = HttpContext.Session.GetString("UserRole");
             
-            // Check permissions
             if (userRole != "Administrateur" && cours.DepartementId != deptId)
-                return Unauthorized();
+                return RedirectToAction("Index", "Login");
 
-            cours.UtilisateurId = utilisateurId;
+            // Support multi-profs
+            cours.ProfesseurIds = (profIds != null && profIds.Length > 0) 
+                                 ? string.Join(",", profIds) 
+                                 : null;
+            
+            // If at least one prof, set the first as UtilisateurId for backward compatibility
+            cours.UtilisateurId = (profIds != null && profIds.Length > 0) ? profIds[0] : null;
+
+            cours.SalleId = salleId;
+            
+            // To maintain independence, if multiple groups are selected during edit, 
+            // we keep the current one as the first selected, and create clones for others.
+            if (groupeIds != null && groupeIds.Length > 0)
+            {
+                cours.GroupeIds = groupeIds[0].ToString();
+                for (int i = 1; i < groupeIds.Length; i++)
+                {
+                    string targetGid = groupeIds[i].ToString();
+                    // Skip if a course with this title and this group already exists in the department
+                    bool alreadyExists = await _context.Cours.AnyAsync(c => c.DepartementId == cours.DepartementId && c.Titre == cours.Titre && c.GroupeIds == targetGid);
+                    if (alreadyExists) continue;
+
+                    var clone = new Cours
+                    {
+                        Titre = cours.Titre,
+                        DepartementId = cours.DepartementId,
+                        SalleId = cours.SalleId,
+                        UtilisateurId = cours.UtilisateurId,
+                        ProfesseurIds = cours.ProfesseurIds,
+                        GroupeIds = targetGid,
+                        Jour = DayOfWeek.Monday,
+                        HeureDebut = TimeSpan.Zero,
+                        HeureFin = TimeSpan.Zero
+                    };
+                    _context.Add(clone);
+                }
+            }
+
             _context.Update(cours);
             await _context.SaveChangesAsync();
 
@@ -142,19 +235,9 @@ namespace GestionHoraire.Controllers
         }
 
         // 3. DISPONIBILITÉS
-        public async Task<IActionResult> VoirDispos(int id)
+        public IActionResult VoirDispos(int id)
         {
-            var prof = await _context.Utilisateurs.FindAsync(id);
-            if (prof == null) return NotFound();
-
-            var dispos = await _context.Disponibilites
-                .Where(d => d.UtilisateurId == id)
-                .OrderBy(d => d.Jour).ThenBy(d => d.HeureDebut)
-                .ToListAsync();
-
-            ViewBag.ProfNom = prof.Nom;
-            ViewBag.ProfId = prof.Id;
-            return View(dispos);
+            return RedirectToAction("Index", "Disponibilite", new { professeurId = id, returnUrl = "/Affectations/Index" });
         }
 
         // Ajouter / Supprimer Dispo
