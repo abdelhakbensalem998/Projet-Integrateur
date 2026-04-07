@@ -51,6 +51,7 @@
         </a>
     </div>
 
+    <!-- Première rangée : Professeurs et Groupes -->
     <div class="row g-4 text-center mb-4">
         <div class="col-md-6">
             <a asp-action="Profs" class="text-decoration-none text-dark">
@@ -66,7 +67,7 @@
         </div>
 
         <div class="col-md-6">
-            <a asp-controller="Groupes" asp-action="Index" class="text-decoration-none text-dark">
+            <a asp-controller="Groupe" asp-action="Index" class="text-decoration-none text-dark">
                 <div class="card h-100 shadow-sm hover-shadow border-0 border-top border-info border-4 card-module">
                     <span class="badge bg-info badge-counter">@ViewBag.NbGroupes</span>
                     <div class="card-body py-5">
@@ -79,7 +80,8 @@
         </div>
     </div>
 
-    <div class="row g-4 text-center">
+    <!-- Deuxième rangée : Planning et Affectations -->
+    <div class="row g-4 text-center mb-4">
         <div class="col-md-6">
             <a asp-controller="Planning" asp-action="Index" class="text-decoration-none text-dark">
                 <div class="card h-100 shadow-sm hover-shadow border-0 border-top border-warning border-4 card-module">
@@ -102,6 +104,94 @@
                     </div>
                 </div>
             </a>
+        </div>
+    </div>
+
+    <!-- Troisième rangée : Demandes et Locaux/Labos -->
+    <div class="row g-4 text-center mb-4">
+        <div class="col-md-6">
+            <a asp-action="Demandes" class="text-decoration-none text-dark">
+                <div class="card h-100 shadow-sm hover-shadow border-0 border-top border-primary border-4 card-module">
+                    <span class="badge bg-primary badge-counter">@ViewBag.NbDemandesEnAttente</span>
+                    @if (ViewBag.NbDemandesUrgentes > 0)
+                    {
+                        <span class="badge bg-danger position-absolute" style="top: 15px; right: 65px; border-radius: 50px;">
+                            <i class="bi bi-exclamation-triangle-fill me-1"></i> @ViewBag.NbDemandesUrgentes Urgents
+                        </span>
+                    }
+                    <div class="card-body py-5">
+                        <i class="bi bi-chat-left-text display-4 text-primary mb-3"></i>
+                        <h3 class="fw-bold h4">Demandes / Notifications</h3>
+                        <p class="text-muted mb-0">Gérer les vacances, documents et requêtes profs</p>
+                    </div>
+                </div>
+            </a>
+        </div>
+
+        <div class="col-md-6">
+            <a asp-controller="Salles" asp-action="Index" class="text-decoration-none text-dark">
+                <div class="card h-100 shadow-sm hover-shadow border-0 border-top border-dark border-4 card-module">
+                    <span class="badge bg-dark badge-counter">@ViewBag.NbSalles</span>
+                    <div class="card-body py-5">
+                        <i class="bi bi-building display-4 text-dark mb-3"></i>
+                        <h3 class="fw-bold h4">Locaux / Laboratoires</h3>
+                        <p class="text-muted mb-0">Gestion des salles et équipements informatiques</p>
+                    </div>
+                </div>
+            </a>
+        </div>
+    </div>
+
+    <!-- Carte Rapports & Statistiques (Pleine largeur) -->
+    <div class="row g-4 mb-5">
+        <div class="col-12">
+            <div class="card shadow-sm border-0 border-top border-secondary border-4 card-module">
+                <div class="card-body p-4">
+                    <div class="d-flex align-items-center mb-4">
+                        <i class="bi bi-speedometer2 fs-2 text-secondary me-3"></i>
+                        <h3 class="fw-bold h4 m-0">Rapports & Statistiques</h3>
+                    </div>
+                    
+                    <div class="row text-center g-4">
+                        <div class="col-md-4">
+                            <div class="p-3 bg-light rounded-3">
+                                <h5 class="text-muted small text-uppercase fw-bold">Taux d'assignation</h5>
+                                <div class="display-6 fw-bold text-dark">@ViewBag.TauxAssignation%</div>
+                                <div class="progress mt-2" style="height: 6px;">
+                                    <div class="progress-bar bg-success" role="progressbar" style="width: @ViewBag.TauxAssignation%"></div>
+                                </div>
+                                <small class="text-muted">@ViewBag.NbCoursTotal cours au total</small>
+                            </div>
+                        </div>
+                        
+                        <div class="col-md-4">
+                            <div class="p-3 bg-light rounded-3">
+                                <h5 class="text-muted small text-uppercase fw-bold">Conflits détectés</h5>
+                                <div class="display-6 fw-bold @((int)ViewBag.NbConflits > 0 ? "text-danger" : "text-success")">@ViewBag.NbConflits</div>
+                                <p class="text-muted m-0"><small>Chevauchements détectés</small></p>
+                                @if(ViewBag.NbConflits > 0) {
+                                    <span class="badge bg-danger">Action requise</span>
+                                } else {
+                                    <span class="badge bg-success">Tout est en ordre</span>
+                                }
+                            </div>
+                        </div>
+
+                        <div class="col-md-4">
+                            <div class="p-3 bg-light rounded-3">
+                                <h5 class="text-muted small text-uppercase fw-bold">Surcharge Professeurs</h5>
+                                <div class="display-6 fw-bold @((int)ViewBag.NbSurcharges > 0 ? "text-warning" : "text-dark")">@ViewBag.NbSurcharges</div>
+                                <p class="text-muted m-0"><small>Dépassement de 18h/sem</small></p>
+                                @if(ViewBag.NbSurcharges > 0) {
+                                    <span class="badge bg-warning text-dark">Vérifier les charges</span>
+                                } else {
+                                    <span class="badge bg-info text-white">Charge optimale</span>
+                                }
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
         </div>
     </div>
 </div>

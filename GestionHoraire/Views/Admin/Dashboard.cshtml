@@ -69,7 +69,7 @@
         </div>
 
         <div class="col-md-6 col-lg-3">
-            <a asp-controller="Groupes" asp-action="Index" class="text-decoration-none">
+            <a asp-controller="Groupe" asp-action="Index" class="text-decoration-none">
                 <div class="card h-100 border-0 border-top border-info border-4 shadow-sm hover-shadow card-module">
                     <span class="inner-bubble bg-info">@ViewBag.TotalGroupes</span>
                     <div class="card-body py-5">
@@ -101,6 +101,20 @@
                     <div class="card-body py-5">
                         <i class="bi bi-calendar-week-fill display-4 text-secondary mb-3"></i>
                         <h4 class="fw-bold text-dark">Planning</h4>
+                    </div>
+                </div>
+            </a>
+        </div>
+
+        <div class="col-md-6 col-lg-3">
+            <a asp-controller="Affectations" asp-action="Index" class="text-decoration-none">
+                <div class="card h-100 border-0 border-top border-danger border-4 shadow-sm hover-shadow card-module">
+                    <span class="inner-bubble bg-danger">
+                        <i class="bi bi-journal-check"></i>
+                    </span>
+                    <div class="card-body py-5">
+                        <i class="bi bi-person-lines-fill display-4 text-danger mb-3"></i>
+                        <h4 class="fw-bold text-dark">Affectations</h4>
                     </div>
                 </div>
             </a>

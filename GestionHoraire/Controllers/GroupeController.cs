@@ -1,4 +1,4 @@
-﻿using Microsoft.AspNetCore.Mvc;
+using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.Mvc.Rendering;
 using Microsoft.EntityFrameworkCore;
 using GestionHoraire.Data;
@@ -108,7 +108,7 @@ namespace GestionHoraire.Controllers
 
             if (userRole != "Administrateur" && groupe.DepartementId != sessionDeptId)
             {
-                return Unauthorized();
+                return RedirectToAction("Index", "Login");
             }
 
             ViewBag.Departements = new SelectList(await _context.Departements.ToListAsync(), "Id", "Nom", groupe.DepartementId);
@@ -155,7 +155,7 @@ namespace GestionHoraire.Controllers
 
             if (userRole != "Administrateur" && groupe.DepartementId != sessionDeptId)
             {
-                return Unauthorized();
+                return RedirectToAction("Index", "Login");
             }
 
             _context.Groupes.Remove(groupe);

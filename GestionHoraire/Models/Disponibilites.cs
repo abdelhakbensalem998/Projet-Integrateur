@@ -1,4 +1,4 @@
-﻿using System;
+using System;
 using System.ComponentModel.DataAnnotations;
 using System.ComponentModel.DataAnnotations.Schema;
 
@@ -11,7 +11,7 @@ namespace GestionHoraire.Models
 
         [ForeignKey("Utilisateur")]
         public int UtilisateurId { get; set; }
-        public Utilisateur Utilisateur { get; set; }
+        public virtual Utilisateur? Utilisateur { get; set; }
 
         [Required]
         // Utilisation de Column(TypeName = "nvarchar") si SQL stocke du texte

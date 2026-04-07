@@ -1,4 +1,4 @@
-﻿using System.ComponentModel.DataAnnotations;
+using System.ComponentModel.DataAnnotations;
 
 namespace GestionHoraire.Models
 {
@@ -12,5 +12,8 @@ namespace GestionHoraire.Models
         public int Capacite { get; set; }
 
         public string Type { get; set; }
+
+        public string? Logiciels { get; set; }
+        public string? Materiel { get; set; }
     }
 }

@@ -11,17 +11,57 @@
                     <form asp-action="CreerCours" method="post">
                         @Html.AntiForgeryToken()
 
-                        <div asp-validation-summary="All" class="text-danger mb-3"></div>
-
                         <div class="mb-3">
-                            <label asp-for="Titre" class="form-label fw-bold">Nom du cours</label>
-                            <input asp-for="Titre" class="form-control form-control-lg" placeholder="Ex: Algorithmique" required />
-                            <span asp-validation-for="Titre" class="text-danger"></span>
+                            <label class="form-label fw-bold">Nom du cours</label>
+                            <input asp-for="Titre" class="form-control" placeholder="Ex: Algorithmique" required />
                         </div>
 
-                        <input type="hidden" name="Jour" value="Monday" />
-                        <input type="hidden" name="HeureDebut" value="08:00" />
-                        <input type="hidden" name="HeureFin" value="10:00" />
+                        <div class="mb-3">
+                            <label class="form-label fw-bold">Professeurs (Sélectionnez un ou plusieurs)</label>
+                            <select name="profIds" class="form-select border-success" multiple style="height: 120px;">
+                                @foreach (var item in (List<GestionHoraire.Models.Utilisateur>)ViewBag.Professeurs)
+                                {
+                                    <option value="@item.Id">@item.Nom</option>
+                                }
+                            </select>
+                            <div class="form-text text-muted">Maintenez Ctrl pour plusieurs professeurs.</div>
+                        </div>
+
+                        <div class="mb-3">
+                            <div class="d-flex justify-content-between align-items-center mb-1">
+                                <label class="form-label fw-bold mb-0">Groupes (Sélectionnez un ou plusieurs)</label>
+                                <button type="button" class="btn btn-sm btn-outline-info rounded-pill px-2 py-0" style="font-size: 0.7rem;" onclick="toggleAllGroups()">Tous / Aucun</button>
+                            </div>
+                            <select id="groupeIds" name="groupeIds" class="form-select border-success" multiple style="height: 150px;" required>
+                                @foreach (var item in (SelectList)ViewBag.Groupes)
+                                {
+                                    <option value="@item.Value">@item.Text</option>
+                                }
+                            </select>
+                            <div class="form-text text-muted">Si vous sélectionnez plusieurs groupes, cela créera <strong>une séance séparée</strong> pour chaque groupe afin qu'ils aient des horaires indépendants.</div>
+                        </div>
+
+                        <script>
+                            function toggleAllGroups() {
+                                const select = document.getElementById('groupeIds');
+                                const options = select.options;
+                                const someSelected = Array.from(options).some(o => o.selected);
+                                for (let i = 0; i < options.length; i++) {
+                                    options[i].selected = !someSelected;
+                                }
+                            }
+                        </script>
+
+                        <div class="mb-3">
+                            <label class="form-label fw-bold">Salle (optionnel)</label>
+                            <select name="salleId" class="form-select border-success">
+                                <option value="">-- Pas de salle --</option>
+                                @foreach (var item in (SelectList)ViewBag.Salles)
+                                {
+                                    <option value="@item.Value">@item.Text</option>
+                                }
+                            </select>
+                        </div>
 
                         <div class="d-flex justify-content-between mt-4">
                             <a asp-controller="Affectations" asp-action="Index" class="btn btn-outline-secondary">Annuler</a>

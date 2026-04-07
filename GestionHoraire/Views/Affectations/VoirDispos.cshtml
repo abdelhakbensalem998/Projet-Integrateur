@@ -1,7 +1,7 @@
 @model IEnumerable<GestionHoraire.Models.Disponibilite>
 
 @{
-    ViewData["Title"] = "Disponibilités de " + ViewBag.ProfNom;
+    ViewData["Title"] = "Absences de " + ViewBag.ProfNom;
     // Liste pour traduire les index DayOfWeek (0-6) en Français
     var joursFr = new[] { "Dimanche", "Lundi", "Mardi", "Mercredi", "Jeudi", "Vendredi", "Samedi" };
 }
@@ -9,8 +9,8 @@
 <div class="container mt-5">
     <div class="d-flex justify-content-between align-items-center mb-4">
         <div>
-            <h2 class="text-primary fw-bold mb-0">
-                <i class="bi bi-calendar3 me-2"></i>Gestion des disponibilités
+            <h2 class="text-danger fw-bold mb-0">
+                <i class="bi bi-calendar-x me-2"></i>Gestion des absences
             </h2>
             <p class="text-muted">Professeur : <strong>@ViewBag.ProfNom</strong></p>
         </div>
@@ -22,8 +22,8 @@
     <div class="row">
         <div class="col-md-4">
             <div class="card shadow-sm border-0">
-                <div class="card-header bg-dark text-white py-3">
-                    <h5 class="card-title mb-0 small text-uppercase fw-bold">Ajouter un créneau</h5>
+                <div class="card-header bg-danger text-white py-3">
+                    <h5 class="card-title mb-0 small text-uppercase fw-bold">Signaler une absence</h5>
                 </div>
                 <div class="card-body p-4">
                     <form asp-controller="Affectations" asp-action="AjouterDispo" method="post">
@@ -54,8 +54,8 @@
                             </div>
                         </div>
 
-                        <button type="submit" class="btn btn-primary w-100 shadow-sm mt-2">
-                            <i class="bi bi-plus-circle me-1"></i> Ajouter la disponibilité
+                        <button type="submit" class="btn btn-danger w-100 shadow-sm mt-2">
+                            <i class="bi bi-plus-circle me-1"></i> Ajouter cette absence
                         </button>
                     </form>
                 </div>
@@ -79,7 +79,7 @@
                                 {
                                     <tr>
                                         <td colspan="3" class="text-center py-5 text-muted">
-                                            <i class="bi bi-info-circle me-2"></i>Aucune disponibilité enregistrée pour le moment.
+                                            <i class="bi bi-check-circle text-success me-2"></i>Aucune absence enregistrée. Le professeur est disponible à 100%.
                                         </td>
                                     </tr>
                                 }
@@ -89,7 +89,7 @@
                                     {
                                         <tr>
                                             <td class="ps-4">
-                                                <span class="badge bg-info-subtle text-info border border-info-subtle px-3 py-2 rounded-pill">
+                                                <span class="badge bg-danger-subtle text-danger border border-danger-subtle px-3 py-2 rounded-pill">
                                                     @joursFr[(int)item.Jour]
                                                 </span>
                                             </td>

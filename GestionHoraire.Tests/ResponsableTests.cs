@@ -33,7 +33,7 @@ namespace GestionHoraire.Tests
 
         private ResponsableController GetController(AppDbContext context, int userId = 1, int deptId = 1)
         {
-            var controller = new ResponsableController(context);
+            var controller = new ResponsableController(context, null);
             var httpContext = new DefaultHttpContext();
             httpContext.Session = new TestSession();
             httpContext.Session.SetInt32("UserId", userId);
@@ -142,6 +142,50 @@ namespace GestionHoraire.Tests
 
             // Doit renvoyer NotFound() car la requête est sécurisée (prof.DepartementId != GetMonDeptId())
             Assert.IsType<NotFoundResult>(result);
+        }
+
+        // ============================================================
+        // TEST 5 : Archiver une demande
+        // ============================================================
+        [Fact]
+        public async Task ArchiveDemande_ShouldUpdateStatus()
+        {
+            using var context = GetDbContext();
+            context.Utilisateurs.Add(new Utilisateur { Id = 1, Nom = "Prof", Role = "Professeur", DepartementId = 1, MotDePasseHash = new byte[0], MotDePasseSalt = Guid.NewGuid() });
+            context.Demandes.Add(new Demande { Id = 200, UtilisateurId = 1, Type = "Technique", Description = "Test", Statut = "En attente" });
+            await context.SaveChangesAsync();
+
+            var controller = GetController(context, deptId: 1);
+
+            var result = await controller.ArchiveDemande(200);
+
+            var redirectResult = Assert.IsType<RedirectToActionResult>(result);
+            Assert.Equal("Demandes", redirectResult.ActionName);
+
+            var savedDemande = await context.Demandes.FindAsync(200);
+            Assert.Equal("Archivé", savedDemande.Statut);
+        }
+
+        // ============================================================
+        // TEST 6 : Supprimer une demande
+        // ============================================================
+        [Fact]
+        public async Task SupprimerDemande_ShouldRemoveFromDb()
+        {
+            using var context = GetDbContext();
+            context.Utilisateurs.Add(new Utilisateur { Id = 1, Nom = "Prof", Role = "Professeur", DepartementId = 1, MotDePasseHash = new byte[0], MotDePasseSalt = Guid.NewGuid() });
+            context.Demandes.Add(new Demande { Id = 300, UtilisateurId = 1, Type = "Technique", Description = "Test", Statut = "En attente" });
+            await context.SaveChangesAsync();
+
+            var controller = GetController(context, deptId: 1);
+
+            var result = await controller.SupprimerDemande(300);
+
+            var redirectResult = Assert.IsType<RedirectToActionResult>(result);
+            Assert.Equal("Demandes", redirectResult.ActionName);
+
+            var savedDemande = await context.Demandes.FindAsync(300);
+            Assert.Null(savedDemande);
         }
     }
 }

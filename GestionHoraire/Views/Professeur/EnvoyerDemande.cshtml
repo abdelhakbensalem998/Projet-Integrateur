@@ -1,0 +1,57 @@
+@model GestionHoraire.Models.Demande
+@{
+    ViewData["Title"] = "Centre de Demande";
+}
+
+<div class="container py-5">
+    <div class="row justify-content-center">
+        <div class="col-lg-6 col-md-8">
+            <div class="card border-0 shadow-lg rounded-4 overflow-hidden">
+                <div class="card-header bg-gradient-primary text-white text-center py-4 border-0" style="background: linear-gradient(45deg, #4361ee, #4cc9f0);">
+                    <i class="bi bi-send-check fs-1 mb-2 d-block"></i>
+                    <h2 class="fw-bold m-0">Envoyer une Demande</h2>
+                    <p class="small opacity-75 m-0 mt-1">Absences, matériel ou requêtes administratives</p>
+                </div>
+                <div class="card-body p-4 p-md-5 bg-white">
+                    <form asp-action="EnvoyerDemande" method="post">
+                        @Html.AntiForgeryToken()
+                        
+                        <div class="mb-4">
+                            <label class="form-label fw-bold text-dark"><i class="bi bi-tag-fill me-2 text-primary"></i>Catégorie de la demande</label>
+                            <select asp-for="Type" class="form-select rounded-pill px-4 py-2 shadow-sm border-light bg-light" required>
+                                <option value="" disabled selected>Choisir une option...</option>
+                                <option value="Absence">Absence / Imprévu (Badge Urgent)</option>
+                                <option value="Technique">Problème Technique (Logiciel/Salles)</option>
+                                <option value="Document">Demande de document administratif</option>
+                                <option value="Autre">Autre demande générale</option>
+                            </select>
+                            <span asp-validation-for="Type" class="text-danger small ms-3"></span>
+                        </div>
+
+                        <div class="mb-4">
+                            <label class="form-label fw-bold text-dark"><i class="bi bi-chat-left-text-fill me-2 text-primary"></i>Description détaillée</label>
+                            <textarea asp-for="Description" class="form-control rounded-4 px-4 py-3 shadow-sm border-light bg-light" rows="5" placeholder="Expliquez brièvement votre besoin ou la raison de votre absence..." required></textarea>
+                            <span asp-validation-for="Description" class="text-danger small ms-3"></span>
+                        </div>
+
+                        <div class="alert alert-warning border-0 rounded-4 shadow-sm small py-3 px-4 mb-4">
+                            <i class="bi bi-info-circle-fill me-2"></i> 
+                            Les demandes d'<strong>Absence</strong> sont traitées en priorité et notifiées immédiatement au responsable de département.
+                        </div>
+
+                        <div class="d-grid gap-3">
+                            <button type="submit" class="btn btn-primary btn-lg rounded-pill shadow-sm fw-bold py-3 transition-hover">
+                                <i class="bi bi-send me-2"></i>Envoyer la demande
+                            </button>
+                            <a asp-action="Index" class="btn btn-link text-muted text-decoration-none small text-center">Annuler et revenir au tableau de bord</a>
+                        </div>
+                    </form>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<style>
+    .transition-hover:hover { transform: scale(1.02); transition: transform 0.2s; }
+</style>

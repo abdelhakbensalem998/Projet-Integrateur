@@ -1,4 +1,4 @@
-﻿@model GestionHoraire.Models.Disponibilite
+@model GestionHoraire.Models.Disponibilite
 @{
     ViewData["Title"] = "Supprimer créneau";
 }
@@ -17,14 +17,22 @@
             </div>
 
             <form asp-action="Delete" method="post">
+                <input type="hidden" name="returnUrl" value="@ViewBag.ReturnUrl" />
                 <input type="hidden" asp-for="Id" />
                 <input type="hidden" asp-for="UtilisateurId" />
                 <div class="d-flex gap-2">
                     <button type="submit" class="btn btn-danger">
                         <i class="bi bi-trash"></i> Oui, supprimer
                     </button>
-                    <a asp-action="Index" asp-route-professeurId="@Model.UtilisateurId"
-                       class="btn btn-secondary">← Annuler</a>
+                    @if (!string.IsNullOrEmpty(ViewBag.ReturnUrl))
+                    {
+                        <a href="@ViewBag.ReturnUrl" class="btn btn-secondary">← Annuler</a>
+                    }
+                    else
+                    {
+                        <a asp-action="Index" asp-route-professeurId="@Model.UtilisateurId"
+                           class="btn btn-secondary">← Annuler</a>
+                    }
                 </div>
             </form>
         </div>

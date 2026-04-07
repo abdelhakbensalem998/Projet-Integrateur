@@ -1,126 +1,141 @@
-﻿@model List<GestionHoraire.Models.Disponibilite>
+@model List<GestionHoraire.Models.Disponibilite>
 @{
-    ViewData["Title"] = "Disponibilités";
+    ViewData["Title"] = "Gestion des disponibilités";
     var professeurId = ViewBag.ProfesseurId as int? ?? 0;
     var professeurNom = ViewBag.ProfesseurNom as string ?? "Utilisateur";
     var userRole = ViewBag.UserRole as string ?? "";
+    var jours = new[] 
+    { 
+        new { Day = DayOfWeek.Monday, Nom = "Lundi" },
+        new { Day = DayOfWeek.Tuesday, Nom = "Mardi" },
+        new { Day = DayOfWeek.Wednesday, Nom = "Mercredi" },
+        new { Day = DayOfWeek.Thursday, Nom = "Jeudi" },
+        new { Day = DayOfWeek.Friday, Nom = "Vendredi" }
+    };
+    var slots = new[] { 
+        new TimeSpan(8, 0, 0), 
+        new TimeSpan(10, 0, 0), 
+        new TimeSpan(12, 0, 0), 
+        new TimeSpan(14, 0, 0), 
+        new TimeSpan(16, 0, 0) 
+    };
 }
 
-<div class="container-fluid mt-4">
-    <div class="row">
-        <div class="col-md-12">
-            <div class="d-flex justify-content-between align-items-center mb-4">
-                <div>
-                    <h2 class="mb-1">⏰ <strong>@professeurNom</strong></h2>
-                    @if (userRole == "Responsable")
-                    {
-                        <small class="text-muted">ID: @professeurId</small>
-                    }
-                </div>
-                <div>
-                    @if (userRole == "Responsable")
-                    {
-                        <a asp-action="Create" asp-route-professeurId="@professeurId"
-                           class="btn btn-success me-2">
-                            ➕ Ajouter créneau
-                        </a>
-                        <form asp-action="GenererDefaut" asp-route-professeurId="@professeurId"
-                              method="post" class="d-inline"
-                              onclick="return confirm('Générer dispos L-V 8h-18h ?')">
-                            <button type="submit" class="btn btn-outline-primary">⚡ Dispos par défaut</button>
-                        </form>
-                    }
-                </div>
-            </div>
-
-            @if (TempData["Success"] != null)
+<div class="container-fluid py-4">    <div class="d-flex justify-content-between align-items-center mb-4 bg-white p-4 shadow-sm rounded-4 border-start border-5 border-info">
+        <div>
+            <h2 class="fw-bold text-dark m-0"><i class="bi bi-calendar2-check-fill text-info me-2"></i>@professeurNom</h2>
+            <p class="text-muted small m-0 mt-1">Gérez les créneaux de disponibilité pour la création des horaires.</p>
+        </div>
+        <div class="d-flex gap-2">
+            <a asp-action="Create" asp-route-professeurId="@professeurId" asp-route-returnUrl="@ViewBag.ReturnUrl" class="btn btn-success rounded-pill px-4 shadow-sm">
+                <i class="bi bi-plus-circle me-1"></i> Ajouter créneau spécifique
+            </a>
+            @if (!string.IsNullOrEmpty(ViewBag.ReturnUrl))
             {
-                <div class="alert alert-success alert-dismissible fade show">
-                    @TempData["Success"]
-                    <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
-                </div>
-            }
-
-            @if (!Model.Any())
-            {
-                <div class="alert alert-warning">
-                    <i class="bi bi-calendar-x"></i> Aucune disponibilité.
-                    @if (userRole == "Professeur")
-                    {
-                        <a asp-action="Create" class="alert-link">Ajouter maintenant ?</a>
-                    }
-                </div>
+                <a href="@ViewBag.ReturnUrl" class="btn btn-outline-secondary rounded-pill px-4 shadow-sm">
+                    <i class="bi bi-arrow-left me-1"></i> Retour
+                </a>
             }
             else
             {
-                @foreach (var jour in Model.Select(d => d.Jour).Distinct().OrderBy(j => (int)j))
-                {
-                    <div class="card mb-3 shadow-sm">
-                        <div class="card-header bg-gradient-primary text-white">
-                            <h5 class="mb-0">📅 @GetJourNom(jour)</h5>
-                        </div>
-                        <div class="card-body p-0">
-                            <div class="table-responsive">
-                                <table class="table table-sm mb-0">
-                                    <thead class="table-light">
-                                        <tr>
-                                            <th>Créneau</th>
-                                            <th>Statut</th>
-                                            <th style="width: 200px;">Actions</th>
-                                        </tr>
-                                    </thead>
-                                    <tbody>
-                                        @foreach (var d in Model.Where(x => x.Jour == jour).OrderBy(x => x.HeureDebut))
-                                        {
-                                            <tr>
-                                                <td>
-                                                    <strong>@d.HeureDebut.ToString(@"hh\:mm")</strong>
-                                                    → @d.HeureFin.ToString(@"hh\:mm")
-                                                </td>
-                                                <td>
-                                                    <span class="badge fs-6 @(d.Disponible ? "bg-success" : "bg-danger")">
-                                                        @(d.Disponible ? "✅ Disponible" : "❌ Indisponible")
-                                                    </span>
-                                                </td>
-                                                <td>
-                                                    <div class="btn-group btn-group-sm" role="group">
-                                                        <a asp-action="Edit" asp-route-id="@d.Id"
-                                                           class="btn btn-outline-primary">
-                                                            ✏️ Modifier
-                                                        </a>
-                                                        @if (userRole == "Responsable")
-                                                        {
-                                                            <a asp-action="Delete" asp-route-id="@d.Id"
-                                                               asp-route-professeurId="@professeurId"
-                                                               class="btn btn-outline-danger"
-                                                               onclick="return confirm('Supprimer ?')">
-                                                                🗑️ Supprimer
-                                                            </a>
-                                                        }
-                                                    </div>
-                                                </td>
-                                            </tr>
-                                        }
-                                    </tbody>
-                                </table>
-                            </div>
-                        </div>
-                    </div>
-                }
+                <a asp-controller="@(userRole == "Professeur" ? "Professeur" : "Responsable")" asp-action="Index" class="btn btn-outline-secondary rounded-pill px-4 shadow-sm">
+                    <i class="bi bi-house-door me-1"></i> Retour
+                </a>
             }
+            <form asp-action="GenererDefaut" asp-route-professeurId="@professeurId" asp-route-returnUrl="@ViewBag.ReturnUrl" method="post" onsubmit="return confirm('Générer les 5 jours de 8h à 18h ?')">
+                <button type="submit" class="btn btn-outline-primary rounded-pill px-4 shadow-sm">
+                    <i class="bi bi-lightning-fill me-1"></i> Dispos par défaut
+                </button>
+            </form>
         </div>
     </div>
+
+    @if (TempData["Success"] != null)
+    {
+        <div class="alert alert-success alert-dismissible fade show shadow-sm border-0 rounded-3 mb-4">
+            <i class="bi bi-check-circle-fill me-2"></i> @TempData["Success"]
+            <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+        </div>
+    }
+
+    <div class="card shadow border-0 rounded-4 overflow-hidden">
+        <div class="table-responsive">
+            <table class="table table-bordered text-center align-middle mb-0">
+                <thead class="bg-info text-white">
+                    <tr>
+                        <th style="width: 120px; background: #0dcaf0 !important;">Heure</th>
+                        @foreach (var j in jours)
+                        {
+                            <th class="py-3" style="background: #0dcaf0 !important;">@j.Nom</th>
+                        }
+                    </tr>
+                </thead>
+                <tbody>
+                    @foreach (var s in slots)
+                    {
+                        <tr>
+                            <td class="bg-light fw-bold text-info py-4">@s.ToString(@"hh\:mm")</td>
+                            @foreach (var j in jours)
+                            {
+                                var hFin = s.Add(new TimeSpan(2, 0, 0));
+                                var dispos = Model.Where(d => d.Jour == j.Day && 
+                                                             ((d.HeureDebut < hFin && d.HeureFin > s))).ToList();
+                                 <td class="p-2" style="height: 120px; width: 18%;">
+                                    @if (dispos.Any())
+                                    {
+                                        var dispo = dispos.OrderByDescending(d => d.Disponible).First(); // Priorité 'Disponible'
+                                        <div class="card shadow-sm border-0 border-start border-4 @(dispo.Disponible ? "border-success bg-success-subtle" : "border-danger bg-danger-subtle") p-3 mb-1 d-flex flex-column justify-content-center align-items-center h-100">
+                                            <div class="fw-bold @(dispo.Disponible ? "text-success" : "text-danger")" style="font-size: 0.85rem;">
+                                                <i class="bi @(dispo.Disponible ? "bi-check-circle-fill" : "bi-x-circle-fill") fs-5 d-block mb-1"></i>
+                                                @(dispo.Disponible ? "Disponible" : "Absence")
+                                            </div>
+                                            @if (dispo.HeureDebut != s || dispo.HeureFin != hFin)
+                                            {
+                                                <div class="text-muted small">@dispo.HeureDebut.ToString(@"hh\:mm")-@dispo.HeureFin.ToString(@"hh\:mm")</div>
+                                            }
+                                            <div class="btn-group btn-group-sm w-100 mt-2">
+                                                <a asp-action="Edit" asp-route-id="@dispo.Id" asp-route-returnUrl="@ViewBag.ReturnUrl" class="btn btn-white btn-sm shadow-xs border">✏️</a>
+                                                <a asp-action="Delete" asp-route-id="@dispo.Id" asp-route-returnUrl="@ViewBag.ReturnUrl" class="btn btn-white btn-sm shadow-xs border text-danger" onclick="return confirm('Supprimer ce créneau ?')">🗑️</a>
+                                            </div>
+                                        </div>
+                                    }
+                                    else
+                                    {
+                                        <div class="h-100 d-flex flex-column align-items-center justify-content-center p-3 rounded-3 bg-light opacity-50 border border-dashed text-secondary">
+                                            <i class="bi bi-dash-circle fs-3 mb-1"></i>
+                                            <span class="small fw-bold">Absent</span>
+                                            <a asp-action="Create" asp-route-professeurId="@professeurId" 
+                                               asp-route-jour="@((int)j.Day)" asp-route-heure="@s.ToString(@"hh\:mm")"
+                                               asp-route-returnUrl="@ViewBag.ReturnUrl"
+                                               class="stretched-link text-decoration-none"></a>
+                                        </div>
+                                    }
+                                </td>
+                            }
+                        </tr>
+                    }
+
+                    }
+                </tbody>
+            </table>
+        <div class="mt-4 p-3 bg-light rounded-3 border-start border-4 border-secondary">
+            <h6 class="fw-bold text-secondary mb-1"><i class="bi bi-info-circle-fill me-2"></i>Note sur le fonctionnement</h6>
+            <p class="text-muted small mb-0">
+                Toute case laissée vide (grisée "Absent") est considérée comme une absence par le générateur d'horaires. 
+                Veuillez cliquer sur les créneaux pour marquer explicitement vos moments de <strong>disponibilité</strong>.
+            </p>
+        </div>
+    </div>
+
 </div>
 
-@functions {
-    string GetJourNom(DayOfWeek jour) => jour switch
-    {
-        DayOfWeek.Monday => "Lundi",
-        DayOfWeek.Tuesday => "Mardi",
-        DayOfWeek.Wednesday => "Mercredi",
-        DayOfWeek.Thursday => "Jeudi",
-        DayOfWeek.Friday => "Vendredi",
-        DayOfWeek.Saturday => "Samedi",
-        _ => "Dimanche"
-    };
-}
+<style>
+    .bg-success-subtle { background-color: #e8f5e9 !important; }
+    .bg-danger-subtle { background-color: #ffebee !important; }
+    .btn-white { background: #fff; }
+    .btn-white:hover { background: #f8f9fa; }
+    .table th { border: none !important; }
+    .table td { border-color: #f0f0f0 !important; }
+    .shadow-xs { box-shadow: 0 2px 4px rgba(0,0,0,0.05); }
+    .hover-bg-light:hover { background-color: #f0f7ff !important; opacity: 1 !important; transform: scale(1.1); transition: all 0.2s; }
+</style>

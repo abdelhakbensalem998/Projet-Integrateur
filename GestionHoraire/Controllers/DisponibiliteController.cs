@@ -1,4 +1,4 @@
-﻿using Microsoft.AspNetCore.Mvc;
+using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.Mvc.ModelBinding;
 using Microsoft.EntityFrameworkCore;
 using GestionHoraire.Data;
@@ -17,8 +17,8 @@ namespace GestionHoraire.Controllers
             _context = context;
         }
 
-        // GET: /Disponibilite/Index?professeurId=1
-        public async Task<IActionResult> Index(int? professeurId)
+        // GET: /Disponibilite/Index?professeurId=1&returnUrl=/Responsable/Profs
+        public async Task<IActionResult> Index(int? professeurId, string? returnUrl)
         {
             int? userId = HttpContext.Session.GetInt32("UserId");
             string userRole = HttpContext.Session.GetString("UserRole") ?? "";
@@ -44,42 +44,60 @@ namespace GestionHoraire.Controllers
             ViewBag.ProfesseurId = professeurId.Value;
             ViewBag.ProfesseurNom = _context.Utilisateurs
                 .Where(u => u.Id == professeurId)
-                .Select(u => $"{u.Nom} {u.Nom}")
+                .Select(u => u.Nom)
                 .FirstOrDefault() ?? "Utilisateur";
             ViewBag.UserRole = userRole;
+            ViewBag.ReturnUrl = returnUrl;
 
             return View(disponibilites);
         }
 
         // GET: /Disponibilite/Create?professeurId=1
-        public IActionResult Create(int? professeurId)
+        public IActionResult Create(int? professeurId, int? jour, string heure, string? returnUrl)
         {
             int? userId = HttpContext.Session.GetInt32("UserId");
             string userRole = HttpContext.Session.GetString("UserRole") ?? "";
+ 
+            if (userRole == "Professeur") professeurId = userId;
+            
+            if (userRole != "ResponsableDépartement" && (professeurId == null || professeurId != userId))
+                return RedirectToAction("Index", "Login");
 
-            if (userRole != "Responsable" && professeurId != userId)
-                return Forbid();
+            var model = new Disponibilite 
+            { 
+                UtilisateurId = professeurId.Value,
+                Jour = (DayOfWeek)(jour ?? 1),
+                Disponible = true
+            };
+
+            if (!string.IsNullOrEmpty(heure) && TimeSpan.TryParse(heure, out var ts))
+            {
+                model.HeureDebut = ts;
+                model.HeureFin = ts.Add(new TimeSpan(2, 0, 0));
+            }
 
             ViewBag.ProfesseurId = professeurId;
-            return View(new Disponibilite());
+            ViewBag.ReturnUrl = returnUrl;
+            return View(model);
         }
 
         // POST: /Disponibilite/Create
         [HttpPost]
         [ValidateAntiForgeryToken]
-        public async Task<IActionResult> Create(Disponibilite model)
+        public async Task<IActionResult> Create(Disponibilite model, string? returnUrl)
         {
             if (!ModelState.IsValid)
             {
                 ViewBag.ProfesseurId = model.UtilisateurId;
+                ViewBag.ReturnUrl = returnUrl;
                 return View(model);
             }
 
             int? userId = HttpContext.Session.GetInt32("UserId");
             string userRole = HttpContext.Session.GetString("UserRole") ?? "";
 
-            if (userRole != "Responsable" && model.UtilisateurId != userId)
-                return Forbid();
+            if (userRole != "ResponsableDépartement" && model.UtilisateurId != userId)
+                return RedirectToAction("Index", "Login");
 
             // Vérifier doublon créneau
             var existe = await _context.Disponibilites
@@ -92,6 +110,7 @@ namespace GestionHoraire.Controllers
             {
                 ModelState.AddModelError("", "Ce créneau existe déjà.");
                 ViewBag.ProfesseurId = model.UtilisateurId;
+                ViewBag.ReturnUrl = returnUrl;
                 return View(model);
             }
 
@@ -99,11 +118,11 @@ namespace GestionHoraire.Controllers
             await _context.SaveChangesAsync();
             TempData["Success"] = "Créneau ajouté ! ✅";
 
-            return RedirectToAction(nameof(Index), new { professeurId = model.UtilisateurId });
+            return RedirectToAction(nameof(Index), new { professeurId = model.UtilisateurId, returnUrl = returnUrl });
         }
 
         // GET: /Disponibilite/Edit/5
-        public IActionResult Edit(int id)
+        public IActionResult Edit(int id, string? returnUrl)
         {
             var dispo = _context.Disponibilites.Find(id);
             if (dispo == null) return NotFound();
@@ -112,22 +131,24 @@ namespace GestionHoraire.Controllers
             string userRole = HttpContext.Session.GetString("UserRole") ?? "";
 
             if (userRole == "Professeur" && dispo.UtilisateurId != userId)
-                return Forbid();
+                return RedirectToAction("Index", "Login");
 
             ViewBag.ProfesseurId = dispo.UtilisateurId;
-            return View(dispo);
+            ViewBag.ReturnUrl = returnUrl;
+            return View("create", dispo);
         }
 
         // POST: /Disponibilite/Edit/5
         [HttpPost]
         [ValidateAntiForgeryToken]
-        public async Task<IActionResult> Edit(int id, Disponibilite model)
+        public async Task<IActionResult> Edit(int id, Disponibilite model, string? returnUrl)
         {
             if (id != model.Id) return NotFound();
 
             if (!ModelState.IsValid)
             {
                 ViewBag.ProfesseurId = model.UtilisateurId;
+                ViewBag.ReturnUrl = returnUrl;
                 return View(model);
             }
 
@@ -138,7 +159,7 @@ namespace GestionHoraire.Controllers
             string userRole = HttpContext.Session.GetString("UserRole") ?? "";
 
             if (userRole == "Professeur" && dispo.UtilisateurId != userId)
-                return Forbid();
+                return RedirectToAction("Index", "Login");
 
             dispo.Jour = model.Jour;
             dispo.HeureDebut = model.HeureDebut;
@@ -148,29 +169,32 @@ namespace GestionHoraire.Controllers
             await _context.SaveChangesAsync();
             TempData["Success"] = "Disponibilité mise à jour ! ✅";
 
-            return RedirectToAction(nameof(Index), new { professeurId = dispo.UtilisateurId });
+            return RedirectToAction(nameof(Index), new { professeurId = dispo.UtilisateurId, returnUrl = returnUrl });
         }
 
         // GET: /Disponibilite/Delete/5
-        public IActionResult Delete(int id)
+        public async Task<IActionResult> Delete(int id, string? returnUrl)
         {
-            var dispo = _context.Disponibilites.Find(id);
+            var dispo = await _context.Disponibilites
+                .Include(d => d.Utilisateur)
+                .FirstOrDefaultAsync(d => d.Id == id);
+
             if (dispo == null) return NotFound();
 
             int? userId = HttpContext.Session.GetInt32("UserId");
             string userRole = HttpContext.Session.GetString("UserRole") ?? "";
 
-            if (userRole != "Responsable" && dispo.UtilisateurId != userId)
-                return Forbid();
+            if (userRole != "ResponsableDépartement" && dispo.UtilisateurId != userId)
+                return RedirectToAction("Index", "Login");
 
-            ViewBag.ProfesseurId = dispo.UtilisateurId;
+            ViewBag.ReturnUrl = returnUrl;
             return View(dispo);
         }
 
         // POST: /Disponibilite/Delete/5
         [HttpPost, ActionName("Delete")]
         [ValidateAntiForgeryToken]
-        public async Task<IActionResult> DeleteConfirmed(int id)
+        public async Task<IActionResult> DeleteConfirmed(int id, string? returnUrl)
         {
             var dispo = await _context.Disponibilites.FindAsync(id);
             if (dispo == null) return NotFound();
@@ -178,25 +202,26 @@ namespace GestionHoraire.Controllers
             int? userId = HttpContext.Session.GetInt32("UserId");
             string userRole = HttpContext.Session.GetString("UserRole") ?? "";
 
-            if (userRole != "Responsable" && dispo.UtilisateurId != userId)
-                return Forbid();
+            if (userRole != "ResponsableDépartement" && dispo.UtilisateurId != userId)
+                return RedirectToAction("Index", "Login");
 
+            int profId = dispo.UtilisateurId;
             _context.Disponibilites.Remove(dispo);
             await _context.SaveChangesAsync();
             TempData["Success"] = "Créneau supprimé ! ✅";
 
-            return RedirectToAction(nameof(Index), new { professeurId = dispo.UtilisateurId });
+            return RedirectToAction(nameof(Index), new { professeurId = profId, returnUrl = returnUrl });
         }
 
         // POST: Générer dispos par défaut (L-V 8h-18h)
         [HttpPost]
-        public async Task<IActionResult> GenererDefaut(int professeurId)
+        public async Task<IActionResult> GenererDefaut(int professeurId, string? returnUrl)
         {
             int? userId = HttpContext.Session.GetInt32("UserId");
             string userRole = HttpContext.Session.GetString("UserRole") ?? "";
 
-            if (userRole != "Responsable" && professeurId != userId)
-                return Forbid();
+            if (userRole != "ResponsableDépartement" && professeurId != userId)
+                return RedirectToAction("Index", "Login");
 
             var jours = new[] { DayOfWeek.Monday, DayOfWeek.Tuesday, DayOfWeek.Wednesday,
                               DayOfWeek.Thursday, DayOfWeek.Friday };
@@ -205,9 +230,10 @@ namespace GestionHoraire.Controllers
             {
                 var heures = new[] {
                     (new TimeSpan(8, 0, 0), new TimeSpan(10, 0, 0)),
-                    (new TimeSpan(10, 15, 0), new TimeSpan(12, 15, 0)),
-                    (new TimeSpan(13, 30, 0), new TimeSpan(15, 30, 0)),
-                    (new TimeSpan(15, 45, 0), new TimeSpan(17, 45, 0))
+                    (new TimeSpan(10, 0, 0), new TimeSpan(12, 0, 0)),
+                    (new TimeSpan(12, 0, 0), new TimeSpan(14, 0, 0)),
+                    (new TimeSpan(14, 0, 0), new TimeSpan(16, 0, 0)),
+                    (new TimeSpan(16, 0, 0), new TimeSpan(18, 0, 0))
                 };
 
                 foreach (var (debut, fin) in heures)
@@ -230,8 +256,9 @@ namespace GestionHoraire.Controllers
 
             await _context.SaveChangesAsync();
             TempData["Success"] = "Disponibilités par défaut générées ! ✅";
-            return RedirectToAction(nameof(Index), new { professeurId });
+            return RedirectToAction(nameof(Index), new { professeurId, returnUrl = returnUrl });
         }
+
     }
 }
 
