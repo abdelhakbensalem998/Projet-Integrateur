@@ -1,4 +1,5 @@
 using System.ComponentModel.DataAnnotations;
+using System.ComponentModel.DataAnnotations.Schema;
 
 namespace GestionHoraire.Models
 {
@@ -13,7 +14,11 @@ namespace GestionHoraire.Models
 
         public string Type { get; set; }
 
+        // The current database used by the app does not expose these columns yet.
+        [NotMapped]
         public string? Logiciels { get; set; }
+
+        [NotMapped]
         public string? Materiel { get; set; }
     }
 }

@@ -5,6 +5,9 @@
 
 @{
     ViewData["Title"] = "Gestion des Groupes";
+    bool isAdmin = Context.Session.GetString("UserRole") == "Administrateur";
+    string retourController = isAdmin ? "Admin" : "Responsable";
+    string retourAction = isAdmin ? "Dashboard" : "Index";
     // Récupération de l'ID du département actuellement filtré depuis l'URL (si présent)
     string selectedDeptId = Context.Request.Query["idDept"];
 }
@@ -19,7 +22,7 @@
             </p>
         </div>
         <div class="d-flex gap-2">
-            <a asp-controller="Responsable" asp-action="Index" class="btn btn-outline-secondary shadow-sm rounded-pill px-3 fw-bold transition-hover">
+            <a asp-controller="@retourController" asp-action="@retourAction" class="btn btn-outline-secondary shadow-sm rounded-pill px-3 fw-bold transition-hover">
                 <i class="bi bi-house-door me-1"></i> Tableau de bord
             </a>
             <a asp-controller="Groupes" asp-action="Ajouter" class="btn btn-warning shadow-sm rounded-pill px-4 fw-bold text-white transition-hover">
@@ -27,6 +30,14 @@
             </a>
         </div>
     </div>
+
+    @if (TempData["Success"] != null)
+    {
+        <div class="alert alert-success alert-dismissible fade show shadow-sm border-0 mb-4" role="alert" style="border-radius: 15px;">
+            <i class="bi bi-check-circle-fill me-2"></i>@TempData["Success"]
+            <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Fermer"></button>
+        </div>
+    }
 
     @* --- ZONE DE FILTRE --- *@
     @if (Context.Session.GetString("UserRole") == "Administrateur" && ViewBag.Departements != null)

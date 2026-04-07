@@ -5,6 +5,7 @@
     string userNom = ViewBag.UserNom as string ?? "Admin";
     string userRole = ViewBag.UserRole as string ?? "Administrateur";
     string roleFilter = Context.Request.Query["roleFilter"];
+    string searchTerm = Context.Request.Query["searchTerm"];
 }
 
 <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" />
@@ -32,6 +33,15 @@
         </div>
     </div>
 
+    @if (TempData["Success"] != null)
+    {
+        <div class="alert alert-success alert-dismissible fade show shadow-sm border-0 mb-4" role="alert" style="border-radius:15px;">
+            <i class="bi bi-check-circle-fill me-2"></i>
+            @TempData["Success"]
+            <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Fermer"></button>
+        </div>
+    }
+
     <!-- Filtre -->
     <div class="card shadow-sm border-0 mb-3" style="border-radius:15px;">
         <div class="card-body">
@@ -44,6 +54,12 @@
                         <option value="ResponsableDépartement" selected="@(roleFilter == "ResponsableDépartement")">Responsable Département</option>
                         <option value="Professeur" selected="@(roleFilter == "Professeur")">Professeur</option>
                     </select>
+                </div>
+
+                <div class="col-md-4">
+                    <label class="form-label fw-bold">Rechercher</label>
+                    <input type="text" name="searchTerm" value="@searchTerm" class="form-control"
+                           placeholder="Nom ou courriel" />
                 </div>
 
                 <div class="col-md-4">

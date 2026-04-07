@@ -44,7 +44,7 @@ namespace GestionHoraire.Controllers
         // 2. GESTION DES UTILISATEURS (LISTE)
         // ==========================================
         [HttpGet]
-        public async Task<IActionResult> Utilisateurs(string roleFilter)
+        public async Task<IActionResult> Utilisateurs(string? roleFilter = null, string? searchTerm = null)
         {
             ViewBag.UserNom = HttpContext.Session.GetString("UserNom") ?? "Admin";
             ViewBag.UserRole = HttpContext.Session.GetString("UserRole") ?? "Administrateur";
@@ -52,6 +52,14 @@ namespace GestionHoraire.Controllers
             var query = _context.Utilisateurs
                 .Include(u => u.Departement)
                 .AsQueryable();
+
+            if (!string.IsNullOrWhiteSpace(searchTerm))
+            {
+                searchTerm = searchTerm.Trim().ToLower();
+                query = query.Where(u =>
+                    (!string.IsNullOrEmpty(u.Nom) && u.Nom.ToLower().Contains(searchTerm)) ||
+                    (!string.IsNullOrEmpty(u.Email) && u.Email.ToLower().Contains(searchTerm)));
+            }
 
             if (!string.IsNullOrEmpty(roleFilter))
             {

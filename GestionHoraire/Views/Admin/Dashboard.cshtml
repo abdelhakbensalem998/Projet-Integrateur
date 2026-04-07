@@ -1,36 +1,40 @@
 @{
     ViewData["Title"] = "Dashboard Admin";
-    string userNom = ViewBag.UserNom;
+    string userNom = ViewBag.UserNom ?? "Admin";
 }
 
 <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.0/font/bootstrap-icons.css">
 
 <style>
-    /* Carte principale */
+    .dashboard-link {
+        display: block;
+        height: 100%;
+        text-decoration: none;
+    }
+
     .card-module {
         position: relative;
-        overflow: hidden; /* Empêche le badge de déborder à l'extérieur */
+        overflow: hidden;
         border-radius: 20px !important;
         transition: all 0.3s ease-in-out;
     }
 
-        .card-module:hover {
-            transform: translateY(-8px);
-            box-shadow: 0 1rem 2rem rgba(0,0,0,0.12) !important;
-        }
+    .card-module:hover {
+        transform: translateY(-8px);
+        box-shadow: 0 1rem 2rem rgba(0, 0, 0, 0.12) !important;
+    }
 
-    /* La Bulle Interne (Couleur thématique + texte blanc) */
     .inner-bubble {
         position: absolute;
-        top: 15px; /* À l'intérieur du bord haut */
-        right: 15px; /* À l'intérieur du bord droit */
+        top: 15px;
+        right: 15px;
         font-size: 0.9rem;
         padding: 0.4rem 0.8rem;
         font-weight: 800;
         border-radius: 10px;
-        color: #ffffff !important; /* Nombre écrit en blanc */
+        color: #ffffff !important;
         z-index: 5;
-        box-shadow: 0 2px 5px rgba(0,0,0,0.1);
+        box-shadow: 0 2px 5px rgba(0, 0, 0, 0.1);
     }
 </style>
 
@@ -43,10 +47,9 @@
     </div>
 
     <div class="row g-5 text-center justify-content-center">
-
         <div class="col-md-6 col-lg-3">
-            <a asp-controller="Admin" asp-action="Utilisateurs" class="text-decoration-none">
-                <div class="card h-100 border-0 border-top border-primary border-4 shadow-sm hover-shadow card-module">
+            <a asp-controller="Admin" asp-action="Utilisateurs" class="dashboard-link">
+                <div class="card h-100 border-0 border-top border-primary border-4 shadow-sm card-module">
                     <span class="inner-bubble bg-primary">@ViewBag.TotalUsers</span>
                     <div class="card-body py-5">
                         <i class="bi bi-people-fill display-4 text-primary mb-3"></i>
@@ -57,8 +60,8 @@
         </div>
 
         <div class="col-md-6 col-lg-3">
-            <a asp-controller="Salles" asp-action="Index" class="text-decoration-none">
-                <div class="card h-100 border-0 border-top border-success border-4 shadow-sm hover-shadow card-module">
+            <a asp-controller="Salles" asp-action="Index" class="dashboard-link">
+                <div class="card h-100 border-0 border-top border-success border-4 shadow-sm card-module">
                     <span class="inner-bubble bg-success">@ViewBag.TotalSalles</span>
                     <div class="card-body py-5">
                         <i class="bi bi-door-open-fill display-4 text-success mb-3"></i>
@@ -69,8 +72,8 @@
         </div>
 
         <div class="col-md-6 col-lg-3">
-            <a asp-controller="Groupe" asp-action="Index" class="text-decoration-none">
-                <div class="card h-100 border-0 border-top border-info border-4 shadow-sm hover-shadow card-module">
+            <a asp-controller="Groupes" asp-action="Index" class="dashboard-link">
+                <div class="card h-100 border-0 border-top border-info border-4 shadow-sm card-module">
                     <span class="inner-bubble bg-info">@ViewBag.TotalGroupes</span>
                     <div class="card-body py-5">
                         <i class="bi bi-mortarboard-fill display-4 text-info mb-3"></i>
@@ -81,8 +84,8 @@
         </div>
 
         <div class="col-md-6 col-lg-3">
-            <a asp-controller="Departements" asp-action="Index" class="text-decoration-none">
-                <div class="card h-100 border-0 border-top border-warning border-4 shadow-sm hover-shadow card-module">
+            <a asp-controller="Departements" asp-action="Index" class="dashboard-link">
+                <div class="card h-100 border-0 border-top border-warning border-4 shadow-sm card-module">
                     <span class="inner-bubble bg-warning">@ViewBag.TotalDepts</span>
                     <div class="card-body py-5">
                         <i class="bi bi-building-fill display-4 text-warning mb-3"></i>
@@ -93,8 +96,8 @@
         </div>
 
         <div class="col-md-6 col-lg-3">
-            <a asp-controller="Planning" asp-action="Index" class="text-decoration-none">
-                <div class="card h-100 border-0 border-top border-secondary border-4 shadow-sm hover-shadow card-module">
+            <a asp-controller="Planning" asp-action="Index" class="dashboard-link">
+                <div class="card h-100 border-0 border-top border-secondary border-4 shadow-sm card-module">
                     <span class="inner-bubble bg-secondary">
                         <i class="bi bi-calendar-check"></i>
                     </span>
@@ -105,20 +108,5 @@
                 </div>
             </a>
         </div>
-
-        <div class="col-md-6 col-lg-3">
-            <a asp-controller="Affectations" asp-action="Index" class="text-decoration-none">
-                <div class="card h-100 border-0 border-top border-danger border-4 shadow-sm hover-shadow card-module">
-                    <span class="inner-bubble bg-danger">
-                        <i class="bi bi-journal-check"></i>
-                    </span>
-                    <div class="card-body py-5">
-                        <i class="bi bi-person-lines-fill display-4 text-danger mb-3"></i>
-                        <h4 class="fw-bold text-dark">Affectations</h4>
-                    </div>
-                </div>
-            </a>
-        </div>
-
     </div>
 </div>

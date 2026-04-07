@@ -27,6 +27,27 @@
                 <form method="post">
                     @Html.AntiForgeryToken()
 
+                    @if (TempData["Success"] != null)
+                    {
+                        <div class="alert alert-success">
+                            @TempData["Success"]
+                        </div>
+                    }
+
+                    @if (TempData["Info"] != null)
+                    {
+                        <div class="alert alert-info">
+                            @TempData["Info"]
+                        </div>
+                    }
+
+                    @if (TempData["Error"] != null)
+                    {
+                        <div class="alert alert-danger">
+                            @TempData["Error"]
+                        </div>
+                    }
+
                     <div class="mb-3">
                         <label class="form-label">Email</label>
                         <input type="email" name="email" class="form-control" placeholder="exemple@gestionhoraire.com" required />

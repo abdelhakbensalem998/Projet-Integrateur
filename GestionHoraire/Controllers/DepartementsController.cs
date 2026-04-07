@@ -1,8 +1,9 @@
+using System;
+using System.Threading.Tasks;
+using GestionHoraire.Data;
+using GestionHoraire.Models;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
-using GestionHoraire.Models;
-using GestionHoraire.Data;
-using System.Threading.Tasks;
 
 namespace GestionHoraire.Controllers
 {
@@ -33,6 +34,9 @@ namespace GestionHoraire.Controllers
         [ValidateAntiForgeryToken]
         public async Task<IActionResult> Create([Bind("Id,Nom")] Departement departement)
         {
+            departement.Nom = departement.Nom?.Trim();
+            await ValidateUniqueNameAsync(departement);
+
             if (ModelState.IsValid)
             {
                 _context.Add(departement);
@@ -40,6 +44,7 @@ namespace GestionHoraire.Controllers
                 TempData["SuccessMessage"] = "Département ajouté avec succès.";
                 return RedirectToAction(nameof(Index));
             }
+
             return View(departement);
         }
 
@@ -56,6 +61,7 @@ namespace GestionHoraire.Controllers
             {
                 return NotFound();
             }
+
             return View(departement);
         }
 
@@ -68,6 +74,9 @@ namespace GestionHoraire.Controllers
             {
                 return NotFound();
             }
+
+            departement.Nom = departement.Nom?.Trim();
+            await ValidateUniqueNameAsync(departement, departement.Id);
 
             if (ModelState.IsValid)
             {
@@ -83,13 +92,13 @@ namespace GestionHoraire.Controllers
                     {
                         return NotFound();
                     }
-                    else
-                    {
-                        throw;
-                    }
+
+                    throw;
                 }
+
                 return RedirectToAction(nameof(Index));
             }
+
             return View(departement);
         }
 
@@ -123,13 +132,34 @@ namespace GestionHoraire.Controllers
                 await _context.SaveChangesAsync();
                 TempData["SuccessMessage"] = "Département supprimé avec succès.";
             }
-            
+
             return RedirectToAction(nameof(Index));
         }
 
         private bool DepartementExists(int id)
         {
             return _context.Departements.Any(e => e.Id == id);
+        }
+
+        private async Task ValidateUniqueNameAsync(Departement departement, int? excludedId = null)
+        {
+            if (string.IsNullOrWhiteSpace(departement.Nom))
+            {
+                ModelState.AddModelError(nameof(Departement.Nom), "Le nom du département est obligatoire.");
+                return;
+            }
+
+            var nomNormalise = departement.Nom.Trim().ToUpper();
+
+            var duplicateExists = await _context.Departements.AnyAsync(d =>
+                d.Id != excludedId &&
+                d.Nom != null &&
+                d.Nom.Trim().ToUpper() == nomNormalise);
+
+            if (duplicateExists)
+            {
+                ModelState.AddModelError(nameof(Departement.Nom), "Un département avec ce nom existe déjà.");
+            }
         }
     }
 }

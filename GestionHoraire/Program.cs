@@ -19,6 +19,7 @@ builder.Services.AddSession(options =>
 // DI Services
 builder.Services.AddScoped<PlanningService>();
 builder.Services.AddScoped<EmailService>();
+builder.Services.AddScoped<SchemaRepairService>();
 
 var app = builder.Build();
 

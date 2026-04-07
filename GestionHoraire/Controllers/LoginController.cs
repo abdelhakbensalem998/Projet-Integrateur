@@ -5,6 +5,7 @@ using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 using System;
+using System.Globalization;
 using System.Linq;
 using System.Security.Cryptography;
 using System.Text;
@@ -109,6 +110,12 @@ namespace GestionHoraire.Controllers
                 return RedirectToAction("Verify2FA");
             }
 
+            if (NormalizeRole(user.Role) == "ResponsableDépartement" && !user.DepartementId.HasValue)
+            {
+                ViewBag.Error = "Ce compte responsable n'est associe a aucun departement.";
+                return View();
+            }
+
             // Session normale
             OpenFullSession(user);
             return RedirectSelonRole(user.Role ?? "");
@@ -155,6 +162,12 @@ namespace GestionHoraire.Controllers
                 CreateTrustedDevice(user.Id, "Web");
 
             HttpContext.Session.Remove("Pending2FAUserId");
+
+            if (NormalizeRole(user.Role) == "ResponsableDépartement" && !user.DepartementId.HasValue)
+            {
+                ViewBag.Error = "Ce compte responsable n'est associe a aucun departement.";
+                return View("Index");
+            }
 
             OpenFullSession(user);
             LogSecurity(user.Id, "2FA_SUCCESS", $"Remember={rememberDevice}");
@@ -524,8 +537,9 @@ namespace GestionHoraire.Controllers
         // =========================
         private void OpenFullSession(Utilisateur user)
         {
+            var normalizedRole = NormalizeRole(user.Role);
             HttpContext.Session.SetInt32("UserId", user.Id);
-            HttpContext.Session.SetString("UserRole", user.Role ?? "");
+            HttpContext.Session.SetString("UserRole", normalizedRole);
             HttpContext.Session.SetString("UserNom", user.Nom ?? "");
             HttpContext.Session.SetString("UserEmail", user.Email ?? "");
             if (user.DepartementId.HasValue)
@@ -534,7 +548,7 @@ namespace GestionHoraire.Controllers
 
         private IActionResult RedirectSelonRole(string role)
         {
-            role = (role ?? "").Trim();
+            role = NormalizeRole(role);
             return role switch
             {
                 "Administrateur" => RedirectToAction("Index", "Admin"),
@@ -542,6 +556,45 @@ namespace GestionHoraire.Controllers
                 "Professeur" => RedirectToAction("Index", "Professeur"),
                 _ => RedirectToAction("Index", "Home")
             };
+        }
+
+        private static string NormalizeRole(string? role)
+        {
+            var originalRole = (role ?? "").Trim();
+            if (string.IsNullOrEmpty(originalRole))
+            {
+                return "";
+            }
+
+            var canonicalRole = RemoveDiacritics(originalRole)
+                .Replace(" ", "")
+                .Replace("-", "")
+                .Replace("_", "")
+                .ToLowerInvariant();
+
+            return canonicalRole switch
+            {
+                "administrateur" or "admin" => "Administrateur",
+                "professeur" => "Professeur",
+                "responsabledepartement" or "responsable" => "ResponsableDépartement",
+                _ => originalRole
+            };
+        }
+
+        private static string RemoveDiacritics(string value)
+        {
+            var normalized = value.Normalize(NormalizationForm.FormD);
+            var builder = new StringBuilder(normalized.Length);
+
+            foreach (var ch in normalized)
+            {
+                if (CharUnicodeInfo.GetUnicodeCategory(ch) != UnicodeCategory.NonSpacingMark)
+                {
+                    builder.Append(ch);
+                }
+            }
+
+            return builder.ToString().Normalize(NormalizationForm.FormC);
         }
 
         private static string[] GetQuestionsSecurite() => new[]

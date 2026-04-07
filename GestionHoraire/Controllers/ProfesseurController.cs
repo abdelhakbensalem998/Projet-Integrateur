@@ -1,5 +1,6 @@
 using GestionHoraire.Data;
 using GestionHoraire.Models;
+using GestionHoraire.Services;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.AspNetCore.Http;
@@ -16,11 +17,13 @@ namespace GestionHoraire.Controllers
     {
         private readonly AppDbContext _context;
         private readonly IWebHostEnvironment _env;
+        private readonly SchemaRepairService _schemaRepairService;
 
-        public ProfesseurController(AppDbContext context, IWebHostEnvironment env)
+        public ProfesseurController(AppDbContext context, IWebHostEnvironment env, SchemaRepairService schemaRepairService)
         {
             _context = context;
             _env = env;
+            _schemaRepairService = schemaRepairService;
         }
 
         private int? GetCurrentUserId() => HttpContext.Session.GetInt32("UserId");
@@ -28,6 +31,9 @@ namespace GestionHoraire.Controllers
         // 1. DASHBOARD CENTRAL (GRID INTERACTIF)
         public async Task<IActionResult> Index()
         {
+            await _schemaRepairService.EnsureCoursSchemaAsync();
+            await _schemaRepairService.EnsureDemandesSchemaAsync();
+
             int? userId = GetCurrentUserId();
             if (userId == null) return RedirectToAction("Index", "Login");
 
@@ -83,6 +89,8 @@ namespace GestionHoraire.Controllers
         [ValidateAntiForgeryToken]
         public async Task<IActionResult> EnvoyerDemande(Demande demande)
         {
+            await _schemaRepairService.EnsureDemandesSchemaAsync();
+
             int? userId = GetCurrentUserId();
             if (userId == null) return RedirectToAction("Index", "Login");
 
@@ -108,6 +116,8 @@ namespace GestionHoraire.Controllers
         [ValidateAntiForgeryToken]
         public async Task<IActionResult> DeposerPlanCours(string description, IFormFile fichier)
         {
+            await _schemaRepairService.EnsureDemandesSchemaAsync();
+
             int? userId = GetCurrentUserId();
             if (userId == null) return RedirectToAction("Index", "Login");
 
@@ -150,6 +160,8 @@ namespace GestionHoraire.Controllers
         // 4. HISTORIQUE COMPLET DES DEMANDES
         public async Task<IActionResult> MesDemandes()
         {
+            await _schemaRepairService.EnsureDemandesSchemaAsync();
+
             int? userId = GetCurrentUserId();
             if (userId == null) return RedirectToAction("Index", "Login");
 

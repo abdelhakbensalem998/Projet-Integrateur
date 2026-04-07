@@ -84,6 +84,7 @@ namespace GestionHoraire.Controllers
             {
                 _context.Add(groupe);
                 await _context.SaveChangesAsync();
+                TempData["Success"] = "Groupe ajoute avec succes.";
                 return RedirectToAction(nameof(Index));
             }
 
@@ -127,6 +128,7 @@ namespace GestionHoraire.Controllers
                 {
                     _context.Update(groupe);
                     await _context.SaveChangesAsync();
+                    TempData["Success"] = "Groupe modifie avec succes.";
                 }
                 catch (DbUpdateConcurrencyException)
                 {
@@ -160,6 +162,7 @@ namespace GestionHoraire.Controllers
 
             _context.Groupes.Remove(groupe);
             await _context.SaveChangesAsync();
+            TempData["Success"] = "Groupe supprime avec succes.";
             return RedirectToAction(nameof(Index));
         }
 

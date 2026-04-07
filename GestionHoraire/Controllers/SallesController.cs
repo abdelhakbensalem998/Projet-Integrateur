@@ -36,6 +36,7 @@ namespace GestionHoraire.Controllers
             {
                 _context.Add(salle);
                 await _context.SaveChangesAsync();
+                TempData["Success"] = "Salle ajoutee avec succes.";
                 return RedirectToAction(nameof(Index));
             }
             return View(salle);
@@ -62,6 +63,7 @@ namespace GestionHoraire.Controllers
                 {
                     _context.Update(salle);
                     await _context.SaveChangesAsync();
+                    TempData["Success"] = "Salle modifiee avec succes.";
                 }
                 catch (DbUpdateConcurrencyException)
                 {
@@ -83,6 +85,7 @@ namespace GestionHoraire.Controllers
             {
                 _context.Salles.Remove(salle);
                 await _context.SaveChangesAsync();
+                TempData["Success"] = "Salle supprimee avec succes.";
             }
             return RedirectToAction(nameof(Index));
         }

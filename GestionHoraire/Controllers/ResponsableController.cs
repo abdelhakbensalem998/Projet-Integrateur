@@ -18,24 +18,62 @@ namespace GestionHoraire.Controllers
     {
         private readonly AppDbContext _context;
         private readonly IWebHostEnvironment _env;
+        private readonly SchemaRepairService _schemaRepairService;
 
-        public ResponsableController(AppDbContext context, IWebHostEnvironment env)
+        public ResponsableController(AppDbContext context, IWebHostEnvironment env, SchemaRepairService schemaRepairService)
         {
             _context = context;
             _env = env;
+            _schemaRepairService = schemaRepairService;
         }
 
-        private int? GetDeptId() => HttpContext.Session.GetInt32("DepartementId");
         private int? GetUserId() => HttpContext.Session.GetInt32("UserId");
+
+        private async Task<int?> GetDeptIdAsync()
+        {
+            var deptId = HttpContext.Session.GetInt32("DepartementId");
+            if (deptId != null)
+            {
+                return deptId;
+            }
+
+            var userId = GetUserId();
+            if (userId == null)
+            {
+                return null;
+            }
+
+            deptId = await _context.Utilisateurs
+                .Where(u => u.Id == userId.Value)
+                .Select(u => u.DepartementId)
+                .FirstOrDefaultAsync();
+
+            if (deptId != null)
+            {
+                HttpContext.Session.SetInt32("DepartementId", deptId.Value);
+            }
+
+            return deptId;
+        }
 
         // =========================
         // DASHBOARD RESPONSABLE
         // =========================
         public async Task<IActionResult> Index()
         {
+            await _schemaRepairService.EnsureCoursSchemaAsync();
+            await _schemaRepairService.EnsureDemandesSchemaAsync();
+
             var userId = GetUserId();
-            var deptId = GetDeptId();
-            if (userId == null || deptId == null) return RedirectToAction("Index", "Login");
+            if (userId == null) return RedirectToAction("Index", "Login");
+
+            var deptId = await GetDeptIdAsync();
+            if (deptId == null)
+            {
+                HttpContext.Session.Clear();
+                TempData["Error"] = "Ce compte responsable n'est associe a aucun departement.";
+                return RedirectToAction("Index", "Login");
+            }
 
             var responsable = await _context.Utilisateurs
                 .Include(u => u.Departement)
@@ -101,7 +139,10 @@ namespace GestionHoraire.Controllers
         // 5. GESTION DES DEMANDES
         public async Task<IActionResult> Demandes(bool voirArchives = false)
         {
-            int? deptId = GetDeptId();
+            await _schemaRepairService.EnsureDemandesSchemaAsync();
+
+            var deptId = await GetDeptIdAsync();
+            if (deptId == null) return RedirectToAction("Index", "Login");
             var query = _context.Demandes
                 .Include(d => d.Utilisateur)
                 .Where(d => d.Utilisateur.DepartementId == deptId);
@@ -124,13 +165,18 @@ namespace GestionHoraire.Controllers
         [ValidateAntiForgeryToken]
         public async Task<IActionResult> ArchiveDemande(int id)
         {
+            await _schemaRepairService.EnsureDemandesSchemaAsync();
+
             var demande = await _context.Demandes.FindAsync(id);
             if (demande == null) return NotFound();
 
-            // Security check
-            var deptId = GetDeptId();
+            var deptId = await GetDeptIdAsync();
             var user = await _context.Utilisateurs.FindAsync(demande.UtilisateurId);
-            if (user == null || user.DepartementId != deptId) return RedirectToAction("Index", "Login");
+            if (deptId == null || user == null || user.DepartementId != deptId)
+            {
+                return RedirectToAction("Index", "Login");
+            }
+
 
             demande.Statut = "Archivé";
             await _context.SaveChangesAsync();
@@ -141,13 +187,15 @@ namespace GestionHoraire.Controllers
         [ValidateAntiForgeryToken]
         public async Task<IActionResult> SupprimerDemande(int id)
         {
+            await _schemaRepairService.EnsureDemandesSchemaAsync();
+
             var demande = await _context.Demandes.FindAsync(id);
             if (demande == null) return NotFound();
 
             // Security check
-            var deptId = GetDeptId();
+            var deptId = await GetDeptIdAsync();
             var user = await _context.Utilisateurs.FindAsync(demande.UtilisateurId);
-            if (user == null || user.DepartementId != deptId) return RedirectToAction("Index", "Login");
+            if (deptId == null || user == null || user.DepartementId != deptId) return RedirectToAction("Index", "Login");
 
             _context.Demandes.Remove(demande);
             await _context.SaveChangesAsync();
@@ -157,8 +205,17 @@ namespace GestionHoraire.Controllers
         [HttpPost]
         public async Task<IActionResult> TraiterDemande(int id, string action, string note)
         {
+            await _schemaRepairService.EnsureDemandesSchemaAsync();
+
             var demande = await _context.Demandes.FindAsync(id);
             if (demande == null) return NotFound();
+
+            var deptId = await GetDeptIdAsync();
+            var user = await _context.Utilisateurs.FindAsync(demande.UtilisateurId);
+            if (deptId == null || user == null || user.DepartementId != deptId)
+            {
+                return RedirectToAction("Index", "Login");
+            }
 
             if (action == "Approuver") demande.Statut = "Approuvé";
             else if (action == "Refuser") demande.Statut = "Refusé";
@@ -174,7 +231,7 @@ namespace GestionHoraire.Controllers
         // =========================
         public async Task<IActionResult> Profs()
         {
-            var deptId = GetDeptId();
+            var deptId = await GetDeptIdAsync();
             if (deptId == null) return RedirectToAction("Index", "Login");
 
             var profs = await _context.Utilisateurs
@@ -205,7 +262,7 @@ namespace GestionHoraire.Controllers
             string motDePasseProvisoire,
             [FromServices] EmailService emailService)
         {
-            var deptId = GetDeptId();
+            var deptId = await GetDeptIdAsync();
             if (deptId == null) return RedirectToAction("Index", "Login");
 
             if (string.IsNullOrWhiteSpace(nom) ||
@@ -298,7 +355,9 @@ Merci.";
         // 3. GESTION DES COURS
         public async Task<IActionResult> ListeCours()
         {
-            var monDeptId = GetDeptId();
+            await _schemaRepairService.EnsureCoursSchemaAsync();
+
+            var monDeptId = await GetDeptIdAsync();
             var userId = GetUserId();
             var user = await _context.Utilisateurs.FindAsync(userId);
             var userRole = user?.Role;
@@ -329,13 +388,15 @@ Merci.";
         [HttpGet]
         public async Task<IActionResult> TelechargerDocument(int id)
         {
+            await _schemaRepairService.EnsureDemandesSchemaAsync();
+
             var demande = await _context.Demandes.FindAsync(id);
             if (demande == null || string.IsNullOrEmpty(demande.FichierJoint)) return NotFound();
 
             // Verify the requester belongs to the manager's department
-            var deptId = GetDeptId();
+            var deptId = await GetDeptIdAsync();
             var user = await _context.Utilisateurs.FindAsync(demande.UtilisateurId);
-            if (user == null || user.DepartementId != deptId) return RedirectToAction("Index", "Login");
+            if (deptId == null || user == null || user.DepartementId != deptId) return RedirectToAction("Index", "Login");
 
             var filePath = Path.Combine(_env.WebRootPath, "uploads", demande.FichierJoint);
             if (!System.IO.File.Exists(filePath)) return NotFound("Le fichier n'existe pas sur le serveur.");
