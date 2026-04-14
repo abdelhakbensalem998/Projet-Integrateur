@@ -170,14 +170,14 @@
                                     Scannez ce QR code avec Google Authenticator, Microsoft Authenticator ou toute application compatible TOTP.
                                 </p>
 
-                                <div class="row g-4 align-items-center">
-                                    <div class="col-md-5 text-center">
-                                        <div class="border rounded-4 bg-white p-3 d-inline-block">
+                                <div class="authenticator-setup-grid">
+                                    <div class="authenticator-qr-box">
+                                        <div class="authenticator-qr">
                                             @Html.Raw(Model.QrCodeSvg)
                                         </div>
                                     </div>
 
-                                    <div class="col-md-7">
+                                    <div>
                                         <div class="border rounded-4 bg-light p-3 mb-3">
                                             <div class="text-muted small mb-1">Compte</div>
                                             <div class="fw-semibold">@Model.AccountLabel</div>
@@ -185,7 +185,11 @@
 
                                         <div class="border rounded-4 bg-light p-3 mb-4">
                                             <div class="text-muted small mb-1">Cle manuelle</div>
-                                            <div class="fw-semibold font-monospace">@Model.ManualEntryKey</div>
+                                            <div class="fw-semibold font-monospace authenticator-manual-key">@Model.ManualEntryKey</div>
+                                        </div>
+
+                                        <div class="alert alert-info rounded-3">
+                                            Si le scan ne fonctionne pas, ajoutez un compte manuellement dans votre application et copiez la cle manuelle.
                                         </div>
 
                                         <form asp-action="EnableAuthenticator" method="post">
@@ -251,3 +255,40 @@
         </div>
     </div>
 </div>
+
+<style>
+    .authenticator-setup-grid {
+        display: grid;
+        grid-template-columns: minmax(220px, 320px) minmax(0, 1fr);
+        gap: 24px;
+        align-items: start;
+    }
+
+    .authenticator-qr-box {
+        border: 1px solid #dee2e6;
+        border-radius: 8px;
+        background: #fff;
+        padding: 16px;
+        width: 100%;
+        max-width: 320px;
+        margin: 0 auto;
+    }
+
+    .authenticator-qr svg {
+        display: block;
+        width: 100% !important;
+        height: auto !important;
+        max-width: 100%;
+    }
+
+    .authenticator-manual-key {
+        overflow-wrap: anywhere;
+        line-height: 1.8;
+    }
+
+    @@media (max-width: 768px) {
+        .authenticator-setup-grid {
+            grid-template-columns: 1fr;
+        }
+    }
+</style>
