@@ -27,12 +27,16 @@ namespace GestionHoraire.Models
 
         // ===== 2FA =====
         public bool TwoFactorEnabled { get; set; }
+        public string? TwoFactorProvider { get; set; }
+        public string? AuthenticatorSecretKey { get; set; }
+        public DateTime? AuthenticatorEnabledAt { get; set; }
 
         // ===== État et Relations =====
         public bool Disponibilite { get; set; }
         public int? DepartementId { get; set; }
         public virtual Departement? Departement { get; set; }
 
+        public virtual ICollection<BackupCode> BackupCodes { get; set; } = new List<BackupCode>();
         public virtual ICollection<Cours> Cours { get; set; } = new List<Cours>();
         public virtual ICollection<Disponibilite> Disponibilites { get; set; } = new List<Disponibilite>();
 

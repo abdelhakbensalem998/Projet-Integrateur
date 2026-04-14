@@ -1,5 +1,7 @@
-﻿@{
-    ViewData["Title"] = "Vérification 2FA";
+@model VerifyTwoFactorViewModel
+
+@{
+    ViewData["Title"] = "Verification 2FA";
 }
 
 <div class="container py-5">
@@ -7,15 +9,13 @@
         <div class="col-lg-5 col-md-7">
             <div class="card border-0 shadow-lg rounded-4 overflow-hidden">
                 <div class="bg-primary text-white text-center p-4">
-                    <div style="font-size: 2.2rem;">🛡️</div>
-                    <h2 class="fw-bold mb-1">Vérification 2FA</h2>
+                    <h2 class="fw-bold mb-1">Verification 2FA</h2>
                     <p class="mb-0 opacity-75">
-                        Entrez le code reçu par email pour continuer.
+                        @Model.ProviderLabel
                     </p>
                 </div>
 
                 <div class="card-body p-4 p-md-5">
-
                     @if (TempData["Error"] != null)
                     {
                         <div class="alert alert-danger rounded-3">
@@ -30,6 +30,13 @@
                         </div>
                     }
 
+                    @if (TempData["Info"] != null)
+                    {
+                        <div class="alert alert-info rounded-3">
+                            @TempData["Info"]
+                        </div>
+                    }
+
                     @if (ViewBag.Error != null)
                     {
                         <div class="alert alert-danger rounded-3">
@@ -37,10 +44,15 @@
                         </div>
                     }
 
-                    @if (ViewBag.Success != null)
+                    <p class="text-muted mb-4">
+                        @Model.Instruction
+                    </p>
+
+                    @if (Model.AllowBackupCodes)
                     {
-                        <div class="alert alert-success rounded-3">
-                            @ViewBag.Success
+                        <div class="alert alert-warning rounded-3">
+                            Vous pouvez aussi entrer un code de secours. Il vous en reste
+                            <strong>@Model.RemainingBackupCodes</strong>.
                         </div>
                     }
 
@@ -48,21 +60,22 @@
                         @Html.AntiForgeryToken()
 
                         <div class="mb-4">
-                            <label for="codeEmail" class="form-label fw-semibold">
-                                Code de vérification
+                            <label for="verificationCode" class="form-label fw-semibold">
+                                @Model.InputLabel
                             </label>
                             <input type="text"
-                                   id="codeEmail"
-                                   name="codeEmail"
+                                   id="verificationCode"
+                                   name="verificationCode"
                                    class="form-control form-control-lg rounded-3 text-center"
                                    placeholder="Entrez le code"
+                                   autocomplete="one-time-code"
                                    required />
                         </div>
 
                         <div class="form-check mb-4">
                             <input class="form-check-input" type="checkbox" id="rememberDevice" name="rememberDevice" value="true" />
                             <label class="form-check-label" for="rememberDevice">
-                                Mémoriser cet appareil pendant 30 jours
+                                Memoriser cet appareil pendant 30 jours
                             </label>
                         </div>
 
@@ -71,15 +84,18 @@
                         </button>
                     </form>
 
-                    <form asp-action="Resend2FA" method="post">
-                        @Html.AntiForgeryToken()
-                        <button type="submit" class="btn btn-outline-primary w-100 mb-3">
-                            Renvoyer le code
-                        </button>
-                    </form>
+                    @if (Model.AllowResend)
+                    {
+                        <form asp-action="Resend2FA" method="post">
+                            @Html.AntiForgeryToken()
+                            <button type="submit" class="btn btn-outline-primary w-100 mb-3">
+                                Renvoyer le code
+                            </button>
+                        </form>
+                    }
 
                     <div class="text-center">
-                        <a asp-action="Index" class="text-decoration-none">← Retour</a>
+                        <a asp-action="Index" class="text-decoration-none">Retour</a>
                     </div>
                 </div>
             </div>

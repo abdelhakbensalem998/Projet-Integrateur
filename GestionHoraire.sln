@@ -5,6 +5,8 @@ VisualStudioVersion = 17.13.35931.197 d17.13
 MinimumVisualStudioVersion = 10.0.40219.1
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "GestionHoraire", "GestionHoraire\GestionHoraire.csproj", "{D44EC87D-6E7E-421B-9997-2CE88573ACC5}"
 EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "GestionHoraire.Tests", "GestionHoraire.Tests\GestionHoraire.Tests.csproj", "{5B8273ED-8135-4934-B502-96FE126A9FB7}"
+EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
 		Debug|Any CPU = Debug|Any CPU
@@ -15,6 +17,10 @@ Global
 		{D44EC87D-6E7E-421B-9997-2CE88573ACC5}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{D44EC87D-6E7E-421B-9997-2CE88573ACC5}.Release|Any CPU.ActiveCfg = Release|Any CPU
 		{D44EC87D-6E7E-421B-9997-2CE88573ACC5}.Release|Any CPU.Build.0 = Release|Any CPU
+		{5B8273ED-8135-4934-B502-96FE126A9FB7}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{5B8273ED-8135-4934-B502-96FE126A9FB7}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{5B8273ED-8135-4934-B502-96FE126A9FB7}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{5B8273ED-8135-4934-B502-96FE126A9FB7}.Release|Any CPU.Build.0 = Release|Any CPU
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE

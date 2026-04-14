@@ -19,6 +19,7 @@ namespace GestionHoraire.Data
         public DbSet<EmailOtp> EmailOtps { get; set; }
         public DbSet<SecurityLog> SecurityLogs { get; set; }
         public DbSet<TrustedDevice> TrustedDevices { get; set; }
+        public DbSet<BackupCode> BackupCodes { get; set; }
 
         protected override void OnModelCreating(ModelBuilder modelBuilder)
         {
@@ -31,6 +32,24 @@ namespace GestionHoraire.Data
             modelBuilder.Entity<Utilisateur>()
                 .Property(u => u.MotDePasseSalt)
                 .HasColumnType("uniqueidentifier");
+
+            modelBuilder.Entity<Utilisateur>()
+                .Property(u => u.TwoFactorProvider)
+                .HasMaxLength(32);
+
+            modelBuilder.Entity<Utilisateur>()
+                .Property(u => u.AuthenticatorSecretKey)
+                .HasMaxLength(128);
+
+            modelBuilder.Entity<BackupCode>()
+                .Property(b => b.CodeSalt)
+                .HasColumnType("uniqueidentifier");
+
+            modelBuilder.Entity<BackupCode>()
+                .HasOne(b => b.User)
+                .WithMany(u => u.BackupCodes)
+                .HasForeignKey(b => b.UserId)
+                .OnDelete(DeleteBehavior.Cascade);
         }
     }
 }

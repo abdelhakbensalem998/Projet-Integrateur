@@ -10,6 +10,8 @@
     var userNom = Context.Session.GetString("UserNom");
 
     bool twoFactorEnabled = false;
+    bool authenticatorConfigured = false;
+    string twoFactorLabel = "2FA désactivé";
 
     if (userId != null)
     {
@@ -17,6 +19,15 @@
         if (currentUser != null)
         {
             twoFactorEnabled = currentUser.TwoFactorEnabled;
+            authenticatorConfigured = currentUser.TwoFactorEnabled &&
+                currentUser.TwoFactorProvider == "Authenticator" &&
+                !string.IsNullOrWhiteSpace(currentUser.AuthenticatorSecretKey);
+
+            twoFactorLabel = authenticatorConfigured
+                ? "Authenticator activé"
+                : twoFactorEnabled
+                    ? "2FA email activé"
+                    : "2FA désactivé";
         }
     }
 
@@ -79,13 +90,13 @@
                         @if (twoFactorEnabled)
                         {
                             <span class="badge bg-primary px-3 py-2 rounded-pill">
-                                2FA activé
+                                @twoFactorLabel
                             </span>
                         }
                         else
                         {
                             <span class="badge bg-secondary px-3 py-2 rounded-pill">
-                                2FA désactivé
+                                @twoFactorLabel
                             </span>
                         }
                     </div>
@@ -97,22 +108,17 @@
                             Continuer vers mon tableau de bord
                         </a>
 
-                        <form asp-controller="Login" asp-action="Toggle2FA" method="post" class="d-inline">
-                            @Html.AntiForgeryToken()
+                        <a class="btn @(authenticatorConfigured ? "btn-outline-primary" : "btn-primary") px-4"
+                           asp-controller="Login"
+                           asp-action="Manage2FA">
+                            @(authenticatorConfigured ? "Gerer l'Authenticator" : "Configurer l'Authenticator")
+                        </a>
 
-                            @if (twoFactorEnabled)
-                            {
-                                <button type="submit" class="btn btn-outline-danger px-4">
-                                    Désactiver le 2FA
-                                </button>
-                            }
-                            else
-                            {
-                                <button type="submit" class="btn btn-outline-primary px-4">
-                                    Activer le 2FA
-                                </button>
-                            }
-                        </form>
+                        <a class="btn btn-outline-primary px-4"
+                           asp-controller="Login"
+                           asp-action="SecurityHistory">
+                            Historique de securite
+                        </a>
 
                         <a class="btn btn-outline-secondary px-4"
                            asp-controller="Login"
