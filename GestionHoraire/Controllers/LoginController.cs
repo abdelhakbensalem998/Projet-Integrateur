@@ -1197,8 +1197,7 @@ namespace GestionHoraire.Controllers
                     Instruction = "Entrez le code à 6 chiffres affiché dans votre application Authenticator.",
                     InputLabel = "Code Authenticator ou code de secours",
                     AllowResend = false,
-                    AllowBackupCodes = true,
-                    RemainingBackupCodes = CountRemainingBackupCodes(user.Id)
+                    AllowBackupCodes = true
                 };
             }
 
