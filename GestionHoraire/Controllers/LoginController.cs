@@ -237,7 +237,7 @@ namespace GestionHoraire.Controllers
             if (!success)
             {
                 ViewBag.Error = UsesAuthenticator(user)
-                    ? "Code Authenticator ou code de secours invalide."
+                    ? "Code de verification invalide."
                     : "Code invalide ou expiré.";
 
                 LogSecurity(user.Id, "2FA_FAIL", $"Provider={GetTwoFactorProvider(user)}");
@@ -1195,9 +1195,8 @@ namespace GestionHoraire.Controllers
                 {
                     ProviderLabel = "Application Authenticator",
                     Instruction = "Entrez le code à 6 chiffres affiché dans votre application Authenticator.",
-                    InputLabel = "Code Authenticator ou code de secours",
-                    AllowResend = false,
-                    AllowBackupCodes = true
+                    InputLabel = "Code de verification",
+                    AllowResend = false
                 };
             }
 
@@ -1207,8 +1206,7 @@ namespace GestionHoraire.Controllers
                 ProviderLabel = "Code par email",
                 Instruction = "Entrez le code reçu par email pour continuer.",
                 InputLabel = "Code de vérification",
-                AllowResend = true,
-                AllowBackupCodes = false
+                AllowResend = true
             };
         }
 

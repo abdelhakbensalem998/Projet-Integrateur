@@ -6,6 +6,5 @@ namespace GestionHoraire.Models.ViewModels
         public string Instruction { get; set; } = "";
         public string InputLabel { get; set; } = "Code de verification";
         public bool AllowResend { get; set; }
-        public bool AllowBackupCodes { get; set; }
     }
 }
