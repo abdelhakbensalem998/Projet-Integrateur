@@ -2,72 +2,92 @@
 
 @{
     ViewData["Title"] = "Historique de securite";
+    var totalLogs = Model.Logs.Count;
+    var lastLog = Model.Logs.FirstOrDefault();
 }
 
-<div class="container py-5">
-    <div class="d-flex justify-content-between align-items-center flex-wrap gap-3 mb-4">
-        <div>
-            <h1 class="h3 fw-bold mb-1">Historique de securite</h1>
-            <p class="text-muted mb-0">
-                Consultez les dernieres activites liees a votre compte.
-            </p>
-        </div>
+<div class="security-page">
+    <section class="app-hero security-header">
+        <div class="app-hero-grid">
+            <div>
+                <span class="app-kicker">Historique</span>
+                <h1 class="app-title">Activite de securite</h1>
+                <p class="app-subtitle">
+                    Retrouvez les evenements importants du compte: connexions, echecs de verification, changements 2FA et appareils memorises.
+                </p>
 
-        <div class="d-flex flex-wrap gap-2">
-            <a asp-controller="Login" asp-action="Manage2FA" class="btn btn-outline-primary">
-                Securite du compte
-            </a>
-            <a asp-controller="Home" asp-action="Index" class="btn btn-outline-secondary">
-                Retour a l'accueil
-            </a>
-        </div>
-    </div>
-
-    <div class="card border-0 shadow-sm rounded-4">
-        <div class="card-body p-0">
-            @if (Model.Logs.Count == 0)
-            {
-                <div class="p-4">
-                    <div class="alert alert-light border mb-0">
-                        Aucune activite de securite pour le moment.
-                    </div>
+                <div class="app-pills">
+                    <span class="app-pill primary">@totalLogs evenement(s)</span>
+                    <span class="app-pill muted">
+                        Derniere activite: @(lastLog == null ? "Aucune" : lastLog.CreatedAt.ToLocalTime().ToString("yyyy-MM-dd HH:mm"))
+                    </span>
                 </div>
-            }
-            else
-            {
-                <div class="table-responsive">
-                    <table class="table align-middle mb-0">
-                        <thead class="table-light">
+            </div>
+
+            <div class="app-status-panel">
+                <h2>Actions</h2>
+                <div class="app-status-list">
+                    <a asp-controller="Login" asp-action="Manage2FA" class="btn btn-outline-primary w-100">
+                        Securite du compte
+                    </a>
+                    <a asp-controller="Home" asp-action="Index" class="btn btn-outline-secondary w-100">
+                        Retour a l'accueil
+                    </a>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <section class="security-panel">
+        <div class="d-flex justify-content-between align-items-start flex-wrap gap-3 mb-3">
+            <div>
+                <h2>Journal des evenements</h2>
+                <p class="security-help">
+                    Si une action vous semble inconnue, changez votre mot de passe et supprimez les appareils de confiance.
+                </p>
+            </div>
+        </div>
+
+        @if (Model.Logs.Count == 0)
+        {
+            <div class="alert alert-light border mb-0">
+                Aucune activite de securite pour le moment.
+            </div>
+        }
+        else
+        {
+            <div class="history-table table-responsive">
+                <table class="table align-middle">
+                    <thead>
+                        <tr>
+                            <th scope="col">Date</th>
+                            <th scope="col">Action</th>
+                            <th scope="col">Adresse IP</th>
+                            <th scope="col">Details</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        @foreach (var log in Model.Logs)
+                        {
                             <tr>
-                                <th scope="col">Date</th>
-                                <th scope="col">Action</th>
-                                <th scope="col">Adresse IP</th>
-                                <th scope="col">Details</th>
+                                <td class="text-nowrap">
+                                    @log.CreatedAt.ToLocalTime().ToString("yyyy-MM-dd HH:mm:ss")
+                                </td>
+                                <td>
+                                    <div class="fw-semibold">@log.Label</div>
+                                    <div class="text-muted small">@log.Action</div>
+                                </td>
+                                <td class="text-nowrap">
+                                    @(string.IsNullOrWhiteSpace(log.IpAddress) ? "Inconnue" : log.IpAddress)
+                                </td>
+                                <td>
+                                    @(string.IsNullOrWhiteSpace(log.Details) ? "-" : log.Details)
+                                </td>
                             </tr>
-                        </thead>
-                        <tbody>
-                            @foreach (var log in Model.Logs)
-                            {
-                                <tr>
-                                    <td class="text-nowrap">
-                                        @log.CreatedAt.ToLocalTime().ToString("yyyy-MM-dd HH:mm:ss")
-                                    </td>
-                                    <td>
-                                        <div class="fw-semibold">@log.Label</div>
-                                        <div class="text-muted small">@log.Action</div>
-                                    </td>
-                                    <td class="text-nowrap">
-                                        @(string.IsNullOrWhiteSpace(log.IpAddress) ? "Inconnue" : log.IpAddress)
-                                    </td>
-                                    <td>
-                                        @(string.IsNullOrWhiteSpace(log.Details) ? "-" : log.Details)
-                                    </td>
-                                </tr>
-                            }
-                        </tbody>
-                    </table>
-                </div>
-            }
-        </div>
-    </div>
+                        }
+                    </tbody>
+                </table>
+            </div>
+        }
+    </section>
 </div>
