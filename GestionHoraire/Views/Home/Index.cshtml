@@ -1,4 +1,4 @@
-@using Microsoft.AspNetCore.Http
+﻿@using Microsoft.AspNetCore.Http
 @using GestionHoraire.Data
 @inject AppDbContext Db
 
@@ -11,7 +11,7 @@
 
     bool twoFactorEnabled = false;
     bool authenticatorConfigured = false;
-    string twoFactorLabel = "2FA desactive";
+    string twoFactorLabel = "2FA désactivé";
 
     if (userId != null)
     {
@@ -24,10 +24,10 @@
                 !string.IsNullOrWhiteSpace(currentUser.AuthenticatorSecretKey);
 
             twoFactorLabel = authenticatorConfigured
-                ? "Authenticator active"
+                ? "Authenticator activé"
                 : twoFactorEnabled
-                    ? "2FA email active"
-                    : "2FA desactive";
+                    ? "2FA email activé"
+                    : "2FA désactivé";
         }
     }
 
@@ -38,28 +38,13 @@
         "Professeur" => "Professeur",
         _ => "Home"
     };
-
-    string roleLabel = role switch
-    {
-        "Administrateur" => "Administrateur",
-        "ResponsableDépartement" => "Responsable de departement",
-        "Professeur" => "Professeur",
-        _ => "Invite"
-    };
-
-    string dashboardText = role switch
-    {
-        "Administrateur" => "Pilotez les utilisateurs, les salles, les groupes et les departements.",
-        "ResponsableDépartement" => "Suivez les professeurs, les groupes, le planning et les affectations.",
-        "Professeur" => "Consultez votre espace professeur et vos informations principales.",
-        _ => "Accedez a votre espace de travail."
-    };
 }
 
-<div class="app-page">
+<div class="container py-5">
+
     @if (TempData["Success"] != null)
     {
-        <div class="alert alert-success alert-dismissible fade show mb-4" role="alert">
+        <div class="alert alert-success alert-dismissible fade show rounded-4 shadow-sm mb-4" role="alert">
             @TempData["Success"]
             <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Fermer"></button>
         </div>
@@ -67,7 +52,7 @@
 
     @if (TempData["Info"] != null)
     {
-        <div class="alert alert-info alert-dismissible fade show mb-4" role="alert">
+        <div class="alert alert-info alert-dismissible fade show rounded-4 shadow-sm mb-4" role="alert">
             @TempData["Info"]
             <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Fermer"></button>
         </div>
@@ -75,269 +60,181 @@
 
     @if (TempData["Error"] != null)
     {
-        <div class="alert alert-danger alert-dismissible fade show mb-4" role="alert">
+        <div class="alert alert-danger alert-dismissible fade show rounded-4 shadow-sm mb-4" role="alert">
             @TempData["Error"]
             <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Fermer"></button>
         </div>
     }
 
-    <section class="app-hero">
-        <div class="app-hero-grid">
-            <div>
-                <span class="app-kicker">Gestion Horaire</span>
-                <h1 class="app-title">
-                    @if (userId != null)
-                    {
-                        <text>Bonjour, @userNom</text>
-                    }
-                    else
-                    {
-                        <text>Bienvenue sur la plateforme</text>
-                    }
-                </h1>
-                <p class="app-subtitle">
-                    Un espace central pour organiser les cours, les salles, les groupes, les affectations et la securite du compte.
+    <div class="p-4 p-md-5 mb-5 bg-white rounded-4 shadow-sm border">
+        <div class="row align-items-center g-4">
+            <div class="col-lg-7">
+                <span class="badge bg-primary-subtle text-primary mb-3 px-3 py-2 rounded-pill">
+                    Plateforme académique
+                </span>
+
+                <h1 class="fw-bold mb-3" style="font-size:2.5rem;">Gestion Horaire</h1>
+
+                <p class="text-muted fs-5 mb-4">
+                    Plateforme de gestion des cours, affectations, salles et disponibilités des professeurs.
                 </p>
 
-                <div class="app-pills">
-                    @if (userId != null)
-                    {
-                        <span class="app-pill primary">@roleLabel</span>
-                        <span class="app-pill @(twoFactorEnabled ? "success" : "muted")">@twoFactorLabel</span>
-                        <span class="app-pill muted">Session ouverte</span>
-                    }
-                    else
-                    {
-                        <span class="app-pill primary">Acces securise</span>
-                        <span class="app-pill muted">Connexion requise</span>
-                    }
-                </div>
-            </div>
-
-            <aside class="app-status-panel">
-                <h2>Etat rapide</h2>
-                <div class="app-status-list">
-                    <div class="app-status-row">
-                        <span class="app-label">Utilisateur</span>
-                        <span class="app-value">@(userId != null ? userNom : "Non connecte")</span>
-                    </div>
-                    <div class="app-status-row">
-                        <span class="app-label">Role</span>
-                        <span class="app-value">@roleLabel</span>
-                    </div>
-                    <div class="app-status-row">
-                        <span class="app-label">Securite</span>
-                        <span class="app-value">@twoFactorLabel</span>
-                    </div>
-                </div>
-            </aside>
-        </div>
-    </section>
-
-    @if (userId != null)
-    {
-        <section class="app-section">
-            <div class="app-section-title">
-                <div>
-                    <h2>Actions principales</h2>
-                    <p>Les raccourcis utiles sont separes pour que chaque action soit claire.</p>
-                </div>
-            </div>
-
-            <div class="app-action-grid">
-                <a class="app-action-card primary"
-                   asp-controller="@dashboardController"
-                   asp-action="Index">
-                    <div>
-                        <div class="app-action-eyebrow">Travail</div>
-                        <div class="app-action-title">Tableau de bord</div>
-                        <div class="app-action-text">@dashboardText</div>
-                    </div>
-                    <div class="app-action-arrow">Ouvrir</div>
-                </a>
-
-                <a class="app-action-card"
-                   asp-controller="Login"
-                   asp-action="Manage2FA">
-                    <div>
-                        <div class="app-action-eyebrow">Compte</div>
-                        <div class="app-action-title">Securite</div>
-                        <div class="app-action-text">Choisissez l'email, l'Authenticator, les codes de secours et les appareils memorises.</div>
-                    </div>
-                    <div class="app-action-arrow">Gerer</div>
-                </a>
-
-                <a class="app-action-card"
-                   asp-controller="Login"
-                   asp-action="SecurityHistory">
-                    <div>
-                        <div class="app-action-eyebrow">Suivi</div>
-                        <div class="app-action-title">Historique</div>
-                        <div class="app-action-text">Consultez les connexions, les echecs 2FA et les changements sensibles.</div>
-                    </div>
-                    <div class="app-action-arrow">Voir</div>
-                </a>
-
-                <a class="app-action-card danger"
-                   asp-controller="Login"
-                   asp-action="Logout">
-                    <div>
-                        <div class="app-action-eyebrow">Session</div>
-                        <div class="app-action-title">Deconnexion</div>
-                        <div class="app-action-text">Fermez proprement la session avant de quitter l'ordinateur.</div>
-                    </div>
-                    <div class="app-action-arrow">Quitter</div>
-                </a>
-            </div>
-        </section>
-
-        <section class="app-section">
-            <div class="app-section-title">
-                <div>
-                    <h2>Acces metier</h2>
-                    <p>Les pages disponibles suivent votre role actuel.</p>
-                </div>
-            </div>
-
-            <div class="app-action-grid">
-                @if (role == "Administrateur")
+                @if (userId != null)
                 {
-                    <a class="app-action-card" asp-controller="Admin" asp-action="Utilisateurs">
-                        <div>
-                            <div class="app-action-eyebrow">Admin</div>
-                            <div class="app-action-title">Utilisateurs</div>
-                            <div class="app-action-text">Creer, modifier, filtrer et supprimer les comptes.</div>
-                        </div>
-                        <div class="app-action-arrow">Ouvrir</div>
-                    </a>
+                    <div class="d-flex flex-wrap align-items-center gap-2 mb-4">
+                        <span class="badge bg-success px-3 py-2 rounded-pill">Connectée</span>
+                        <span class="text-secondary">
+                            Bonjour, <strong>@userNom</strong> <span class="text-muted">(@role)</span>
+                        </span>
 
-                    <a class="app-action-card" asp-controller="Departements" asp-action="Index">
-                        <div>
-                            <div class="app-action-eyebrow">Structure</div>
-                            <div class="app-action-title">Departements</div>
-                            <div class="app-action-text">Gerez les departements de la plateforme.</div>
-                        </div>
-                        <div class="app-action-arrow">Ouvrir</div>
-                    </a>
+                        @if (twoFactorEnabled)
+                        {
+                            <span class="badge bg-primary px-3 py-2 rounded-pill">
+                                @twoFactorLabel
+                            </span>
+                        }
+                        else
+                        {
+                            <span class="badge bg-secondary px-3 py-2 rounded-pill">
+                                @twoFactorLabel
+                            </span>
+                        }
+                    </div>
 
-                    <a class="app-action-card" asp-controller="Salles" asp-action="Index">
-                        <div>
-                            <div class="app-action-eyebrow">Ressources</div>
-                            <div class="app-action-title">Salles</div>
-                            <div class="app-action-text">Consultez et organisez les salles disponibles.</div>
-                        </div>
-                        <div class="app-action-arrow">Ouvrir</div>
-                    </a>
+                    <div class="d-flex flex-wrap gap-2">
+                        <a class="btn btn-primary px-4"
+                           asp-controller="@dashboardController"
+                           asp-action="Index">
+                            Continuer vers mon tableau de bord
+                        </a>
 
-                    <a class="app-action-card" asp-controller="Groupes" asp-action="Index">
-                        <div>
-                            <div class="app-action-eyebrow">Classes</div>
-                            <div class="app-action-title">Groupes</div>
-                            <div class="app-action-text">Suivez les groupes rattaches aux departements.</div>
-                        </div>
-                        <div class="app-action-arrow">Ouvrir</div>
-                    </a>
-                }
-                else if (role == "ResponsableDépartement")
-                {
-                    <a class="app-action-card" asp-controller="Responsable" asp-action="Profs">
-                        <div>
-                            <div class="app-action-eyebrow">Equipe</div>
-                            <div class="app-action-title">Professeurs</div>
-                            <div class="app-action-text">Consultez et gerez les professeurs du departement.</div>
-                        </div>
-                        <div class="app-action-arrow">Ouvrir</div>
-                    </a>
+                        <a class="btn @(authenticatorConfigured ? "btn-outline-primary" : "btn-primary") px-4"
+                           asp-controller="Login"
+                           asp-action="Manage2FA">
+                            @(authenticatorConfigured ? "Gerer l'Authenticator" : "Configurer l'Authenticator")
+                        </a>
 
-                    <a class="app-action-card" asp-controller="Groupes" asp-action="Index">
-                        <div>
-                            <div class="app-action-eyebrow">Classes</div>
-                            <div class="app-action-title">Groupes</div>
-                            <div class="app-action-text">Organisez les groupes et leurs informations.</div>
-                        </div>
-                        <div class="app-action-arrow">Ouvrir</div>
-                    </a>
+                        <a class="btn btn-outline-primary px-4"
+                           asp-controller="Login"
+                           asp-action="SecurityHistory">
+                            Historique de securite
+                        </a>
 
-                    <a class="app-action-card" asp-controller="Planning" asp-action="Index">
-                        <div>
-                            <div class="app-action-eyebrow">Planning</div>
-                            <div class="app-action-title">Emploi du temps</div>
-                            <div class="app-action-text">Visualisez les horaires et les disponibilites.</div>
-                        </div>
-                        <div class="app-action-arrow">Ouvrir</div>
-                    </a>
-
-                    <a class="app-action-card" asp-controller="Affectations" asp-action="Index">
-                        <div>
-                            <div class="app-action-eyebrow">Cours</div>
-                            <div class="app-action-title">Affectations</div>
-                            <div class="app-action-text">Associez les cours aux professeurs et aux salles.</div>
-                        </div>
-                        <div class="app-action-arrow">Ouvrir</div>
-                    </a>
+                        <a class="btn btn-outline-secondary px-4"
+                           asp-controller="Login"
+                           asp-action="Logout">
+                            Se déconnecter
+                        </a>
+                    </div>
                 }
                 else
                 {
-                    <a class="app-action-card" asp-controller="Professeur" asp-action="Index">
-                        <div>
-                            <div class="app-action-eyebrow">Espace</div>
-                            <div class="app-action-title">Mes cours</div>
-                            <div class="app-action-text">Accedez a votre espace professeur.</div>
-                        </div>
-                        <div class="app-action-arrow">Ouvrir</div>
-                    </a>
+                    <div class="d-flex flex-wrap gap-2">
+                        <a class="btn btn-primary btn-lg px-4"
+                           asp-controller="Login"
+                           asp-action="Index">
+                            Se connecter
+                        </a>
+
+                        <a class="btn btn-outline-secondary btn-lg px-4"
+                           asp-controller="Home"
+                           asp-action="Privacy">
+                            Politique de confidentialité
+                        </a>
+                    </div>
                 }
             </div>
-        </section>
-    }
-    else
-    {
-        <section class="app-section">
-            <div class="app-action-grid">
-                <a class="app-action-card primary" asp-controller="Login" asp-action="Index">
-                    <div>
-                        <div class="app-action-eyebrow">Connexion</div>
-                        <div class="app-action-title">Se connecter</div>
-                        <div class="app-action-text">Ouvrez votre espace avec votre compte Gestion Horaire.</div>
-                    </div>
-                    <div class="app-action-arrow">Commencer</div>
-                </a>
 
-                <a class="app-action-card" asp-controller="Home" asp-action="Privacy">
-                    <div>
-                        <div class="app-action-eyebrow">Information</div>
-                        <div class="app-action-title">Confidentialite</div>
-                        <div class="app-action-text">Consultez les informations liees a l'utilisation de l'application.</div>
+            <div class="col-lg-5">
+                <div class="rounded-4 border bg-light p-4 h-100">
+                    <h5 class="fw-bold mb-3">Espace sécurisé</h5>
+                    <p class="text-muted mb-3">
+                        Accès selon le rôle, gestion des disponibilités, sécurité de connexion et suivi des actions sensibles.
+                    </p>
+
+                    <div class="d-flex flex-column gap-2">
+                        <div class="bg-white border rounded-3 px-3 py-2">Connexion sécurisée</div>
+                        <div class="bg-white border rounded-3 px-3 py-2">Réinitialisation du mot de passe</div>
+                        <div class="bg-white border rounded-3 px-3 py-2">Authentification à deux facteurs</div>
+                        <div class="bg-white border rounded-3 px-3 py-2">Gestion par rôle</div>
                     </div>
-                    <div class="app-action-arrow">Lire</div>
-                </a>
+                </div>
             </div>
-        </section>
-    }
+        </div>
+    </div>
 
-    <section class="app-section">
-        <div class="app-section-title">
-            <div>
-                <h2>Ce que la plateforme centralise</h2>
-                <p>Une vue simple sur les elements importants de la gestion horaire.</p>
+    <div class="row g-4 mb-5">
+        <div class="col-md-4">
+            <div class="card h-100 border-0 shadow-sm rounded-4">
+                <div class="card-body p-4">
+                    <div class="mb-3 fs-3">📚</div>
+                    <h5 class="card-title fw-bold">Gestion des cours</h5>
+                    <p class="card-text text-muted mb-0">
+                        Centraliser la liste des cours et associer professeur et salle de manière simple.
+                    </p>
+                </div>
             </div>
         </div>
 
-        <div class="app-stat-grid">
-            <div class="app-stat-card">
-                <h3>Cours et affectations</h3>
-                <p>Regroupez les cours, les professeurs, les salles et les groupes dans un seul flux.</p>
-            </div>
-
-            <div class="app-stat-card">
-                <h3>Disponibilites</h3>
-                <p>Suivez les creneaux utiles pour organiser le planning avec moins d'ambiguite.</p>
-            </div>
-
-            <div class="app-stat-card">
-                <h3>Securite du compte</h3>
-                <p>Activez la 2FA, verifiez les appareils de confiance et consultez l'historique.</p>
+        <div class="col-md-4">
+            <div class="card h-100 border-0 shadow-sm rounded-4">
+                <div class="card-body p-4">
+                    <div class="mb-3 fs-3">🗓️</div>
+                    <h5 class="card-title fw-bold">Disponibilités</h5>
+                    <p class="card-text text-muted mb-0">
+                        Visualiser et mettre à jour les créneaux de disponibilité des professeurs.
+                    </p>
+                </div>
             </div>
         </div>
-    </section>
+
+        <div class="col-md-4">
+            <div class="card h-100 border-0 shadow-sm rounded-4">
+                <div class="card-body p-4">
+                    <div class="mb-3 fs-3">🏢</div>
+                    <h5 class="card-title fw-bold">Par département</h5>
+                    <p class="card-text text-muted mb-0">
+                        Organisation adaptée selon les rôles : administrateur, responsable et professeur.
+                    </p>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div>
+        <div class="d-flex align-items-center justify-content-between flex-wrap gap-2 mb-3">
+            <h2 class="h4 fw-bold mb-0">Accès selon votre rôle</h2>
+            <span class="text-muted small">Navigation adaptée à chaque utilisateur</span>
+        </div>
+
+        <div class="row g-3">
+            <div class="col-lg-4">
+                <div class="border rounded-4 p-4 h-100 bg-white shadow-sm">
+                    <div class="fw-bold mb-2 fs-5">👑 Administrateur</div>
+                    <div class="text-muted">
+                        Gestion globale des utilisateurs, structures et paramètres.
+                    </div>
+                </div>
+            </div>
+
+            <div class="col-lg-4">
+                <div class="border rounded-4 p-4 h-100 bg-white shadow-sm">
+                    <div class="fw-bold mb-2 fs-5">🧑‍💼 Responsable de département</div>
+                    <div class="text-muted">
+                        Affectation prof/salle, suivi des cours et gestion des disponibilités.
+                    </div>
+                </div>
+            </div>
+
+            <div class="col-lg-4">
+                <div class="border rounded-4 p-4 h-100 bg-white shadow-sm">
+                    <div class="fw-bold mb-2 fs-5">👩‍🏫 Professeur</div>
+                    <div class="text-muted">
+                        Accès à ses informations, ses disponibilités et ses cours.
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
 </div>
