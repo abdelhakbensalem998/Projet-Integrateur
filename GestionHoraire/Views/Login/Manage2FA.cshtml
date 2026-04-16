@@ -170,24 +170,36 @@
                                     Scannez ce QR code avec Google Authenticator, Microsoft Authenticator ou toute application compatible TOTP.
                                 </p>
 
-                                <div class="authenticator-setup-grid">
+                                <div class="authenticator-scan-panel mb-4">
                                     <div class="authenticator-qr-box">
                                         <div class="authenticator-qr">
                                             @Html.Raw(Model.QrCodeSvg)
                                         </div>
                                     </div>
 
+                                    <a asp-controller="Login"
+                                       asp-action="AuthenticatorQr"
+                                       class="btn btn-outline-primary mt-3"
+                                       target="_blank"
+                                       rel="noopener">
+                                        Ouvrir le QR code seul
+                                    </a>
+                                </div>
+
+                                <div class="authenticator-setup-grid">
                                     <div>
                                         <div class="border rounded-4 bg-light p-3 mb-3">
                                             <div class="text-muted small mb-1">Compte</div>
                                             <div class="fw-semibold">@Model.AccountLabel</div>
                                         </div>
 
-                                        <div class="border rounded-4 bg-light p-3 mb-4">
+                                        <div class="border rounded-4 bg-light p-3 mb-0">
                                             <div class="text-muted small mb-1">Cle manuelle</div>
                                             <div class="fw-semibold font-monospace authenticator-manual-key">@Model.ManualEntryKey</div>
                                         </div>
+                                    </div>
 
+                                    <div>
                                         <div class="alert alert-info rounded-3">
                                             Si le scan ne fonctionne pas, ajoutez un compte manuellement dans votre application et copiez la cle manuelle.
                                         </div>
@@ -257,9 +269,13 @@
 </div>
 
 <style>
+    .authenticator-scan-panel {
+        text-align: center;
+    }
+
     .authenticator-setup-grid {
         display: grid;
-        grid-template-columns: minmax(220px, 320px) minmax(0, 1fr);
+        grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
         gap: 24px;
         align-items: start;
     }
@@ -268,9 +284,9 @@
         border: 1px solid #dee2e6;
         border-radius: 8px;
         background: #fff;
-        padding: 16px;
+        padding: 20px;
         width: 100%;
-        max-width: 320px;
+        max-width: 420px;
         margin: 0 auto;
     }
 

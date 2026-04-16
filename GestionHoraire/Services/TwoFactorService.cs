@@ -41,17 +41,17 @@ namespace GestionHoraire.Services
             var safeIssuer = issuer?.Trim() ?? "GestionHoraire";
             var safeAccount = string.IsNullOrWhiteSpace(accountName) ? "Compte" : accountName.Trim();
             var encodedIssuer = Uri.EscapeDataString(safeIssuer);
-            var encodedAccount = Uri.EscapeDataString($"{safeIssuer}:{safeAccount}");
+            var encodedAccount = Uri.EscapeDataString(safeAccount);
 
-            return $"otpauth://totp/{encodedAccount}?secret={NormalizeSharedKey(sharedKey)}&issuer={encodedIssuer}&algorithm=SHA1&digits=6&period=30";
+            return $"otpauth://totp/{encodedIssuer}:{encodedAccount}?secret={NormalizeSharedKey(sharedKey)}&issuer={encodedIssuer}";
         }
 
         public string GenerateQrCodeSvg(string payload)
         {
             using var generator = new QRCodeGenerator();
-            using var data = generator.CreateQrCode(payload, QRCodeGenerator.ECCLevel.Q);
+            using var data = generator.CreateQrCode(payload, QRCodeGenerator.ECCLevel.M);
             var qrCode = new SvgQRCode(data);
-            return qrCode.GetGraphic(10);
+            return qrCode.GetGraphic(12);
         }
 
         public bool ValidateTotp(string sharedKey, string code, int allowedDriftWindows = 1)

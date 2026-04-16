@@ -8,7 +8,7 @@ namespace GestionHoraire.Tests;
 public class TwoFactorServiceTests
 {
     [Fact]
-    public void BuildOtpAuthUri_EncodesIssuerAccountAndTotpSettings()
+    public void BuildOtpAuthUri_EncodesIssuerAccountAndSecret()
     {
         var service = new TwoFactorService();
         var secret = service.GenerateSharedKey();
@@ -16,11 +16,9 @@ public class TwoFactorServiceTests
         var uri = service.BuildOtpAuthUri("Gestion Horaire", "prof@example.com", secret);
 
         Assert.StartsWith("otpauth://totp/", uri);
-        Assert.Contains("Gestion%20Horaire%3Aprof%40example.com", uri);
+        Assert.Contains("Gestion%20Horaire:prof%40example.com", uri);
         Assert.Contains("issuer=Gestion%20Horaire", uri);
-        Assert.Contains("algorithm=SHA1", uri);
-        Assert.Contains("digits=6", uri);
-        Assert.Contains("period=30", uri);
+        Assert.Contains($"secret={secret}", uri);
     }
 
     [Fact]

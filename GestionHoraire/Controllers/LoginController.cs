@@ -300,6 +300,20 @@ namespace GestionHoraire.Controllers
             return View(BuildManageTwoFactorViewModel(user, ReadRecoveryCodesFromTempData()));
         }
 
+        [HttpGet]
+        public IActionResult AuthenticatorQr()
+        {
+            var user = GetCurrentSessionUser();
+            if (user == null) return RedirectToAction("Index");
+
+            var pendingSecret = GetPendingAuthenticatorSecret();
+            if (string.IsNullOrWhiteSpace(pendingSecret))
+                return RedirectToAction("Manage2FA");
+
+            var svg = BuildAuthenticatorQrCodeSvg(user, pendingSecret);
+            return Content(svg, "image/svg+xml");
+        }
+
         [HttpPost]
         [ValidateAntiForgeryToken]
         public IActionResult BeginAuthenticatorSetup()
@@ -1050,19 +1064,22 @@ namespace GestionHoraire.Controllers
                 ManualEntryKey = isSetupInProgress ? _twoFactorService.FormatSharedKey(pendingSecret!) : null,
 
                 // QR code SVG pour l’application Authenticator
-                QrCodeSvg = isSetupInProgress
-                    ? _twoFactorService.GenerateQrCodeSvg(
-                        _twoFactorService.BuildOtpAuthUri(
-                            GetAuthenticatorIssuer(),
-                            GetAuthenticatorAccountLabel(user),
-                            pendingSecret!))
-                    : null,
+                QrCodeSvg = isSetupInProgress ? BuildAuthenticatorQrCodeSvg(user, pendingSecret!) : null,
 
                 AccountLabel = GetAuthenticatorAccountLabel(user),
                 RemainingBackupCodes = CountRemainingBackupCodes(user.Id),
                 RecoveryCodes = recoveryCodes ?? Array.Empty<string>(),
                 TrustedDevices = BuildTrustedDeviceViewModels(user.Id)
             };
+        }
+
+        private string BuildAuthenticatorQrCodeSvg(Utilisateur user, string sharedKey)
+        {
+            return _twoFactorService.GenerateQrCodeSvg(
+                _twoFactorService.BuildOtpAuthUri(
+                    GetAuthenticatorIssuer(),
+                    GetAuthenticatorAccountLabel(user),
+                    sharedKey));
         }
 
         private IReadOnlyList<TrustedDeviceViewModel> BuildTrustedDeviceViewModels(int userId)
