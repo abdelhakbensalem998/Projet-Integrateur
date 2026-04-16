@@ -7,6 +7,7 @@ namespace GestionHoraire.Models.ViewModels
     {
         public bool IsTwoFactorEnabled { get; set; }
         public bool IsAuthenticatorConfigured { get; set; }
+        public bool IsEmailTwoFactorEnabled { get; set; }
         public bool IsSetupInProgress { get; set; }
         public string ProviderLabel { get; set; } = "Aucune";
         public string? ManualEntryKey { get; set; }

@@ -440,6 +440,61 @@ namespace GestionHoraire.Controllers
 
         [HttpPost]
         [ValidateAntiForgeryToken]
+        public IActionResult EnableEmailTwoFactor()
+        {
+            var user = GetCurrentSessionUser();
+            if (user == null) return RedirectToAction("Index");
+
+            if (string.IsNullOrWhiteSpace(user.Email))
+            {
+                TempData["Error"] = "Aucune adresse email n'est associee a ce compte.";
+                return RedirectToAction("Manage2FA");
+            }
+
+            user.TwoFactorEnabled = true;
+            user.TwoFactorProvider = TwoFactorProviderEmail;
+            user.AuthenticatorSecretKey = null;
+            user.AuthenticatorEnabledAt = null;
+
+            RevokeBackupCodes(user.Id);
+            ClearTrustedDevices(user.Id);
+            ClearPendingAuthenticatorSecret();
+
+            _context.SaveChanges();
+
+            TempData["Success"] = "Le 2FA par email est active.";
+            LogSecurity(user.Id, "EMAIL_2FA_ENABLED", null);
+
+            return RedirectToAction("Manage2FA");
+        }
+
+        [HttpPost]
+        [ValidateAntiForgeryToken]
+        public IActionResult DisableEmailTwoFactor()
+        {
+            var user = GetCurrentSessionUser();
+            if (user == null) return RedirectToAction("Index");
+
+            if (!UsesEmailTwoFactor(user))
+            {
+                TempData["Info"] = "Le 2FA par email n'est pas actif.";
+                return RedirectToAction("Manage2FA");
+            }
+
+            user.TwoFactorEnabled = false;
+            user.TwoFactorProvider = null;
+            ClearTrustedDevices(user.Id);
+
+            _context.SaveChanges();
+
+            TempData["Success"] = "Le 2FA par email est desactive.";
+            LogSecurity(user.Id, "EMAIL_2FA_DISABLED", null);
+
+            return RedirectToAction("Manage2FA");
+        }
+
+        [HttpPost]
+        [ValidateAntiForgeryToken]
         public IActionResult RevokeTrustedDevice(int id)
         {
             var user = GetCurrentSessionUser();
@@ -1057,6 +1112,7 @@ namespace GestionHoraire.Controllers
             {
                 IsTwoFactorEnabled = user.TwoFactorEnabled,
                 IsAuthenticatorConfigured = UsesAuthenticator(user),
+                IsEmailTwoFactorEnabled = UsesEmailTwoFactor(user),
                 IsSetupInProgress = isSetupInProgress,
                 ProviderLabel = GetTwoFactorProviderLabel(user),
 
@@ -1116,6 +1172,8 @@ namespace GestionHoraire.Controllers
                 "AUTHENTICATOR_ENABLE_FAIL" => "Echec activation Authenticator",
                 "AUTHENTICATOR_ENABLED" => "Authenticator active",
                 "AUTHENTICATOR_DISABLED" => "Authenticator desactive",
+                "EMAIL_2FA_ENABLED" => "2FA par email active",
+                "EMAIL_2FA_DISABLED" => "2FA par email desactive",
                 "BACKUP_CODES_REGENERATED" => "Backup codes regeneres",
                 "TRUSTED_DEVICE_REVOKED" => "Appareil de confiance supprime",
                 "TRUSTED_DEVICES_REVOKED" => "Appareils de confiance supprimes",

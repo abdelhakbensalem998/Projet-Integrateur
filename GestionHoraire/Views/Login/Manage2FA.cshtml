@@ -77,6 +77,25 @@
                                     </button>
                                 </form>
 
+                                @if (Model.IsEmailTwoFactorEnabled)
+                                {
+                                    <form asp-action="DisableEmailTwoFactor" method="post">
+                                        @Html.AntiForgeryToken()
+                                        <button type="submit" class="btn btn-outline-danger w-100">
+                                            Desactiver le code par email
+                                        </button>
+                                    </form>
+                                }
+                                else
+                                {
+                                    <form asp-action="EnableEmailTwoFactor" method="post">
+                                        @Html.AntiForgeryToken()
+                                        <button type="submit" class="btn btn-outline-secondary w-100">
+                                            @(Model.IsAuthenticatorConfigured ? "Utiliser le code par email" : "Activer le code par email")
+                                        </button>
+                                    </form>
+                                }
+
                                 @if (Model.IsAuthenticatorConfigured)
                                 {
                                     <form asp-action="RegenerateBackupCodes" method="post">
@@ -94,67 +113,6 @@
                                     </form>
                                 }
                             </div>
-                        </div>
-                    </div>
-
-                    <div class="card border-0 shadow-sm rounded-4 mt-4">
-                        <div class="card-body p-4">
-                            <div class="d-flex justify-content-between align-items-start gap-3 mb-3">
-                                <div>
-                                    <h2 class="h5 fw-bold mb-1">Appareils de confiance</h2>
-                                    <p class="text-muted mb-0">
-                                        Les appareils memorises peuvent passer la verification 2FA pendant 30 jours.
-                                    </p>
-                                </div>
-                            </div>
-
-                            @if (Model.TrustedDevices.Count == 0)
-                            {
-                                <div class="alert alert-light border rounded-3 mb-0">
-                                    Aucun appareil de confiance enregistre.
-                                </div>
-                            }
-                            else
-                            {
-                                <div class="list-group list-group-flush mb-3">
-                                    @foreach (var device in Model.TrustedDevices)
-                                    {
-                                        <div class="list-group-item px-0">
-                                            <div class="d-flex justify-content-between align-items-start gap-3">
-                                                <div>
-                                                    <div class="fw-semibold">
-                                                        @device.DeviceName
-                                                        @if (device.IsCurrentDevice)
-                                                        {
-                                                            <span class="badge bg-success ms-2">Cet appareil</span>
-                                                        }
-                                                    </div>
-                                                    <div class="text-muted small">
-                                                        Ajoute le @device.CreatedAt.ToLocalTime().ToString("yyyy-MM-dd HH:mm")
-                                                    </div>
-                                                    <div class="text-muted small">
-                                                        Expire le @device.ExpiresAt.ToLocalTime().ToString("yyyy-MM-dd HH:mm")
-                                                    </div>
-                                                </div>
-
-                                                <form asp-action="RevokeTrustedDevice" asp-route-id="@device.Id" method="post">
-                                                    @Html.AntiForgeryToken()
-                                                    <button type="submit" class="btn btn-sm btn-outline-danger">
-                                                        Supprimer
-                                                    </button>
-                                                </form>
-                                            </div>
-                                        </div>
-                                    }
-                                </div>
-
-                                <form asp-action="RevokeAllTrustedDevices" method="post">
-                                    @Html.AntiForgeryToken()
-                                    <button type="submit" class="btn btn-outline-danger w-100">
-                                        Supprimer tous les appareils de confiance
-                                    </button>
-                                </form>
-                            }
                         </div>
                     </div>
                 </div>
@@ -264,6 +222,68 @@
                     }
                 </div>
             </div>
+
+            <div class="card border-0 shadow-sm rounded-4 mt-4">
+                <div class="card-body p-4">
+                    <div class="d-flex justify-content-between align-items-start flex-wrap gap-3 mb-3">
+                        <div>
+                            <h2 class="h5 fw-bold mb-1">Appareils de confiance</h2>
+                            <p class="text-muted mb-0">
+                                Les appareils memorises peuvent passer la verification 2FA pendant 30 jours.
+                            </p>
+                        </div>
+
+                        @if (Model.TrustedDevices.Count > 0)
+                        {
+                            <form asp-action="RevokeAllTrustedDevices" method="post">
+                                @Html.AntiForgeryToken()
+                                <button type="submit" class="btn btn-outline-danger">
+                                    Supprimer tous les appareils
+                                </button>
+                            </form>
+                        }
+                    </div>
+
+                    @if (Model.TrustedDevices.Count == 0)
+                    {
+                        <div class="alert alert-light border rounded-3 mb-0">
+                            Aucun appareil de confiance enregistre.
+                        </div>
+                    }
+                    else
+                    {
+                        <div class="trusted-device-list">
+                            @foreach (var device in Model.TrustedDevices)
+                            {
+                                <div class="trusted-device-item">
+                                    <div class="trusted-device-main">
+                                        <div class="fw-semibold">
+                                            @device.DeviceName
+                                            @if (device.IsCurrentDevice)
+                                            {
+                                                <span class="badge bg-success ms-2">Cet appareil</span>
+                                            }
+                                        </div>
+                                        <div class="text-muted small">
+                                            Ajoute le @device.CreatedAt.ToLocalTime().ToString("yyyy-MM-dd HH:mm")
+                                        </div>
+                                        <div class="text-muted small">
+                                            Expire le @device.ExpiresAt.ToLocalTime().ToString("yyyy-MM-dd HH:mm")
+                                        </div>
+                                    </div>
+
+                                    <form asp-action="RevokeTrustedDevice" asp-route-id="@device.Id" method="post">
+                                        @Html.AntiForgeryToken()
+                                        <button type="submit" class="btn btn-outline-danger">
+                                            Supprimer
+                                        </button>
+                                    </form>
+                                </div>
+                            }
+                        </div>
+                    }
+                </div>
+            </div>
         </div>
     </div>
 </div>
@@ -302,9 +322,34 @@
         line-height: 1.8;
     }
 
+    .trusted-device-list {
+        display: grid;
+        gap: 12px;
+    }
+
+    .trusted-device-item {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        gap: 16px;
+        border: 1px solid #dee2e6;
+        border-radius: 8px;
+        padding: 16px;
+        background: #fff;
+    }
+
+    .trusted-device-main {
+        min-width: 0;
+    }
+
     @@media (max-width: 768px) {
         .authenticator-setup-grid {
             grid-template-columns: 1fr;
+        }
+
+        .trusted-device-item {
+            align-items: stretch;
+            flex-direction: column;
         }
     }
 </style>
