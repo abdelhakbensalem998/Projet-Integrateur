@@ -47,22 +47,6 @@
         _ => "Invite"
     };
 
-    string roleEmoji = role switch
-    {
-        "Administrateur" => "👑",
-        "ResponsableDépartement" => "🧭",
-        "Professeur" => "👩‍🏫",
-        _ => "✨"
-    };
-
-    string dashboardEmoji = role switch
-    {
-        "Administrateur" => "🧩",
-        "ResponsableDépartement" => "🗂️",
-        "Professeur" => "📖",
-        _ => "🚀"
-    };
-
     string dashboardText = role switch
     {
         "Administrateur" => "Pilotez les utilisateurs, les salles, les groupes et les departements.",
@@ -70,11 +54,9 @@
         "Professeur" => "Consultez votre espace professeur et vos informations principales.",
         _ => "Accedez a votre espace de travail."
     };
-
-    string securityEmoji = twoFactorEnabled ? "🔐" : "🔓";
 }
 
-<div class="app-page home-page">
+<div class="app-page">
     @if (TempData["Success"] != null)
     {
         <div class="alert alert-success alert-dismissible fade show mb-4" role="alert">
@@ -99,100 +81,53 @@
         </div>
     }
 
-    <section class="app-hero creative-home-hero">
+    <section class="app-hero">
         <div class="app-hero-grid">
             <div>
-                <span class="app-kicker">✨ Gestion Horaire</span>
+                <span class="app-kicker">Gestion Horaire</span>
                 <h1 class="app-title">
                     @if (userId != null)
                     {
-                        <text>👋 Bonjour, @userNom</text>
+                        <text>Bonjour, @userNom</text>
                     }
                     else
                     {
-                        <text>🚀 Bienvenue sur la plateforme</text>
+                        <text>Bienvenue sur la plateforme</text>
                     }
                 </h1>
                 <p class="app-subtitle">
-                    Organisez les cours, les salles, les groupes et la securite du compte depuis un espace plus clair, plus rapide et plus agreable a utiliser.
+                    Un espace central pour organiser les cours, les salles, les groupes, les affectations et la securite du compte.
                 </p>
 
                 <div class="app-pills">
                     @if (userId != null)
                     {
-                        <span class="app-pill primary">@roleEmoji @roleLabel</span>
-                        <span class="app-pill @(twoFactorEnabled ? "success" : "muted")">@securityEmoji @twoFactorLabel</span>
-                        <span class="app-pill muted">✅ Session ouverte</span>
+                        <span class="app-pill primary">@roleLabel</span>
+                        <span class="app-pill @(twoFactorEnabled ? "success" : "muted")">@twoFactorLabel</span>
+                        <span class="app-pill muted">Session ouverte</span>
                     }
                     else
                     {
-                        <span class="app-pill primary">🔐 Acces securise</span>
-                        <span class="app-pill muted">👤 Connexion requise</span>
-                    }
-                </div>
-
-                <div class="home-hero-actions">
-                    @if (userId != null)
-                    {
-                        <a class="btn btn-primary" asp-controller="@dashboardController" asp-action="Index">
-                            🚀 Ouvrir mon tableau de bord
-                        </a>
-                        <a class="btn btn-outline-primary" asp-controller="Login" asp-action="Manage2FA">
-                            🔐 Voir ma securite
-                        </a>
-                    }
-                    else
-                    {
-                        <a class="btn btn-primary" asp-controller="Login" asp-action="Index">
-                            🚀 Se connecter
-                        </a>
+                        <span class="app-pill primary">Acces securise</span>
+                        <span class="app-pill muted">Connexion requise</span>
                     }
                 </div>
             </div>
 
-            <aside class="home-command-panel" aria-label="Resume visuel">
-                <div class="home-command-header">
-                    <div class="home-command-emoji">📅</div>
-                    <div>
-                        <h2>Centre de controle</h2>
-                        <p>Votre espace en un coup d'oeil.</p>
+            <aside class="app-status-panel">
+                <h2>Etat rapide</h2>
+                <div class="app-status-list">
+                    <div class="app-status-row">
+                        <span class="app-label">Utilisateur</span>
+                        <span class="app-value">@(userId != null ? userNom : "Non connecte")</span>
                     </div>
-                </div>
-
-                <div class="home-status-map">
-                    <div class="home-status-tile">
-                        <span>👤</span>
-                        <strong>@(userId != null ? userNom : "Invite")</strong>
-                        <small>Utilisateur</small>
+                    <div class="app-status-row">
+                        <span class="app-label">Role</span>
+                        <span class="app-value">@roleLabel</span>
                     </div>
-                    <div class="home-status-tile">
-                        <span>@roleEmoji</span>
-                        <strong>@roleLabel</strong>
-                        <small>Role</small>
-                    </div>
-                    <div class="home-status-tile">
-                        <span>@securityEmoji</span>
-                        <strong>@twoFactorLabel</strong>
-                        <small>Securite</small>
-                    </div>
-                </div>
-
-                <div class="home-mini-week">
-                    <div class="home-mini-day active">
-                        <span>📚</span>
-                        <strong>Cours</strong>
-                    </div>
-                    <div class="home-mini-day">
-                        <span>🏫</span>
-                        <strong>Salles</strong>
-                    </div>
-                    <div class="home-mini-day">
-                        <span>👥</span>
-                        <strong>Groupes</strong>
-                    </div>
-                    <div class="home-mini-day">
-                        <span>🔐</span>
-                        <strong>Securite</strong>
+                    <div class="app-status-row">
+                        <span class="app-label">Securite</span>
+                        <span class="app-value">@twoFactorLabel</span>
                     </div>
                 </div>
             </aside>
@@ -204,8 +139,8 @@
         <section class="app-section">
             <div class="app-section-title">
                 <div>
-                    <h2>⚡ Actions principales</h2>
-                    <p>Les raccourcis importants, sans chercher dans tous les menus.</p>
+                    <h2>Actions principales</h2>
+                    <p>Les raccourcis utiles sont separes pour que chaque action soit claire.</p>
                 </div>
             </div>
 
@@ -214,48 +149,44 @@
                    asp-controller="@dashboardController"
                    asp-action="Index">
                     <div>
-                        <div class="app-action-icon">@dashboardEmoji</div>
                         <div class="app-action-eyebrow">Travail</div>
                         <div class="app-action-title">Tableau de bord</div>
                         <div class="app-action-text">@dashboardText</div>
                     </div>
-                    <div class="app-action-arrow">Ouvrir →</div>
+                    <div class="app-action-arrow">Ouvrir</div>
                 </a>
 
                 <a class="app-action-card"
                    asp-controller="Login"
                    asp-action="Manage2FA">
                     <div>
-                        <div class="app-action-icon">🔐</div>
                         <div class="app-action-eyebrow">Compte</div>
                         <div class="app-action-title">Securite</div>
                         <div class="app-action-text">Choisissez l'email, l'Authenticator, les codes de secours et les appareils memorises.</div>
                     </div>
-                    <div class="app-action-arrow">Gerer →</div>
+                    <div class="app-action-arrow">Gerer</div>
                 </a>
 
                 <a class="app-action-card"
                    asp-controller="Login"
                    asp-action="SecurityHistory">
                     <div>
-                        <div class="app-action-icon">🕵️</div>
                         <div class="app-action-eyebrow">Suivi</div>
                         <div class="app-action-title">Historique</div>
                         <div class="app-action-text">Consultez les connexions, les echecs 2FA et les changements sensibles.</div>
                     </div>
-                    <div class="app-action-arrow">Voir →</div>
+                    <div class="app-action-arrow">Voir</div>
                 </a>
 
                 <a class="app-action-card danger"
                    asp-controller="Login"
                    asp-action="Logout">
                     <div>
-                        <div class="app-action-icon">🚪</div>
                         <div class="app-action-eyebrow">Session</div>
                         <div class="app-action-title">Deconnexion</div>
                         <div class="app-action-text">Fermez proprement la session avant de quitter l'ordinateur.</div>
                     </div>
-                    <div class="app-action-arrow">Quitter →</div>
+                    <div class="app-action-arrow">Quitter</div>
                 </a>
             </div>
         </section>
@@ -263,7 +194,7 @@
         <section class="app-section">
             <div class="app-section-title">
                 <div>
-                    <h2>🧭 Acces metier</h2>
+                    <h2>Acces metier</h2>
                     <p>Les pages disponibles suivent votre role actuel.</p>
                 </div>
             </div>
@@ -273,96 +204,87 @@
                 {
                     <a class="app-action-card" asp-controller="Admin" asp-action="Utilisateurs">
                         <div>
-                            <div class="app-action-icon">👥</div>
                             <div class="app-action-eyebrow">Admin</div>
                             <div class="app-action-title">Utilisateurs</div>
                             <div class="app-action-text">Creer, modifier, filtrer et supprimer les comptes.</div>
                         </div>
-                        <div class="app-action-arrow">Ouvrir →</div>
+                        <div class="app-action-arrow">Ouvrir</div>
                     </a>
 
                     <a class="app-action-card" asp-controller="Departements" asp-action="Index">
                         <div>
-                            <div class="app-action-icon">🏛️</div>
                             <div class="app-action-eyebrow">Structure</div>
                             <div class="app-action-title">Departements</div>
                             <div class="app-action-text">Gerez les departements de la plateforme.</div>
                         </div>
-                        <div class="app-action-arrow">Ouvrir →</div>
+                        <div class="app-action-arrow">Ouvrir</div>
                     </a>
 
                     <a class="app-action-card" asp-controller="Salles" asp-action="Index">
                         <div>
-                            <div class="app-action-icon">🏫</div>
                             <div class="app-action-eyebrow">Ressources</div>
                             <div class="app-action-title">Salles</div>
                             <div class="app-action-text">Consultez et organisez les salles disponibles.</div>
                         </div>
-                        <div class="app-action-arrow">Ouvrir →</div>
+                        <div class="app-action-arrow">Ouvrir</div>
                     </a>
 
                     <a class="app-action-card" asp-controller="Groupes" asp-action="Index">
                         <div>
-                            <div class="app-action-icon">🎓</div>
                             <div class="app-action-eyebrow">Classes</div>
                             <div class="app-action-title">Groupes</div>
                             <div class="app-action-text">Suivez les groupes rattaches aux departements.</div>
                         </div>
-                        <div class="app-action-arrow">Ouvrir →</div>
+                        <div class="app-action-arrow">Ouvrir</div>
                     </a>
                 }
                 else if (role == "ResponsableDépartement")
                 {
                     <a class="app-action-card" asp-controller="Responsable" asp-action="Profs">
                         <div>
-                            <div class="app-action-icon">👩‍🏫</div>
                             <div class="app-action-eyebrow">Equipe</div>
                             <div class="app-action-title">Professeurs</div>
                             <div class="app-action-text">Consultez et gerez les professeurs du departement.</div>
                         </div>
-                        <div class="app-action-arrow">Ouvrir →</div>
+                        <div class="app-action-arrow">Ouvrir</div>
                     </a>
 
                     <a class="app-action-card" asp-controller="Groupes" asp-action="Index">
                         <div>
-                            <div class="app-action-icon">🎓</div>
                             <div class="app-action-eyebrow">Classes</div>
                             <div class="app-action-title">Groupes</div>
                             <div class="app-action-text">Organisez les groupes et leurs informations.</div>
                         </div>
-                        <div class="app-action-arrow">Ouvrir →</div>
+                        <div class="app-action-arrow">Ouvrir</div>
                     </a>
 
                     <a class="app-action-card" asp-controller="Planning" asp-action="Index">
                         <div>
-                            <div class="app-action-icon">📆</div>
                             <div class="app-action-eyebrow">Planning</div>
                             <div class="app-action-title">Emploi du temps</div>
                             <div class="app-action-text">Visualisez les horaires et les disponibilites.</div>
                         </div>
-                        <div class="app-action-arrow">Ouvrir →</div>
+                        <div class="app-action-arrow">Ouvrir</div>
                     </a>
 
                     <a class="app-action-card" asp-controller="Affectations" asp-action="Index">
                         <div>
-                            <div class="app-action-icon">🔗</div>
                             <div class="app-action-eyebrow">Cours</div>
                             <div class="app-action-title">Affectations</div>
                             <div class="app-action-text">Associez les cours aux professeurs et aux salles.</div>
                         </div>
-                        <div class="app-action-arrow">Ouvrir →</div>
+                        <div class="app-action-arrow">Ouvrir</div>
                     </a>
                 }
                 else
                 {
                     <a class="app-action-card" asp-controller="Professeur" asp-action="Index">
                         <div>
-                            <div class="app-action-icon">📖</div>
                             <div class="app-action-eyebrow">Espace</div>
                             <div class="app-action-title">Mes cours</div>
                             <div class="app-action-text">Accedez a votre espace professeur.</div>
                         </div>
-                        <div class="app-action-arrow">Ouvrir →</div>
+                        <div class="app-action-arrow">Ouvrir</div>
                     </a>
                 }
             </div>
@@ -374,22 +296,20 @@
             <div class="app-action-grid">
                 <a class="app-action-card primary" asp-controller="Login" asp-action="Index">
                     <div>
-                        <div class="app-action-icon">🚀</div>
                         <div class="app-action-eyebrow">Connexion</div>
                         <div class="app-action-title">Se connecter</div>
                         <div class="app-action-text">Ouvrez votre espace avec votre compte Gestion Horaire.</div>
                     </div>
-                    <div class="app-action-arrow">Commencer →</div>
+                    <div class="app-action-arrow">Commencer</div>
                 </a>
 
                 <a class="app-action-card" asp-controller="Home" asp-action="Privacy">
                     <div>
-                        <div class="app-action-icon">📄</div>
                         <div class="app-action-eyebrow">Information</div>
                         <div class="app-action-title">Confidentialite</div>
                         <div class="app-action-text">Consultez les informations liees a l'utilisation de l'application.</div>
                     </div>
-                    <div class="app-action-arrow">Lire →</div>
+                    <div class="app-action-arrow">Lire</div>
                 </a>
             </div>
         </section>
@@ -398,65 +318,23 @@
     <section class="app-section">
         <div class="app-section-title">
             <div>
-                <h2>🛠️ Parcours rapide</h2>
-                <p>La plateforme fonctionne comme une petite chaine de production.</p>
-            </div>
-        </div>
-
-        <div class="home-flow-grid">
-            <div class="home-flow-step">
-                <span class="home-flow-number">1</span>
-                <div class="home-flow-emoji">📚</div>
-                <h3>Cours</h3>
-                <p>On prepare les cours et les groupes.</p>
-            </div>
-
-            <div class="home-flow-step">
-                <span class="home-flow-number">2</span>
-                <div class="home-flow-emoji">👩‍🏫</div>
-                <h3>Professeurs</h3>
-                <p>On associe les bonnes personnes.</p>
-            </div>
-
-            <div class="home-flow-step">
-                <span class="home-flow-number">3</span>
-                <div class="home-flow-emoji">🏫</div>
-                <h3>Salles</h3>
-                <p>On choisit les espaces disponibles.</p>
-            </div>
-
-            <div class="home-flow-step">
-                <span class="home-flow-number">4</span>
-                <div class="home-flow-emoji">📆</div>
-                <h3>Planning</h3>
-                <p>On obtient une organisation lisible.</p>
-            </div>
-        </div>
-    </section>
-
-    <section class="app-section">
-        <div class="app-section-title">
-            <div>
-                <h2>🌟 Ce que la plateforme centralise</h2>
+                <h2>Ce que la plateforme centralise</h2>
                 <p>Une vue simple sur les elements importants de la gestion horaire.</p>
             </div>
         </div>
 
         <div class="app-stat-grid">
             <div class="app-stat-card">
-                <div class="app-stat-icon">📚</div>
                 <h3>Cours et affectations</h3>
                 <p>Regroupez les cours, les professeurs, les salles et les groupes dans un seul flux.</p>
             </div>
 
             <div class="app-stat-card">
-                <div class="app-stat-icon">⏱️</div>
                 <h3>Disponibilites</h3>
                 <p>Suivez les creneaux utiles pour organiser le planning avec moins d'ambiguite.</p>
             </div>
 
             <div class="app-stat-card">
-                <div class="app-stat-icon">🔐</div>
                 <h3>Securite du compte</h3>
                 <p>Activez la 2FA, verifiez les appareils de confiance et consultez l'historique.</p>
             </div>
