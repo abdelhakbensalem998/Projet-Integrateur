@@ -27,14 +27,41 @@
                         @if (Context.Session.GetInt32("UserId") != null)
                         {
                             var role = Context.Session.GetString("UserRole");
-                            var dashboardController = role == "Administrateur" ? "Admin" : (role == "Professeur" ? "Professeur" : "Responsable");
-                            var dashboardAction = role == "Administrateur" ? "Dashboard" : "Index";
-                            
+                            var userNom = Context.Session.GetString("UserNom");
+
+                            if (role == "Administrateur")
+                            {
+                                <li class="nav-item">
+                                    <a class="nav-link text-primary fw-bold" asp-controller="Admin" asp-action="Dashboard"><i class="bi bi-speedometer2"></i> Admin</a>
+                                </li>
+                            }
+                            else if (role == "ResponsableDépartement")
+                            {
+                                <li class="nav-item dropdown">
+                                    <a class="nav-link dropdown-toggle text-primary fw-bold" href="#" id="navbarDropdownResponsable" role="button" data-bs-toggle="dropdown" aria-expanded="false">
+                                        <i class="bi bi-mortarboard-fill"></i> Ma Gestion
+                                    </a>
+                                    <ul class="dropdown-menu shadow border-0" aria-labelledby="navbarDropdownResponsable">
+                                        <li><a class="dropdown-item" asp-controller="Responsable" asp-action="Index"><i class="bi bi-grid-fill me-2"></i>Tableau de bord</a></li>
+                                        <li><hr class="dropdown-divider"></li>
+                                        <li><a class="dropdown-item" asp-controller="Responsable" asp-action="Profs"><i class="bi bi-people-fill me-2"></i>Équipe Pédagogique</a></li>
+                                        <li><a class="dropdown-item" asp-controller="Groupes" asp-action="Index"><i class="bi bi-mortarboard me-2"></i>Groupes d'études</a></li>
+                                        <li><a class="dropdown-item" asp-controller="Affectations" asp-action="Index"><i class="bi bi-node-plus-fill me-2"></i>Affectations</a></li>
+                                        <li><a class="dropdown-item" asp-controller="Planning" asp-action="Index"><i class="bi bi-calendar3 me-2"></i>Plannings</a></li>
+                                        <li><a class="dropdown-item" asp-controller="Salles" asp-action="Index"><i class="bi bi-building-fill me-2"></i>Locaux / Labos</a></li>
+                                        <li><a class="dropdown-item" asp-controller="Responsable" asp-action="Demandes"><i class="bi bi-chat-left-text-fill me-2"></i>Demandes</a></li>
+                                    </ul>
+                                </li>
+                            }
+                            else if (role == "Professeur")
+                            {
+                                <li class="nav-item">
+                                    <a class="nav-link text-primary fw-bold" asp-controller="Professeur" asp-action="Index"><i class="bi bi-person-fill"></i> Mon Espace</a>
+                                </li>
+                            }
+
                             <li class="nav-item">
-                                <a class="nav-link text-primary fw-bold" asp-controller="@dashboardController" asp-action="@dashboardAction">Mon Tableau de Bord</a>
-                            </li>
-                            <li class="nav-item">
-                                <a class="nav-link text-danger" asp-controller="Login" asp-action="Logout">Déconnexion (@Context.Session.GetString("UserNom"))</a>
+                                <a class="nav-link text-danger" asp-controller="Login" asp-action="Logout">Déconnexion (@userNom)</a>
                             </li>
                         }
                         else

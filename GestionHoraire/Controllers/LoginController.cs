@@ -1,4 +1,4 @@
-﻿using GestionHoraire.Data;
+using GestionHoraire.Data;
 using GestionHoraire.Models;
 using GestionHoraire.Services;
 using Microsoft.AspNetCore.Http;
@@ -52,13 +52,19 @@ namespace GestionHoraire.Controllers
 
             var user = _context.Utilisateurs
                 .Include(u => u.Departement)
-                .FirstOrDefault(u => u.Email == email);
+                .FirstOrDefault(u => u.Email != null && u.Email.ToLower() == email.ToLower());
+
+            Console.WriteLine($"[DEBUG] Login attempt for: {email}");
 
             if (user == null)
             {
+                Console.WriteLine($"[DEBUG] User NOT found in database for email: {email}");
                 ViewBag.Error = "Email ou mot de passe incorrect";
                 return View();
             }
+
+            Console.WriteLine($"[DEBUG] User found: {user.Nom} (ID: {user.Id}, Role: {user.Role})");
+            Console.WriteLine($"[DEBUG] Hash in DB (Length): {user.MotDePasseHash?.Length}");
 
             // LOCKOUT
             if (user.LockoutUntil != null && user.LockoutUntil > DateTime.UtcNow)
@@ -525,7 +531,7 @@ namespace GestionHoraire.Controllers
         private void OpenFullSession(Utilisateur user)
         {
             HttpContext.Session.SetInt32("UserId", user.Id);
-            HttpContext.Session.SetString("UserRole", user.Role ?? "");
+            HttpContext.Session.SetString("UserRole", (user.Role ?? "").Trim());
             HttpContext.Session.SetString("UserNom", user.Nom ?? "");
             HttpContext.Session.SetString("UserEmail", user.Email ?? "");
             if (user.DepartementId.HasValue)
@@ -578,7 +584,35 @@ namespace GestionHoraire.Controllers
 
         private static bool VerifierMotDePasseSHA256AvecSalt(string motDePasse, Guid saltGuid, byte[] hashStocke)
         {
+            if (hashStocke == null) return false;
+
+            // Diagnostic: voir la longueur réelle après conversion potentielle
+            if (hashStocke.Length == 66)
+            {
+                try
+                {
+                    string hex = Encoding.UTF8.GetString(hashStocke);
+                    // Gère \x ou \\x (selon comment l'encodage a interprété le backslash)
+                    if (hex.StartsWith(@"\x") || hex.StartsWith("\\x")) 
+                    {
+                        hashStocke = Convert.FromHexString(hex.Substring(2));
+                        Console.WriteLine($"[DEBUG] Hash converted from Hex String. New length: {hashStocke.Length}");
+                    }
+                }
+                catch (Exception ex)
+                {
+                    Console.WriteLine($"[DEBUG] Error converting hex string: {ex.Message}");
+                }
+            }
+
             byte[] hashCalcule = CalculerSHA256AvecSalt(motDePasse, saltGuid);
+
+            if (hashCalcule.Length != hashStocke.Length)
+            {
+                Console.WriteLine($"[DEBUG] Length mismatch: Calcule={hashCalcule.Length}, Stocke={hashStocke.Length}");
+                return false;
+            }
+
             return CryptographicOperations.FixedTimeEquals(hashCalcule, hashStocke);
         }
 

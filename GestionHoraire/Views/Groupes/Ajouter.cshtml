@@ -1,29 +1,87 @@
-﻿@model GestionHoraire.Models.Groupe
+@model GestionHoraire.Models.Groupe
 
-<div class="container mt-5">
+@{
+    ViewData["Title"] = "Créer un Groupe";
+}
+
+<link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;600;700&display=swap" rel="stylesheet">
+
+<style>
+    body {
+        background: #f8fafc;
+        font-family: 'Outfit', sans-serif;
+    }
+
+    .premium-card {
+        background: rgba(255, 255, 255, 0.9);
+        backdrop-filter: blur(12px);
+        border-radius: 24px;
+        border: 1px solid rgba(255, 255, 255, 0.4);
+        box-shadow: 0 20px 40px rgba(0, 0, 0, 0.05);
+    }
+
+    .card-header-gradient {
+        background: linear-gradient(135deg, #4f46e5 0%, #7c3aed 100%);
+        color: white;
+        border-radius: 24px 24px 0 0 !important;
+        padding: 1.5rem;
+    }
+
+    .form-control, .form-select {
+        border-radius: 12px;
+        padding: 12px 20px;
+        border: 1px solid #e2e8f0;
+        background: #f8fafc;
+    }
+
+    .form-control:focus, .form-select:focus {
+        box-shadow: 0 0 0 4px rgba(79, 70, 229, 0.1);
+        border-color: #4f46e5;
+    }
+
+    .btn-premium {
+        background: linear-gradient(135deg, #4f46e5 0%, #7c3aed 100%);
+        color: white;
+        border: none;
+        border-radius: 12px;
+        padding: 12px;
+        font-weight: 600;
+        transition: all 0.3s;
+    }
+
+    .btn-premium:hover {
+        transform: translateY(-2px);
+        box-shadow: 0 10px 20px rgba(79, 70, 229, 0.2);
+        color: white;
+    }
+</style>
+
+<div class="container py-5">
     <div class="row justify-content-center">
-        <div class="col-md-6">
-            <div class="card shadow border-0 rounded-4">
-                <div class="card-header bg-warning py-3 text-center fw-bold text-dark">
-                    <i class="bi bi-plus-circle-fill me-2"></i>Créer un Nouveau Groupe
+        <div class="col-md-6 col-lg-5">
+            <div class="premium-card overflow-hidden">
+                <div class="card-header-gradient text-center">
+                    <h3 class="mb-0 fw-bold"><i class="bi bi-plus-circle me-2"></i>Nouveau Groupe</h3>
                 </div>
-                <div class="card-body p-4">
+                <div class="card-body p-4 p-lg-5">
                     <form asp-action="Ajouter" method="post">
-                        <div class="mb-3">
-                            <label class="form-label fw-bold">Nom du groupe</label>
+                        <div class="mb-4">
+                            <label class="form-label fw-bold text-muted small text-uppercase">Nom du groupe</label>
                             <input asp-for="Nom" class="form-control" placeholder="ex: Groupe Informatique 1A" />
+                            <span asp-validation-for="Nom" class="text-danger small"></span>
                         </div>
 
-                        <div class="mb-3">
-                            <label class="form-label fw-bold">Département de rattachement</label>
+                        <div class="mb-4">
+                            <label class="form-label fw-bold text-muted small text-uppercase">Département</label>
                             <select asp-for="DepartementId" class="form-select" asp-items="ViewBag.Departements">
-                                <option value="">-- Sélectionner un département --</option>
+                                <option value="">-- Sélectionner --</option>
                             </select>
+                            <span asp-validation-for="DepartementId" class="text-danger small"></span>
                         </div>
 
-                        <div class="row mb-3">
-                            <div class="col-md-6">
-                                <label class="form-label fw-bold">Niveau</label>
+                        <div class="row mb-4">
+                            <div class="col-md-7">
+                                <label class="form-label fw-bold text-muted small text-uppercase">Niveau</label>
                                 <select asp-for="Niveau" class="form-select">
                                     <option value="Licence 1">Licence 1</option>
                                     <option value="Licence 2">Licence 2</option>
@@ -32,15 +90,16 @@
                                     <option value="Master 2">Master 2</option>
                                 </select>
                             </div>
-                            <div class="col-md-6">
-                                <label class="form-label fw-bold">Effectif</label>
+                            <div class="col-md-5">
+                                <label class="form-label fw-bold text-muted small text-uppercase">Effectif (Max 40)</label>
                                 <input asp-for="Effectif" type="number" class="form-control" />
+                                <span asp-validation-for="Effectif" class="text-danger small"></span>
                             </div>
                         </div>
 
-                        <div class="d-grid gap-2 mt-4">
-                            <button type="submit" class="btn btn-warning fw-bold shadow-sm">Enregistrer le groupe</button>
-                            <a asp-action="Index" class="btn btn-light">Annuler</a>
+                        <div class="d-grid gap-3 mt-5">
+                            <button type="submit" class="btn btn-premium">Créer le groupe</button>
+                            <a asp-action="Index" class="btn btn-light rounded-3 py-2 fw-600">Annuler</a>
                         </div>
                     </form>
                 </div>

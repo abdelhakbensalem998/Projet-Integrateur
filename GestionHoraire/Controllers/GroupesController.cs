@@ -9,6 +9,8 @@ using System.Threading.Tasks;
 
 namespace GestionHoraire.Controllers
 {
+    [Route("Groupes")]
+    [Route("Groupe")]
     public class GroupesController : Controller
     {
         private readonly AppDbContext _context;
@@ -21,6 +23,8 @@ namespace GestionHoraire.Controllers
         // ==========================================
         // 1. LISTE DES GROUPES (INDEX)
         // ==========================================
+        [Route("")]
+        [Route("Index")]
         public async Task<IActionResult> Index(int? idDept)
         {
             // Récupération des infos de session
@@ -30,7 +34,7 @@ namespace GestionHoraire.Controllers
             // Requête de base avec jointure sur le département
             var query = _context.Groupes.Include(g => g.Departement).AsQueryable();
 
-            if (userRole == "Administrateur")
+            if (string.Equals(userRole, "Administrateur", StringComparison.OrdinalIgnoreCase))
             {
                 // Pour l'Admin : on prépare la liste de tous les départements pour le filtre
                 var listeDepts = await _context.Departements.OrderBy(d => d.Nom).ToListAsync();
@@ -60,7 +64,7 @@ namespace GestionHoraire.Controllers
         // ==========================================
         // 2. AJOUTER UN GROUPE
         // ==========================================
-        [HttpGet]
+        [HttpGet("Ajouter")]
         public async Task<IActionResult> Ajouter()
         {
             // On passe la liste des départements pour que l'admin puisse choisir
@@ -68,7 +72,7 @@ namespace GestionHoraire.Controllers
             return View();
         }
 
-        [HttpPost]
+        [HttpPost("Ajouter")]
         [ValidateAntiForgeryToken]
         public async Task<IActionResult> Ajouter(Groupe groupe)
         {
@@ -84,6 +88,7 @@ namespace GestionHoraire.Controllers
             {
                 _context.Add(groupe);
                 await _context.SaveChangesAsync();
+                TempData["Success"] = "Le groupe a été ajouté avec succès.";
                 return RedirectToAction(nameof(Index));
             }
 
@@ -94,7 +99,7 @@ namespace GestionHoraire.Controllers
         // ==========================================
         // 3. MODIFIER UN GROUPE
         // ==========================================
-        [HttpGet]
+        [HttpGet("Modifier/{id}")]
         public async Task<IActionResult> Modifier(int? id)
         {
             if (id == null) return NotFound();
@@ -115,7 +120,7 @@ namespace GestionHoraire.Controllers
             return View(groupe);
         }
 
-        [HttpPost]
+        [HttpPost("Modifier/{id}")]
         [ValidateAntiForgeryToken]
         public async Task<IActionResult> Modifier(int id, Groupe groupe)
         {
@@ -127,6 +132,7 @@ namespace GestionHoraire.Controllers
                 {
                     _context.Update(groupe);
                     await _context.SaveChangesAsync();
+                    TempData["Success"] = "Le groupe a été modifié avec succès.";
                 }
                 catch (DbUpdateConcurrencyException)
                 {
@@ -142,7 +148,7 @@ namespace GestionHoraire.Controllers
         // ==========================================
         // 4. SUPPRIMER UN GROUPE
         // ==========================================
-        [HttpPost]
+        [HttpPost("Supprimer/{id}")]
         [ValidateAntiForgeryToken]
         public async Task<IActionResult> Supprimer(int id)
         {
@@ -160,6 +166,7 @@ namespace GestionHoraire.Controllers
 
             _context.Groupes.Remove(groupe);
             await _context.SaveChangesAsync();
+            TempData["Success"] = "Le groupe a été supprimé.";
             return RedirectToAction(nameof(Index));
         }
 

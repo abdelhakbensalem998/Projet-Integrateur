@@ -6,175 +6,198 @@
 
 <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.0/font/bootstrap-icons.css">
 
-<div class="container mt-5">
-    <div class="d-flex justify-content-between align-items-center mb-4 border-bottom pb-3">
-        <div>
-            <h2 class="text-dark fw-bold m-0">
-                <i class="bi bi-journal-check text-danger me-2"></i>Affectations des Cours
-            </h2>
-            <p class="text-muted mb-0">Gérez les cours du département et assignez les professeurs.</p>
-        </div>
-        <div class="d-flex gap-2">
-            <a asp-action="CreerCours" class="btn btn-success rounded-pill px-4 shadow-sm">
-                <i class="bi bi-plus-circle me-1"></i> Nouveau Cours
-            </a>
+<div class="container-fluid px-4 mt-4">
+    <!-- En-tête Dynamique -->
+    <div class="card border-0 shadow-sm mb-4 overflow-hidden" style="border-radius: 20px; background: linear-gradient(135deg, #1e3c72 0%, #2a5298 100%);">
+        <div class="card-body p-4 text-white d-flex justify-content-between align-items-center">
+            <div>
+                <h1 class="h2 fw-bold mb-1"><i class="bi bi-person-workspace me-2"></i>Affectation des Services</h1>
+                <p class="opacity-75 mb-0 fs-6">Planifiez et assignez les professeurs aux différents groupes du département.</p>
+            </div>
+            <div class="d-flex align-items-center gap-3">
+                <div class="text-end me-2 d-none d-md-block">
+                    <div class="h3 fw-bold mb-0">@Model.Count()</div>
+                    <div class="small opacity-75 text-uppercase fw-bold ls-1">Affectations</div>
+                </div>
+                <a asp-action="CreerCours" class="btn btn-warning btn-lg rounded-pill px-4 shadow fw-bold border-0 transition-hover text-dark">
+                    <i class="bi bi-plus-lg me-2"></i> Nouveau Cours
+                </a>
+            </div>
         </div>
     </div>
 
-    @if (!Model.Any())
-    {
-        <div class="text-center py-5 bg-light rounded-3 border border-dashed">
-            <i class="bi bi-book display-1 text-muted"></i>
-            <p class="fs-4 text-secondary mt-3">Aucun cours n'est actuellement enregistré pour votre département.</p>
-            <a asp-action="CreerCours" class="btn btn-primary mt-2">Créer le premier cours</a>
-        </div>
-    }
-    else
-    {
-        <div class="card shadow-sm border-0">
-            <div class="table-responsive">
-                <table class="table table-hover align-middle mb-0">
-                    <thead class="table-dark">
-                        <tr>
-                            <th class="ps-4 py-3">Titre du Cours</th>
-                            <th>Groupe</th>
-                            <th>Professeur Assigné</th>
-                            <th class="text-center">Statut</th>
-                            <th class="text-end pe-4">Actions</th>
-                        </tr>
-                    </thead>
-                    <tbody>
-                        @foreach (var courseGroup in Model.GroupBy(c => new { 
-                            Titre = (c.Titre ?? "").Trim().ToLower(), 
-                            c.UtilisateurId, 
-                            ProfesseurIds = (c.ProfesseurIds ?? "").Trim().TrimEnd(','), 
-                            c.SalleId 
-                        }))
-                        {
-                            var firstItem = courseGroup.First();
-                            <tr>
-                                <td class="ps-4">
-                                    <span class="fw-bold fs-5 text-dark">@firstItem.Titre</span>
-                                </td>
-                                <td>
-                                    @foreach (var item in courseGroup)
-                                    {
-                                        var gids = string.IsNullOrEmpty(item.GroupeIds) ? new string[0] : item.GroupeIds.Split(',');
-                                        var allGrps = (List<GestionHoraire.Models.Groupe>)ViewBag.AllGroupes;
-                                        
-                                        foreach (var gid in gids)
-                                        {
-                                            var gn = allGrps?.FirstOrDefault(g => g.Id.ToString() == gid.Trim())?.Nom ?? "Inconnu";
-                                            <span class="badge bg-info-subtle text-info border border-info px-2 mb-1 d-inline-block">
-                                                <i class="bi bi-people-fill me-1"></i> @gn
-                                            </span>
-                                        }
-                                    }
-                                    @if (!courseGroup.Any(c => !string.IsNullOrEmpty(c.GroupeIds)))
-                                    {
-                                        <span class="badge bg-secondary-subtle text-secondary border px-2">Aucun groupe</span>
-                                    }
-                                </td>
-                                <td>
-                                    @{
-                                        var pids = string.IsNullOrEmpty(firstItem.ProfesseurIds) 
-                                                   ? (firstItem.UtilisateurId.HasValue ? new string[] { firstItem.UtilisateurId.Value.ToString() } : new string[0])
-                                                   : firstItem.ProfesseurIds.Split(',');
-                                        var allUsers = (List<GestionHoraire.Models.Utilisateur>)ViewBag.AllUsers;
-                                    }
-                                    @if (!pids.Any())
-                                    {
-                                        <span class="text-muted small italic">Aucun professeur</span>
-                                    }
-                                    else
-                                    {
-                                        foreach (var pid in pids)
-                                        {
-                                            var prof = allUsers?.FirstOrDefault(u => u.Id.ToString() == pid.Trim());
-                                            if (prof != null)
+    <!-- Filtres et Statistiques Rapides -->
+    <div class="row g-4 mb-4">
+        <div class="col-12">
+            @if (!Model.Any())
+            {
+                <div class="card border-0 shadow-sm text-center p-5" style="border-radius: 20px;">
+                    <i class="bi bi-journal-x display-1 text-muted opacity-25"></i>
+                    <h3 class="mt-4 fw-light text-muted">Aucune affectation trouvée</h3>
+                    <a asp-action="CreerCours" class="btn btn-primary mt-3 rounded-pill px-4">Créer le premier cours</a>
+                </div>
+            }
+            else
+            {
+                <div class="card border-0 shadow-sm overflow-hidden" style="border-radius: 20px;">
+                    <div class="table-responsive">
+                        <table class="table table-hover align-middle mb-0 custom-table">
+                            <thead class="bg-light">
+                                <tr>
+                                    <th class="ps-4 text-uppercase small fw-bold text-muted py-3">Cours & Groupes</th>
+                                    <th class="text-uppercase small fw-bold text-muted py-3">Professeur(s)</th>
+                                    <th class="text-uppercase small fw-bold text-muted py-3 text-center">État</th>
+                                    <th class="text-uppercase small fw-bold text-muted py-3 text-end pe-4">Actions</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                @foreach (var courseGroup in Model.GroupBy(c => new { 
+                                    Titre = (c.Titre ?? "").Trim().ToLower(), 
+                                    c.UtilisateurId, 
+                                    ProfesseurIds = (c.ProfesseurIds ?? "").Trim().TrimEnd(','), 
+                                    c.SalleId 
+                                }))
+                                {
+                                    var firstItem = courseGroup.First();
+                                    <tr class="transition-base">
+                                        <td class="ps-4 py-4">
+                                            <div class="d-flex flex-column">
+                                                <span class="fw-bold fs-5 text-dark">@firstItem.Titre</span>
+                                                <div class="mt-2 flex-wrap d-flex gap-1">
+                                                    @foreach (var item in courseGroup)
+                                                    {
+                                                        var gids = string.IsNullOrEmpty(item.GroupeIds) ? new string[0] : item.GroupeIds.Split(',');
+                                                        var allGrps = (List<GestionHoraire.Models.Groupe>)ViewBag.AllGroupes;
+                                                        
+                                                        foreach (var gid in gids)
+                                                        {
+                                                            var grp = allGrps?.FirstOrDefault(g => g.Id.ToString() == gid.Trim());
+                                                            <span class="badge rounded-pill bg-light text-primary border border-primary-subtle px-2 py-1 small fw-medium">
+                                                                <i class="bi bi-people me-1"></i> @(grp?.Nom ?? "Groupe")
+                                                            </span>
+                                                        }
+                                                    }
+                                                </div>
+                                            </div>
+                                        </td>
+                                        <td>
+                                            @{
+                                                var pids = string.IsNullOrEmpty(firstItem.ProfesseurIds) 
+                                                           ? (firstItem.UtilisateurId.HasValue ? new string[] { firstItem.UtilisateurId.Value.ToString() } : new string[0])
+                                                           : firstItem.ProfesseurIds.Split(',');
+                                                var allUsers = (List<GestionHoraire.Models.Utilisateur>)ViewBag.AllUsers;
+                                            }
+                                            @if (!pids.Any())
                                             {
-                                                <div class="d-flex align-items-center mb-1">
-                                                    <div class="bg-primary-subtle p-1 rounded-circle me-2" style="font-size: 0.8rem;">
-                                                        <i class="bi bi-person-fill text-primary"></i>
-                                                    </div>
-                                                    <span class="fw-medium small">@prof.Nom</span>
-                                                    <a asp-controller="Disponibilite" asp-action="Index" 
-                                                       asp-route-professeurId="@prof.Id" 
-                                                       asp-route-returnUrl="/Affectations/Index" 
-                                                       class="text-info ms-2" title="Gérer disponibilités">
-                                                        <i class="bi bi-calendar-event"></i>
-                                                    </a>
+                                                <span class="badge bg-danger-subtle text-danger border border-danger-subtle px-3 py-2 rounded-pill fw-bold">
+                                                    <i class="bi bi-exclamation-triangle me-1"></i> Non-affecté
+                                                </span>
+                                            }
+                                            else
+                                            {
+                                                <div class="avatar-group d-flex flex-column gap-2">
+                                                    @foreach (var pid in pids)
+                                                    {
+                                                        var prof = allUsers?.FirstOrDefault(u => u.Id.ToString() == pid.Trim());
+                                                        if (prof != null)
+                                                        {
+                                                            <div class="d-flex align-items-center bg-white border border-light p-2 rounded-4 shadow-xs" style="width: fit-content; min-width: 160px;">
+                                                                <div class="bg-primary text-white rounded-circle d-flex align-items-center justify-content-center me-2" style="width: 32px; height: 32px; font-size: 0.8rem;">
+                                                                    @prof.Nom.Substring(0, 1).ToUpper()
+                                                                </div>
+                                                                <div class="flex-grow-1 overflow-hidden">
+                                                                    <div class="fw-bold small text-truncate" style="max-width: 100px;">@prof.Nom</div>
+                                                                    <div class="text-muted smaller">Professeur</div>
+                                                                </div>
+                                                                <a asp-controller="Disponibilite" asp-action="Index" 
+                                                                   asp-route-professeurId="@prof.Id" 
+                                                                   asp-route-returnUrl="/Affectations/Index" 
+                                                                   class="btn btn-sm btn-link text-info p-0 ms-2" title="Disponibilités">
+                                                                    <i class="bi bi-calendar-check fs-6"></i>
+                                                                </a>
+                                                            </div>
+                                                        }
+                                                    }
                                                 </div>
                                             }
-                                        }
-                                    }
-                                </td>
-                                <td class="text-center">
-                                    @if (firstItem.UtilisateurId != null || !string.IsNullOrEmpty(firstItem.ProfesseurIds))
-                                    {
-                                        <span class="badge bg-success-subtle text-success border border-success px-3">Assigné</span>
-                                    }
-                                    else
-                                    {
-                                        <span class="badge bg-warning-subtle text-warning border border-warning px-3">En attente</span>
-                                    }
-                                </td>
-                                <td class="text-end pe-4">
-                                    <div class="btn-group shadow-sm rounded">
-                                        <a asp-action="EditerAffectation" asp-route-id="@firstItem.Id"
-                                           class="btn btn-sm btn-white border btn-dynamic" title="Modifier le professeur">
-                                            <i class="bi bi-person-plus text-primary"></i> Affecter
-                                        </a>
+                                        </td>
+                                        <td class="text-center">
+                                            @if (firstItem.UtilisateurId != null || !string.IsNullOrEmpty(firstItem.ProfesseurIds))
+                                            {
+                                                <div class="d-inline-flex align-items-center bg-success-subtle text-success px-3 py-1 rounded-pill border border-success-subtle fw-bold" style="font-size: 0.8rem;">
+                                                    <span class="pulse-success me-2"></span> ACTIF
+                                                </div>
+                                            }
+                                            else
+                                            {
+                                                <div class="d-inline-flex align-items-center bg-warning-subtle text-warning px-3 py-1 rounded-pill border border-warning-subtle fw-bold" style="font-size: 0.8rem;">
+                                                    <span class="pulse-warning me-2"></span> ATTENTE
+                                                </div>
+                                            }
+                                        </td>
+                                        <td class="text-end pe-4">
+                                            <div class="btn-group shadow-sm bg-white border rounded-pill p-1">
+                                                <a asp-action="EditerAffectation" asp-route-id="@firstItem.Id"
+                                                   class="btn btn-sm btn-light rounded-pill border-0 px-3 py-2 fw-bold text-primary transition-hover" title="Gérer l'affectation">
+                                                    <i class="bi bi-pencil-square me-1"></i> Affecter
+                                                </a>
 
-                                        <form asp-controller="Affectations" asp-action="SupprimerCours" asp-route-id="@firstItem.Id"
-                                              method="post" onsubmit="return confirm('Êtes-vous sûr de vouloir supprimer tous les records liés à ce cours (@firstItem.Titre) pour ces groupes ?');"
-                                              style="display:inline;">
-                                            @Html.AntiForgeryToken()
-                                            <button type="submit" class="btn btn-sm btn-white border border-start-0 btn-dynamic" title="Supprimer">
-                                                <i class="bi bi-trash text-danger"></i>
-                                            </button>
-                                        </form>
-                                    </div>
-                                </td>
-                            </tr>
-                        }
-                    </tbody>
-                </table>
-            </div>
+                                                <form asp-controller="Affectations" asp-action="SupprimerCours" asp-route-id="@firstItem.Id"
+                                                      method="post" onsubmit="return confirm('Êtes-vous sûr de vouloir supprimer tous les records liés à ce cours (@firstItem.Titre) ?');"
+                                                      style="display:inline;">
+                                                    @Html.AntiForgeryToken()
+                                                    <button type="submit" class="btn btn-sm btn-light rounded-pill border-0 px-3 py-2 text-danger ms-1 transition-hover" title="Supprimer">
+                                                        <i class="bi bi-trash3"></i>
+                                                    </button>
+                                                </form>
+                                            </div>
+                                        </td>
+                                    </tr>
+                                }
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            }
         </div>
 
-        <div class="mt-3 text-muted small">
-            <i class="bi bi-info-circle me-1"></i> Cliquez sur "Affecter" pour choisir un professeur parmi votre équipe pédagogique.
         </div>
-    }
+    </div>
 </div>
 
 <style>
-    .table thead th {
-        font-weight: 600;
-        text-transform: uppercase;
-        font-size: 0.75rem;
-        letter-spacing: 0.5px;
+    .transition-base { transition: all 0.25s ease; }
+    .transition-hover:hover { transform: translateY(-3px); box-shadow: 0 8px 15px rgba(0,0,0,0.1) !important; }
+    
+    .ls-1 { letter-spacing: 1px; }
+    .smaller { font-size: 0.75rem; }
+    .shadow-xs { box-shadow: 0 2px 4px rgba(0,0,0,0.05); }
+
+    .custom-table tbody tr:hover {
+        background-color: #f8faff !important;
+        cursor: pointer;
     }
 
-    .btn-white {
-        background: white;
+    /* Pulses indicators */
+    .pulse-success {
+        width: 10px; height: 10px; border-radius: 50%; background: #28a745;
+        box-shadow: 0 0 0 rgba(40, 167, 69, 0.4); animation: pulse-green 2s infinite;
+    }
+    @@keyframes pulse-green {
+        0% { box-shadow: 0 0 0 0 rgba(40, 167, 69, 0.4); }
+        70% { box-shadow: 0 0 0 10px rgba(40, 167, 69, 0); }
+        100% { box-shadow: 0 0 0 0 rgba(40, 167, 69, 0); }
     }
 
-        .btn-white:hover {
-            background: #f8f9fa;
-        }
-
-    .btn-dynamic {
-        transition: all 0.3s ease;
+    .pulse-warning {
+        width: 10px; height: 10px; border-radius: 50%; background: #ffc107;
+        box-shadow: 0 0 0 rgba(255, 193, 7, 0.4); animation: pulse-yellow 2s infinite;
     }
-
-    .btn-dynamic:hover {
-        transform: translateY(-2px);
-        box-shadow: 0 4px 8px rgba(0,0,0,0.15) !important;
+    @@keyframes pulse-yellow {
+        0% { box-shadow: 0 0 0 0 rgba(255, 193, 7, 0.4); }
+        70% { box-shadow: 0 0 0 10px rgba(255, 193, 7, 0); }
+        100% { box-shadow: 0 0 0 0 rgba(255, 193, 7, 0); }
     }
-
-    .btn-dynamic:active {
-        transform: translateY(0);
+</style>
     }
 </style>

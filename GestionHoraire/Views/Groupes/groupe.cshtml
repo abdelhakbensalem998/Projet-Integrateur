@@ -1,191 +1,230 @@
 @model IEnumerable<GestionHoraire.Models.Groupe>
 @using Microsoft.AspNetCore.Http
 
-<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.0/font/bootstrap-icons.css">
-
 @{
     ViewData["Title"] = "Gestion des Groupes";
-    // Récupération de l'ID du département actuellement filtré depuis l'URL (si présent)
     string selectedDeptId = Context.Request.Query["idDept"];
 }
 
-<div class="container-fluid px-4 mt-4">
-    <div class="d-flex justify-content-between align-items-center mb-4 border-bottom pb-3">
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.0/font/bootstrap-icons.css">
+<link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;600;700&display=swap" rel="stylesheet">
+
+<style>
+    body {
+        background: #f8fafc;
+        font-family: 'Outfit', sans-serif;
+        color: #1e293b;
+    }
+
+    :root {
+        --primary-gradient: linear-gradient(135deg, #4f46e5 0%, #7c3aed 100%);
+        --glass-bg: rgba(255, 255, 255, 0.7);
+        --glass-border: rgba(255, 255, 255, 0.4);
+    }
+
+    .premium-header {
+        background: var(--primary-gradient);
+        border-radius: 0 0 50px 50px;
+        padding: 4rem 0 8rem 0;
+        margin-bottom: -6rem;
+        box-shadow: 0 10px 30px rgba(79, 70, 229, 0.2);
+    }
+
+    .glass-card {
+        background: var(--glass-bg);
+        backdrop-filter: blur(12px);
+        -webkit-backdrop-filter: blur(12px);
+        border: 1px solid var(--glass-border);
+        border-radius: 24px;
+        transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+        box-shadow: 0 10px 25px rgba(0, 0, 0, 0.03);
+    }
+
+    .hover-scale:hover {
+        transform: translateY(-8px);
+        box-shadow: 0 20px 40px rgba(0, 0, 0, 0.08);
+        border-color: rgba(79, 70, 229, 0.3);
+    }
+
+    .action-btn {
+        border-radius: 50px;
+        padding: 10px 25px;
+        font-weight: 600;
+        transition: all 0.3s;
+        border: none;
+        text-decoration: none;
+        display: inline-flex;
+        align-items: center;
+    }
+
+    .btn-add {
+        background: rgba(255, 255, 255, 0.15);
+        backdrop-filter: blur(5px);
+        border: 1px solid rgba(255, 255, 255, 0.2);
+        color: white;
+    }
+
+    .btn-add:hover {
+        background: rgba(255, 255, 255, 0.25);
+        color: white;
+        transform: translateY(-2px);
+    }
+
+    .filter-section {
+        background: white;
+        border-radius: 20px;
+        padding: 1.5rem;
+        margin-bottom: 2rem;
+        border: 1px solid #e2e8f0;
+    }
+
+    .group-badge {
+        width: 50px;
+        height: 50px;
+        border-radius: 15px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        font-size: 1.25rem;
+        margin-bottom: 1rem;
+    }
+
+    .bg-soft-purple { background: #f5f3ff; color: #7c3aed; }
+    .bg-soft-indigo { background: #e0e7ff; color: #4f46e5; }
+    
+    .progress-minimal {
+        height: 6px;
+        border-radius: 10px;
+        background: #f1f5f9;
+        overflow: hidden;
+    }
+
+    .dept-title {
+        font-weight: 700;
+        color: #64748b;
+        letter-spacing: 1px;
+        margin-top: 3rem;
+    }
+</style>
+
+<div class="premium-header text-white">
+    <div class="container d-flex justify-content-between align-items-center">
         <div>
-            <h1 class="h2 fw-bold text-dark m-0">Gestion des Groupes</h1>
-            <p class="text-muted m-0 mt-1">
-                <i class="bi bi-shield-lock-fill me-1 text-warning"></i>
-                Mode : <strong>@(Context.Session.GetString("UserRole") == "Administrateur" ? "Administration Globale" : "Départemental")</strong>
-            </p>
+            <span class="opacity-75 small text-uppercase tracking-widest fw-bold">Gestion Académique</span>
+            <h1 class="display-4 fw-bold mt-1">Groupes d'Études 📚</h1>
+            <p class="opacity-75 mb-0 fs-5">Organisation des niveaux et membres des sections.</p>
         </div>
         <div class="d-flex gap-2">
-            <a asp-controller="Responsable" asp-action="Index" class="btn btn-outline-secondary shadow-sm rounded-pill px-3 fw-bold transition-hover">
-                <i class="bi bi-house-door me-1"></i> Tableau de bord
-            </a>
-            <a asp-controller="Groupes" asp-action="Ajouter" class="btn btn-warning shadow-sm rounded-pill px-4 fw-bold text-white transition-hover">
-                <i class="bi bi-plus-lg me-1"></i> Nouveau Groupe
+            <a asp-controller="Groupes" asp-action="Ajouter" class="action-btn btn-add">
+                <i class="bi bi-plus-lg me-2"></i>Nouveau Groupe
             </a>
         </div>
     </div>
+</div>
 
-    @* --- ZONE DE FILTRE --- *@
-    @if (Context.Session.GetString("UserRole") == "Administrateur" && ViewBag.Departements != null)
+<div class="container pb-5">
+    <!-- Messages Flash -->
+    @if (TempData["Success"] != null)
     {
-        <div class="card shadow-sm border-0 mb-5 bg-light" style="border-radius: 15px;">
-            <div class="card-body p-4">
-                <form method="get" asp-controller="Groupes" asp-action="Index" class="row g-3 align-items-end">
-                    <div class="col-md-6 col-lg-5">
-                        <label for="idDept" class="form-label fw-bold text-secondary mb-2">
-                            <i class="bi bi-filter-circle me-1"></i> Filtrer par Département
-                        </label>
-                        <select name="idDept" id="idDept" class="form-select form-select-lg border-0 shadow-sm" style="border-radius: 10px;" onchange="this.form.submit()">
-                            <option value="">-- Tous les départements --</option>
-                            @foreach (var dept in (SelectList)ViewBag.Departements)
-                            {
-                                <option value="@dept.Value" selected="@(dept.Value == selectedDeptId)">@dept.Text</option>
-                            }
-                        </select>
-                    </div>
-                    <div class="col-md-6 col-lg-7 d-flex gap-2 justify-content-md-end pt-2">
-                        @if (!string.IsNullOrEmpty(selectedDeptId))
-                        {
-                            <a asp-controller="Groupes" asp-action="Index" class="btn btn-lg btn-outline-secondary rounded-pill px-4 transition-hover">
-                                <i class="bi bi-x-circle me-1"></i> Réinitialiser
-                            </a>
-                        }
-                    </div>
-                </form>
+        <div class="alert glass-card border-0 d-flex align-items-center p-3 mb-5 mt-2" style="background: rgba(16, 185, 129, 0.1);">
+            <div class="bg-success text-white rounded-circle d-flex align-items-center justify-content-center me-3" style="width: 35px; height: 35px;">
+                <i class="bi bi-check-lg"></i>
             </div>
+            <div class="fw-bold text-success">@TempData["Success"]</div>
         </div>
     }
-    @* --- FIN ZONE DE FILTRE --- *@
+
+    @* --- ZONE DE FILTRE (ADMIN) --- *@
+    @if (Context.Session.GetString("UserRole") == "Administrateur" && ViewBag.Departements != null)
+    {
+        <div class="filter-section shadow-sm mb-5 mt-1">
+            <form method="get" asp-controller="Groupes" asp-action="Index" class="row g-3 align-items-end">
+                <div class="col-md-5">
+                    <label class="form-label fw-bold small text-uppercase text-muted">Filtrer par Département</label>
+                    <select name="idDept" class="form-select border-0 bg-light rounded-3 py-2" onchange="this.form.submit()">
+                        <option value="">-- Tous les départements --</option>
+                        @foreach (var dept in (SelectList)ViewBag.Departements)
+                        {
+                            <option value="@dept.Value" selected="@(dept.Value == selectedDeptId)">@dept.Text</option>
+                        }
+                    </select>
+                </div>
+            </form>
+        </div>
+    }
 
     @if (Model != null && Model.Any())
     {
-        // On groupe les données par département pour l'affichage
         var groupesParDept = Model.GroupBy(g => g.Departement?.Nom ?? "Sans Département");
 
         foreach (var groupeDept in groupesParDept)
         {
-            <div class="mb-5">
-                <h4 class="mt-2 mb-4 text-secondary border-start border-warning border-4 ps-3 fw-bold align-items-center d-flex">
-                    <i class="bi bi-building me-2 text-warning opacity-75"></i> @groupeDept.Key
-                </h4>
+            <h6 class="dept-title text-uppercase small mb-4">
+                <i class="bi bi-layers-half me-2"></i>@groupeDept.Key
+            </h6>
 
-                <div class="row g-4">
-                    @foreach (var item in groupeDept)
-                    {
-                        <div class="col-sm-6 col-md-4 col-lg-3">
-                            <div class="card h-100 border-0 shadow-sm group-card position-relative overflow-hidden" style="border-radius: 18px; transition: all 0.3s ease;">
-                                <div class="card-body p-4">
-                                    <div class="d-flex justify-content-between align-items-start mb-3">
-                                        <h5 class="card-title fw-bold mb-0 text-truncate text-dark" title="@item.Nom">@item.Nom</h5>
-                                    </div>
+            <div class="row g-4">
+                @foreach (var item in groupeDept)
+                {
+                    <div class="col-md-4 col-lg-3">
+                        <div class="glass-card p-4 hover-scale h-100 d-flex flex-column">
+                            <div class="d-flex justify-content-between align-items-start">
+                                <div class="group-badge bg-soft-purple">
+                                    <i class="bi bi-people-fill"></i>
+                                </div>
+                                <span class="badge bg-light text-dark border-0 rounded-pill px-3 py-2 fw-600 shadow-sm">
+                                    Niveau @item.Niveau
+                                </span>
+                            </div>
 
-                                    <div class="mb-3 d-flex flex-column gap-1">
-                                        <div class="small text-muted d-flex align-items-center">
-                                            <i class="bi bi-layers me-2 text-warning opacity-75"></i>
-                                            <strong>Niveau :</strong> <span class="ms-1">@item.Niveau</span>
-                                        </div>
-                                        <div class="small text-muted d-flex align-items-center">
-                                            <i class="bi bi-person-badge me-2 text-warning opacity-75"></i>
-                                            <strong>Effectif :</strong> <span class="ms-1">@item.Effectif étudiants</span>
-                                        </div>
-                                    </div>
-
-                                    <div class="progress mb-2 bg-light" style="height: 6px; border-radius: 3px;">
-                                        @{
-                                            // Calcul du pourcentage basé sur une capacité arbitraire de 40 pour l'exemple
-                                            var progression = (item.Effectif * 100) / 40;
-                                            if (progression > 100) progression = 100;
-                                        }
-                                        <div class="progress-bar bg-warning rounded-pill" role="progressbar" style="width: @progression%" aria-valuenow="@progression" aria-valuemin="0" aria-valuemax="100"></div>
-                                    </div>
+                            <h4 class="fw-bold mb-1">@item.Nom</h4>
+                            <p class="text-muted small mb-4">@item.Effectif étudiants inscrits.</p>
+                            
+                            <div class="mt-auto">
+                                <div class="d-flex justify-content-between small text-muted mb-1">
+                                    <span>Occupation (Max 40)</span>
+                                    @{
+                                        var progression = (item.Effectif * 100) / 40;
+                                        if (progression > 100) progression = 100;
+                                    }
+                                    <span class="fw-bold">@progression%</span>
+                                </div>
+                                <div class="progress-minimal mb-4">
+                                    <div class="progress-bar" role="progressbar" style="width: @progression%; background: var(--primary-gradient);"></div>
                                 </div>
 
-                                <div class="card-actions-overlay d-flex justify-content-center align-items-center gap-2">
-                                    <a asp-controller="Groupes" asp-action="Modifier" asp-route-id="@item.Id"
-                                       class="btn btn-primary rounded-pill px-3 py-2 fw-bold shadow-sm transition-hover" title="Modifier le groupe">
-                                        <i class="bi bi-pencil-square me-1"></i> Modifier
-                                    </a>
-
-                                    <form asp-controller="Groupes" asp-action="Supprimer" method="post"
-                                          onsubmit="return confirm('Êtes-vous sûr de vouloir supprimer définitivement le groupe @item.Nom ?');" class="m-0">
+                                <div class="d-flex gap-2">
+                                     <a asp-action="Modifier" asp-route-id="@item.Id" class="btn btn-light rounded-pill flex-grow-1 border fw-bold small py-2 text-decoration-none text-center">
+                                        <i class="bi bi-pencil me-1"></i>Editer
+                                     </a>
+                                     <form asp-action="Supprimer" asp-route-id="@item.Id" method="post" onsubmit="return confirm('Supprimer ce groupe ?');" class="flex-grow-0">
                                         @Html.AntiForgeryToken()
-                                        <input type="hidden" name="id" value="@item.Id" />
-                                        <button type="submit" class="btn btn-danger rounded-pill px-3 py-2 fw-bold shadow-sm transition-hover" title="Supprimer le groupe">
-                                            <i class="bi bi-trash3 me-1"></i> Supprimer
+                                        <button type="submit" class="btn btn-outline-danger rounded-pill px-3 py-2 border">
+                                            <i class="bi bi-trash"></i>
                                         </button>
-                                    </form>
+                                     </form>
                                 </div>
                             </div>
                         </div>
-                    }
-                </div>
+                    </div>
+                }
             </div>
         }
     }
     else
     {
-        <div class="text-center py-5 bg-white shadow-sm rounded-4 mt-5 border">
-            <i class="bi bi-search display-1 text-muted opacity-25"></i>
-            <p class="mt-4 fs-5 text-muted fw-light">Aucun groupe trouvé pour les critères de sélection actuels.</p>
-            @if (!string.IsNullOrEmpty(selectedDeptId))
-            {
-                <a asp-controller="Groupes" asp-action="Index" class="btn btn-outline-secondary mt-3 rounded-pill transition-hover">
-                    <i class="bi bi-arrow-left me-1"></i> Voir tous les groupes
-                </a>
-            }
+        <div class="glass-card text-center py-5 mt-5">
+            <div class="bg-soft-indigo d-inline-flex p-4 rounded-circle mb-4">
+                <i class="bi bi-search fs-1 text-muted"></i>
+            </div>
+            <h3 class="fw-bold">Aucun groupe trouvé</h3>
+            <p class="text-muted">La liste des groupes est vide pour ces critères.</p>
         </div>
     }
+
+    <div class="mt-5 text-center">
+        <a asp-controller="Responsable" asp-action="Index" class="text-decoration-none text-muted fw-bold">
+            <i class="bi bi-arrow-left me-2"></i>Retour au Dashboard
+        </a>
+    </div>
 </div>
-
-@* --- STYLES CSS PERSONNALISÉS --- *@
-<style>
-    /* Style général des cartes de groupe */
-    .group-card:hover {
-        transform: translateY(-8px);
-        box-shadow: 0 1rem 2.5rem rgba(0,0,0,0.12) !important;
-    }
-
-    /* Style de l'overlay d'actions (masqué par défaut) */
-    .card-actions-overlay {
-        position: absolute;
-        top: 0;
-        left: 0;
-        width: 100%;
-        height: 100%;
-        background-color: rgba(255, 255, 255, 0.96); /* Fond blanc semi-transparent */
-        opacity: 0; /* Masqué */
-        visibility: hidden;
-        transition: all 0.35s ease-in-out;
-        z-index: 10;
-        backdrop-filter: blur(2px); /* Léger flou d'arrière-plan */
-    }
-
-    /* Affichage de l'overlay au survol de la carte */
-    .group-card:hover .card-actions-overlay {
-        opacity: 1; /* Affiché */
-        visibility: visible;
-    }
-
-    /* Ajustement des styles des boutons dans l'overlay */
-    .card-actions-overlay .btn {
-        font-size: 0.85rem;
-        letter-spacing: 0.3px;
-    }
-
-    /* Effets de transition génériques */
-    .transition-hover {
-        transition: all 0.2s ease-in-out;
-    }
-    .transition-hover:hover {
-        transform: scale(1.03);
-    }
-
-    /* Style du select du filtre */
-    .form-select-lg:focus {
-        border-color: #ffc107;
-        box-shadow: 0 0 0 0.25rem rgba(255, 193, 7, 0.25);
-    }
-</style>

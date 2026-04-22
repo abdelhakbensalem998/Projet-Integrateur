@@ -23,7 +23,11 @@ namespace GestionHoraire.Models
 
         public bool EstUrgent { get; set; } = false;
 
-        public string? FichierJoint { get; set; } // Nom du fichier ou URL pour Plan de cours
+        public string? FichierJoint { get; set; } // Nom du fichier d'origine
+
+        public byte[]? ContenuFichier { get; set; } // Données binaires du fichier dans Neon
+
+        public string? TypeMime { get; set; } // Type de fichier (application/pdf, etc.)
 
         public string? NoteResponsable { get; set; }
     }

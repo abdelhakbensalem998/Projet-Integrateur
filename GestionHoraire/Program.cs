@@ -3,13 +3,16 @@ using GestionHoraire.Data;
 using GestionHoraire.Services;
 using Microsoft.EntityFrameworkCore;
 
+// PostgreSQL : permet d'utiliser DateTime.Now (local) au lieu de forcer DateTime.UtcNow
+AppContext.SetSwitch("Npgsql.EnableLegacyTimestampBehavior", true);
+
 var builder = WebApplication.CreateBuilder(args);
 
 // Services
 builder.Services.AddControllersWithViews();
 
 builder.Services.AddDbContext<AppDbContext>(options =>
-    options.UseSqlServer(builder.Configuration.GetConnectionString("DefaultConnection")));
+    options.UseNpgsql(builder.Configuration.GetConnectionString("DefaultConnection")));
 
 builder.Services.AddDistributedMemoryCache();
 builder.Services.AddSession(options =>
@@ -21,6 +24,13 @@ builder.Services.AddScoped<PlanningService>();
 builder.Services.AddScoped<EmailService>();
 
 var app = builder.Build();
+
+// Connexion à la base de données existante
+using (var scope = app.Services.CreateScope())
+{
+    var context = scope.ServiceProvider.GetRequiredService<AppDbContext>();
+    context.Database.EnsureCreated();
+}
 
 // Pipeline HTTP
 if (!app.Environment.IsDevelopment())

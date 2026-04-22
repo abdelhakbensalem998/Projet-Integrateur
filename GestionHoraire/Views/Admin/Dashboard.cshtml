@@ -1,124 +1,203 @@
 @{
-    ViewData["Title"] = "Dashboard Admin";
+    ViewData["Title"] = "Administration";
     string userNom = ViewBag.UserNom;
 }
 
 <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.0/font/bootstrap-icons.css">
+<link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;600;700&display=swap" rel="stylesheet">
 
 <style>
-    /* Carte principale */
-    .card-module {
-        position: relative;
-        overflow: hidden; /* Empêche le badge de déborder à l'extérieur */
-        border-radius: 20px !important;
-        transition: all 0.3s ease-in-out;
+    body {
+        background: #f8fafc;
+        font-family: 'Outfit', sans-serif;
+        color: #1e293b;
     }
 
-        .card-module:hover {
-            transform: translateY(-8px);
-            box-shadow: 0 1rem 2rem rgba(0,0,0,0.12) !important;
-        }
+    :root {
+        --primary-gradient: linear-gradient(135deg, #4f46e5 0%, #7c3aed 100%);
+        --glass-bg: rgba(255, 255, 255, 0.7);
+        --glass-border: rgba(255, 255, 255, 0.4);
+    }
 
-    /* La Bulle Interne (Couleur thématique + texte blanc) */
-    .inner-bubble {
+    .premium-header {
+        background: var(--primary-gradient);
+        border-radius: 0 0 50px 50px;
+        padding: 4rem 0 8rem 0;
+        margin-bottom: -6rem;
+        box-shadow: 0 10px 30px rgba(79, 70, 229, 0.2);
+    }
+
+    .glass-card {
+        background: var(--glass-bg);
+        backdrop-filter: blur(12px);
+        -webkit-backdrop-filter: blur(12px);
+        border: 1px solid var(--glass-border);
+        border-radius: 24px;
+        transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+        box-shadow: 0 10px 25px rgba(0, 0, 0, 0.03);
+    }
+
+    .hover-scale:hover {
+        transform: translateY(-8px);
+        box-shadow: 0 20px 40px rgba(0, 0, 0, 0.08);
+        border-color: rgba(79, 70, 229, 0.3);
+    }
+
+    .module-icon {
+        width: 60px;
+        height: 60px;
+        border-radius: 18px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        font-size: 1.5rem;
+        margin-bottom: 1.5rem;
+    }
+
+    .bg-soft-indigo { background: #e0e7ff; color: #4338ca; }
+    .bg-soft-emerald { background: #d1fae5; color: #065f46; }
+    .bg-soft-amber { background: #fef3c7; color: #92400e; }
+    .bg-soft-rose { background: #ffe4e6; color: #9f1239; }
+    .bg-soft-sky { background: #e0f2fe; color: #0369a1; }
+    .bg-soft-slate { background: #f1f5f9; color: #334155; }
+
+    .counter-badge {
         position: absolute;
-        top: 15px; /* À l'intérieur du bord haut */
-        right: 15px; /* À l'intérieur du bord droit */
-        font-size: 0.9rem;
-        padding: 0.4rem 0.8rem;
-        font-weight: 800;
-        border-radius: 10px;
-        color: #ffffff !important; /* Nombre écrit en blanc */
-        z-index: 5;
-        box-shadow: 0 2px 5px rgba(0,0,0,0.1);
+        top: 20px;
+        right: 20px;
+        background: white;
+        color: #4f46e5;
+        padding: 4px 14px;
+        border-radius: 20px;
+        font-weight: 700;
+        font-size: 0.85rem;
+        box-shadow: 0 2px 8px rgba(0,0,0,0.05);
+    }
+
+    .logout-btn {
+        background: rgba(255, 255, 255, 0.15);
+        backdrop-filter: blur(5px);
+        border: 1px solid rgba(255, 255, 255, 0.2);
+        color: white;
+        border-radius: 50px;
+        padding: 10px 25px;
+        font-weight: 600;
+        transition: all 0.2s;
+    }
+
+    .logout-btn:hover {
+        background: rgba(255, 255, 255, 0.25);
+        color: white;
     }
 </style>
 
-<div class="container mt-5">
-    <div class="d-flex justify-content-between align-items-center mb-5 border-bottom pb-4">
-        <h1 class="display-6 fw-bold text-dark m-0">@userNom</h1>
-        <a asp-controller="Login" asp-action="Logout" class="btn btn-outline-danger rounded-pill px-4 fw-bold shadow-sm">
+<div class="premium-header text-white">
+    <div class="container d-flex justify-content-between align-items-center">
+        <div>
+            <span class="opacity-75 small text-uppercase tracking-widest fw-bold">Console d'Administration</span>
+            <h1 class="display-4 fw-bold mt-1">Bonjour, @userNom.Split(' ')[0] 👑</h1>
+            <p class="opacity-75 mb-0 fs-5"><i class="bi bi-shield-lock-fill me-2"></i>Contrôle Total du Système</p>
+        </div>
+        <a asp-controller="Login" asp-action="Logout" class="logout-btn text-decoration-none">
             <i class="bi bi-box-arrow-right me-2"></i>Déconnexion
         </a>
     </div>
+</div>
 
-    <div class="row g-5 text-center justify-content-center">
+<div class="container pb-5">
+    <!-- Messages Flash -->
+    @if (TempData["Success"] != null)
+    {
+        <div class="alert glass-card border-0 d-flex align-items-center p-3 mb-5 mt-4" style="background: rgba(16, 185, 129, 0.1);">
+            <div class="bg-success text-white rounded-circle d-flex align-items-center justify-content-center me-3" style="width: 35px; height: 35px;">
+                <i class="bi bi-check-lg"></i>
+            </div>
+            <div class="fw-bold text-success">@TempData["Success"]</div>
+        </div>
+    }
 
-        <div class="col-md-6 col-lg-3">
-            <a asp-controller="Admin" asp-action="Utilisateurs" class="text-decoration-none">
-                <div class="card h-100 border-0 border-top border-primary border-4 shadow-sm hover-shadow card-module">
-                    <span class="inner-bubble bg-primary">@ViewBag.TotalUsers</span>
-                    <div class="card-body py-5">
-                        <i class="bi bi-people-fill display-4 text-primary mb-3"></i>
-                        <h4 class="fw-bold text-dark">Utilisateurs</h4>
+    <!-- Grille des Modules -->
+    <div class="row g-4 mt-1">
+        <!-- Utilisateurs -->
+        <div class="col-md-6 col-lg-4">
+            <a asp-controller="Admin" asp-action="Utilisateurs" class="text-decoration-none text-dark d-block h-100">
+                <div class="glass-card p-4 hover-scale h-100 position-relative shadow-sm">
+                    <span class="counter-badge">@ViewBag.TotalUsers Comptes</span>
+                    <div class="module-icon bg-soft-indigo">
+                        <i class="bi bi-people-fill"></i>
                     </div>
+                    <h4 class="fw-bold mb-2">Utilisateurs</h4>
+                    <p class="text-muted small">Gérez les comptes responsables et professeurs du système.</p>
                 </div>
             </a>
         </div>
 
-        <div class="col-md-6 col-lg-3">
-            <a asp-controller="Salles" asp-action="Index" class="text-decoration-none">
-                <div class="card h-100 border-0 border-top border-success border-4 shadow-sm hover-shadow card-module">
-                    <span class="inner-bubble bg-success">@ViewBag.TotalSalles</span>
-                    <div class="card-body py-5">
-                        <i class="bi bi-door-open-fill display-4 text-success mb-3"></i>
-                        <h4 class="fw-bold text-dark">Salles</h4>
+        <!-- Départements -->
+        <div class="col-md-6 col-lg-4">
+            <a asp-controller="Departements" asp-action="Index" class="text-decoration-none text-dark d-block h-100">
+                <div class="glass-card p-4 hover-scale h-100 position-relative">
+                    <span class="counter-badge">@ViewBag.TotalDepts Unités</span>
+                    <div class="module-icon bg-soft-amber">
+                        <i class="bi bi-building-gear"></i>
                     </div>
+                    <h4 class="fw-bold mb-2">Départements</h4>
+                    <p class="text-muted small">Structurez les unités pédagogiques de l'établissement.</p>
                 </div>
             </a>
         </div>
 
-        <div class="col-md-6 col-lg-3">
-            <a asp-controller="Groupe" asp-action="Index" class="text-decoration-none">
-                <div class="card h-100 border-0 border-top border-info border-4 shadow-sm hover-shadow card-module">
-                    <span class="inner-bubble bg-info">@ViewBag.TotalGroupes</span>
-                    <div class="card-body py-5">
-                        <i class="bi bi-mortarboard-fill display-4 text-info mb-3"></i>
-                        <h4 class="fw-bold text-dark">Groupes</h4>
+        <!-- Salles -->
+        <div class="col-md-6 col-lg-4">
+            <a asp-controller="Salles" asp-action="Index" class="text-decoration-none text-dark d-block h-100">
+                <div class="glass-card p-4 hover-scale h-100 position-relative">
+                    <span class="counter-badge">@ViewBag.TotalSalles Locaux</span>
+                    <div class="module-icon bg-soft-emerald">
+                        <i class="bi bi-door-closed-fill"></i>
                     </div>
+                    <h4 class="fw-bold mb-2">Infrastructure</h4>
+                    <p class="text-muted small">Gestion logistique des salles et laboratoires informatiques.</p>
                 </div>
             </a>
         </div>
 
-        <div class="col-md-6 col-lg-3">
-            <a asp-controller="Departements" asp-action="Index" class="text-decoration-none">
-                <div class="card h-100 border-0 border-top border-warning border-4 shadow-sm hover-shadow card-module">
-                    <span class="inner-bubble bg-warning">@ViewBag.TotalDepts</span>
-                    <div class="card-body py-5">
-                        <i class="bi bi-building-fill display-4 text-warning mb-3"></i>
-                        <h4 class="fw-bold text-dark">Départements</h4>
+        <!-- Groupes -->
+        <div class="col-md-6 col-lg-4">
+            <a asp-controller="Groupes" asp-action="Index" class="text-decoration-none text-dark d-block h-100">
+                <div class="glass-card p-4 hover-scale h-100 position-relative">
+                    <span class="counter-badge">@ViewBag.TotalGroupes Promos</span>
+                    <div class="module-icon bg-soft-sky">
+                        <i class="bi bi-mortarboard-fill"></i>
                     </div>
+                    <h4 class="fw-bold mb-2">Groupes d'Étudiants</h4>
+                    <p class="text-muted small">Supervision globale des classes et effectifs par niveau.</p>
                 </div>
             </a>
         </div>
 
-        <div class="col-md-6 col-lg-3">
-            <a asp-controller="Planning" asp-action="Index" class="text-decoration-none">
-                <div class="card h-100 border-0 border-top border-secondary border-4 shadow-sm hover-shadow card-module">
-                    <span class="inner-bubble bg-secondary">
+        <!-- Planning Global -->
+        <div class="col-md-6 col-lg-4">
+            <a asp-controller="Planning" asp-action="Index" class="text-decoration-none text-dark d-block h-100">
+                <div class="glass-card p-4 hover-scale h-100 position-relative">
+                    <div class="module-icon bg-soft-slate">
                         <i class="bi bi-calendar-check"></i>
-                    </span>
-                    <div class="card-body py-5">
-                        <i class="bi bi-calendar-week-fill display-4 text-secondary mb-3"></i>
-                        <h4 class="fw-bold text-dark">Planning</h4>
                     </div>
+                    <h4 class="fw-bold mb-2">Planning Global</h4>
+                    <p class="text-muted small">Visualisez l'emploi du temps complet de l'établissement.</p>
                 </div>
             </a>
         </div>
 
-        <div class="col-md-6 col-lg-3">
-            <a asp-controller="Affectations" asp-action="Index" class="text-decoration-none">
-                <div class="card h-100 border-0 border-top border-danger border-4 shadow-sm hover-shadow card-module">
-                    <span class="inner-bubble bg-danger">
-                        <i class="bi bi-journal-check"></i>
-                    </span>
-                    <div class="card-body py-5">
-                        <i class="bi bi-person-lines-fill display-4 text-danger mb-3"></i>
-                        <h4 class="fw-bold text-dark">Affectations</h4>
+        <!-- Affectations Globales -->
+        <div class="col-md-6 col-lg-4">
+            <a asp-controller="Affectations" asp-action="Index" class="text-decoration-none text-dark d-block h-100">
+                <div class="glass-card p-4 hover-scale h-100 position-relative">
+                    <div class="module-icon bg-soft-rose">
+                        <i class="bi bi-person-lines-fill"></i>
                     </div>
+                    <h4 class="fw-bold mb-2">Affectations & Services</h4>
+                    <p class="text-muted small">Consultez l'état d'avancement des services par département.</p>
                 </div>
             </a>
         </div>
-
     </div>
 </div>

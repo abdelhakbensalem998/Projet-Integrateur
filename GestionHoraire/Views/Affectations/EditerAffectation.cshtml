@@ -1,53 +1,218 @@
 @model GestionHoraire.Models.Cours
 
-<div class="container mt-5">
+@{
+    ViewData["Title"] = "Affectation : " + Model.Titre;
+    var currentProfIds = (string[])ViewBag.CurrentProfIds;
+    var currentGroupeIds = (string[])ViewBag.CurrentGroupeIds;
+}
+
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.0/font/bootstrap-icons.css">
+
+<style>
+    :root {
+        --primary-gradient: linear-gradient(135deg, #1e3c72 0%, #2a5298 100%);
+        --glass-bg: rgba(255, 255, 255, 0.95);
+        --accent-color: #f39c12;
+    }
+
+    body { background-color: #f4f7f6; }
+
+    .glass-card {
+        background: var(--glass-bg);
+        border-radius: 20px;
+        box-shadow: 0 10px 30px rgba(0,0,0,0.08);
+        border: none;
+    }
+
+    .selection-card {
+        cursor: pointer;
+        transition: all 0.25s ease;
+        border: 2px solid transparent;
+        border-radius: 15px;
+        position: relative;
+    }
+
+    .selection-card:hover {
+        transform: translateY(-3px);
+        box-shadow: 0 5px 15px rgba(0,0,0,0.1);
+    }
+
+    .selection-card.active {
+        border-color: #2a5298;
+        background-color: #f0f7ff;
+    }
+
+    .check-indicator {
+        position: absolute;
+        top: 10px;
+        right: 10px;
+        width: 20px;
+        height: 20px;
+        background: #2a5298;
+        color: white;
+        border-radius: 50%;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        font-size: 0.7rem;
+        opacity: 0;
+        transform: scale(0);
+        transition: all 0.2s ease;
+    }
+
+    .selection-card.active .check-indicator {
+        opacity: 1;
+        transform: scale(1);
+    }
+
+    .search-box {
+        position: relative;
+    }
+
+    .search-box i {
+        position: absolute;
+        left: 15px;
+        top: 50%;
+        transform: translateY(-50%);
+        color: #adb5bd;
+    }
+
+    .search-box input {
+        padding-left: 45px;
+        border-radius: 10px;
+        border: 1px solid #dee2e6;
+    }
+
+    .scroll-area {
+        max-height: 350px;
+        overflow-y: auto;
+        padding-right: 5px;
+    }
+
+    .scroll-area::-webkit-scrollbar { width: 5px; }
+    .scroll-area::-webkit-scrollbar-thumb { background: #cbd5e0; border-radius: 10px; }
+
+    .btn-save {
+        background: var(--primary-gradient);
+        color: white;
+        border: none;
+        padding: 12px 40px;
+        border-radius: 50px;
+        font-weight: 700;
+        transition: all 0.3s ease;
+    }
+
+    .btn-save:hover {
+        transform: scale(1.05);
+        box-shadow: 0 10px 20px rgba(30, 60, 114, 0.2);
+    }
+</style>
+
+<div class="container py-5">
     <div class="row justify-content-center">
-        <div class="col-md-6">
-            <div class="card shadow border-0">
-                <div class="card-header bg-primary text-white py-3">
-                    <h4 class="mb-0"><i class="bi bi-person-plus me-2"></i>Affecter : @Model.Titre</h4>
+        <div class="col-lg-10">
+            <div class="card glass-card overflow-hidden">
+                <div class="p-4 text-white" style="background: var(--primary-gradient);">
+                    <div class="d-flex justify-content-between align-items-center">
+                        <div>
+                            <h2 class="fw-bold mb-0">Affectation du Cours</h2>
+                            <p class="opacity-75 mb-0">Modifier les intervenants et groupes pour : <strong>@Model.Titre</strong></p>
+                        </div>
+                        <i class="bi bi-person-check fs-1 opacity-50"></i>
+                    </div>
                 </div>
-                <div class="card-body p-4">
-                    <form asp-action="EditerAffectation" method="post">
+
+                <div class="card-body p-4 p-md-5">
+                    <form asp-action="EditerAffectation" method="post" id="editForm">
                         @Html.AntiForgeryToken()
                         <input type="hidden" asp-for="Id" />
+                        
+                        <!-- Conteneurs pour les inputs cachés (gérés par JS) -->
+                        <div id="hiddenProfs"></div>
+                        <div id="hiddenGroupes"></div>
 
-                        <div class="mb-3">
-                            <label class="form-label fw-bold">Professeurs (Sélectionnez un ou plusieurs)</label>
-                            <select name="profIds" class="form-select border-primary" multiple style="height: 120px;">
-                                @foreach (var item in (List<GestionHoraire.Models.Utilisateur>)ViewBag.ProfesseursList)
-                                {
-                                    var isSelected = ((string[])ViewBag.CurrentProfIds).Contains(item.Id.ToString());
-                                    <option value="@item.Id" selected="@isSelected">@item.Nom</option>
-                                }
-                            </select>
-                            <div class="form-text text-muted">Maintenez Ctrl pour plusieurs.</div>
+                        <div class="row g-4">
+                            <!-- Section Professeurs -->
+                            <div class="col-md-6 border-end-md">
+                                <div class="d-flex justify-content-between align-items-center mb-3">
+                                    <h5 class="fw-bold text-dark m-0">1. Sélectionner Professeur(s)</h5>
+                                    <span class="badge bg-primary rounded-pill py-2 px-3" id="profBadge">0</span>
+                                </div>
+                                
+                                <div class="search-box mb-3">
+                                    <i class="bi bi-search"></i>
+                                    <input type="text" class="form-control" placeholder="Chercher un prof..." onkeyup="filter('profList', this.value)">
+                                </div>
+
+                                <div class="scroll-area" id="profList">
+                                    @foreach (var item in (List<GestionHoraire.Models.Utilisateur>)ViewBag.ProfesseursList)
+                                    {
+                                        var isActive = currentProfIds.Contains(item.Id.ToString());
+                                        <div class="card selection-card p-3 mb-2 shadow-sm @(isActive ? "active" : "")" 
+                                             data-id="@item.Id" data-type="prof" data-search="@item.Nom.ToLower()" onclick="toggleItem(this)">
+                                            <div class="check-indicator"><i class="bi bi-check-lg"></i></div>
+                                            <div class="d-flex align-items-center">
+                                                <div class="bg-primary text-white rounded-circle d-flex align-items-center justify-content-center me-3" style="width: 40px; height: 40px;">
+                                                    @item.Nom.Substring(0,1).ToUpper()
+                                                </div>
+                                                <div>
+                                                    <div class="fw-bold text-dark small text-uppercase">@item.Nom</div>
+                                                    <div class="text-muted smaller">Professeur</div>
+                                                </div>
+                                            </div>
+                                        </div>
+                                    }
+                                </div>
+                            </div>
+
+                            <!-- Section Groupes -->
+                            <div class="col-md-6">
+                                <div class="d-flex justify-content-between align-items-center mb-3">
+                                    <h5 class="fw-bold text-dark m-0">2. Sélectionner Groupe(s)</h5>
+                                    <span class="badge bg-info text-white rounded-pill py-2 px-3" id="groupBadge">0</span>
+                                </div>
+
+                                <div class="search-box mb-3">
+                                    <i class="bi bi-search"></i>
+                                    <input type="text" class="form-control" placeholder="Chercher un groupe..." onkeyup="filter('groupList', this.value)">
+                                </div>
+
+                                <div class="scroll-area" id="groupList">
+                                    @foreach (var item in (List<GestionHoraire.Models.Groupe>)ViewBag.GroupesList)
+                                    {
+                                        var isActive = currentGroupeIds.Contains(item.Id.ToString());
+                                        <div class="card selection-card p-3 mb-2 shadow-sm @(isActive ? "active" : "")" 
+                                             data-id="@item.Id" data-type="group" data-search="@item.Nom.ToLower()" onclick="toggleItem(this)">
+                                            <div class="check-indicator"><i class="bi bi-check-lg"></i></div>
+                                            <div class="d-flex align-items-center">
+                                                <div class="bg-info text-white rounded-circle d-flex align-items-center justify-content-center me-3" style="width: 40px; height: 40px;">
+                                                    <i class="bi bi-people-fill"></i>
+                                                </div>
+                                                <div>
+                                                    <div class="fw-bold text-dark small text-uppercase">@item.Nom</div>
+                                                    <div class="text-muted smaller">Effectif: @item.Effectif pers.</div>
+                                                </div>
+                                            </div>
+                                        </div>
+                                    }
+                                </div>
+                            </div>
                         </div>
 
-                        <div class="mb-3">
-                            <label class="form-label fw-bold">Groupes (Sélectionnez un ou plusieurs)</label>
-                            <select name="groupeIds" class="form-select border-primary" multiple style="height: 120px;" required>
-                                @foreach (var item in (List<GestionHoraire.Models.Groupe>)ViewBag.GroupesList)
-                                {
-                                    var isSelected = ((string[])ViewBag.CurrentGroupeIds).Contains(item.Id.ToString());
-                                    <option value="@item.Id" selected="@isSelected">@item.Nom</option>
-                                }
-                            </select>
-                            <div class="form-text text-muted">Ce cours sera accessible pour tous les groupes sélectionnés.</div>
-                        </div>
-
-                        <div class="mb-3">
-                            <label class="form-label fw-bold">Salle (optionnel)</label>
-                            <select name="salleId" class="form-select border-primary" asp-items="ViewBag.Salles">
-                                <option value="">-- Pas de salle --</option>
-                            </select>
-                        </div>
-
-                        <div id="editError" class="alert alert-danger d-none small p-2"></div>
-
-                        <div class="d-flex justify-content-between mt-4">
-                            <a asp-controller="Affectations" asp-action="Index" class="btn btn-outline-secondary">Annuler</a>
-                            <button type="submit" class="btn btn-primary px-5 shadow-sm">Enregistrer</button>
+                        <!-- Salle Section -->
+                        <div class="mt-5 p-4 rounded-4 bg-light border">
+                            <div class="row align-items-center">
+                                <div class="col-md-6 mb-3 mb-md-0">
+                                    <label class="form-label fw-bold"><i class="bi bi-door-open me-2"></i>Salle de cours (Facultatif)</label>
+                                    <select name="salleId" class="form-select border-0 shadow-sm" asp-items="ViewBag.Salles">
+                                        <option value="">-- Non définie --</option>
+                                    </select>
+                                </div>
+                                <div class="col-md-6 d-flex justify-content-end gap-3">
+                                    <a asp-action="Index" class="btn btn-light rounded-pill px-4 border">Annuler</a>
+                                    <button type="submit" class="btn btn-save shadow">Enregistrer l'Affectation</button>
+                                </div>
+                            </div>
                         </div>
                     </form>
                 </div>
@@ -55,3 +220,54 @@
         </div>
     </div>
 </div>
+
+<script>
+    document.addEventListener("DOMContentLoaded", function() {
+        refreshCounts();
+    });
+
+    function toggleItem(card) {
+        card.classList.toggle('active');
+        refreshCounts();
+    }
+
+    function refreshCounts() {
+        const profs = document.querySelectorAll('#profList .active');
+        const groups = document.querySelectorAll('#groupList .active');
+        
+        document.getElementById('profBadge').innerText = profs.length;
+        document.getElementById('groupBadge').innerText = groups.length;
+
+        // Mise à jour des inputs cachés pour le POST
+        const hiddenProfs = document.getElementById('hiddenProfs');
+        const hiddenGroupes = document.getElementById('hiddenGroupes');
+        
+        hiddenProfs.innerHTML = '';
+        hiddenGroupes.innerHTML = '';
+
+        profs.forEach(p => {
+            let input = document.createElement('input');
+            input.type = 'hidden';
+            input.name = 'profIds';
+            input.value = p.getAttribute('data-id');
+            hiddenProfs.appendChild(input);
+        });
+
+        groups.forEach(g => {
+            let input = document.createElement('input');
+            input.type = 'hidden';
+            input.name = 'groupeIds';
+            input.value = g.getAttribute('data-id');
+            hiddenGroupes.appendChild(input);
+        });
+    }
+
+    function filter(listId, val) {
+        const q = val.toLowerCase();
+        const items = document.querySelectorAll(`#${listId} .selection-card`);
+        items.forEach(i => {
+            const searchTxt = i.getAttribute('data-search');
+            i.style.display = searchTxt.includes(q) ? 'block' : 'none';
+        });
+    }
+</script>

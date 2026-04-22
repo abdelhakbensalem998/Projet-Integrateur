@@ -1,4 +1,4 @@
-﻿using System.ComponentModel.DataAnnotations;
+using System.ComponentModel.DataAnnotations;
 using System.ComponentModel.DataAnnotations.Schema;
 
 namespace GestionHoraire.Models
@@ -15,7 +15,7 @@ namespace GestionHoraire.Models
         public string Niveau { get; set; } // ex: Licence 1, Master 2
 
         [Required(ErrorMessage = "L'effectif est obligatoire")]
-        [Range(1, 1000)]
+        [Range(1, 40, ErrorMessage = "Le nombre d'étudiants ne peut pas dépasser 40")]
         [Display(Name = "Nombre d'étudiants")]
         public int Effectif { get; set; }
 

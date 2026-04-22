@@ -117,17 +117,11 @@ namespace GestionHoraire.Controllers
                 return View();
             }
 
-            // Define upload path using IWebHostEnvironment
-            var uploadPath = Path.Combine(_env.WebRootPath, "uploads");
-            if (!Directory.Exists(uploadPath)) Directory.CreateDirectory(uploadPath);
-
-            // Unique filename to avoid collisions
-            var uniqueFileName = Guid.NewGuid().ToString() + "_" + fichier.FileName;
-            var filePath = Path.Combine(uploadPath, uniqueFileName);
-
-            using (var stream = new FileStream(filePath, FileMode.Create))
+            byte[] fileBytes;
+            using (var ms = new MemoryStream())
             {
-                await fichier.CopyToAsync(stream);
+                await fichier.CopyToAsync(ms);
+                fileBytes = ms.ToArray();
             }
 
             var demande = new Demande
@@ -137,7 +131,9 @@ namespace GestionHoraire.Controllers
                 Description = description ?? "Dépôt plan de cours",
                 DateCreation = DateTime.Now,
                 Statut = "En attente",
-                FichierJoint = uniqueFileName // Store the unique name
+                FichierJoint = fichier.FileName, // Use original filename
+                ContenuFichier = fileBytes,      // Store in Neon
+                TypeMime = fichier.ContentType  // Store MIME type
             };
 
             _context.Demandes.Add(demande);

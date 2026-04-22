@@ -30,7 +30,7 @@ namespace GestionHoraire.Controllers
                 .Include(c => c.Utilisateur)
                 .Include(c => c.Salle); // Added .Include(c => c.Salle) as per the provided Code Edit example
 
-            if (userRole == "Administrateur")
+            if (string.Equals(userRole, "Administrateur", StringComparison.OrdinalIgnoreCase))
             {
                 // L'admin voit toutes les affectations de tous les départements
             }
@@ -123,7 +123,7 @@ namespace GestionHoraire.Controllers
                 int? deptId = GetMonDeptId();
                 string userRole = HttpContext.Session.GetString("UserRole");
                 
-                if (userRole == "Administrateur" || cours.DepartementId == deptId)
+                if (string.Equals(userRole, "Administrateur", StringComparison.OrdinalIgnoreCase) || cours.DepartementId == deptId)
                 {
                     // Group deletion: find all related courses (same title, same professor(s))
                     // Normalize for comparison
@@ -154,13 +154,13 @@ namespace GestionHoraire.Controllers
             int? deptId = GetMonDeptId();
             string userRole = HttpContext.Session.GetString("UserRole");
             
-            if (userRole != "Administrateur" && cours.DepartementId != deptId)
+            if (!string.Equals(userRole, "Administrateur", StringComparison.OrdinalIgnoreCase) && cours.DepartementId != deptId)
                 return RedirectToAction("Index", "Login");
 
             var profsQuery = _context.Utilisateurs.Where(u => u.Role == "Professeur");
             var groupesQuery = _context.Groupes.AsQueryable();
 
-            if (userRole != "Administrateur")
+            if (!string.Equals(userRole, "Administrateur", StringComparison.OrdinalIgnoreCase))
             {
                 profsQuery = profsQuery.Where(u => u.DepartementId == deptId);
                 groupesQuery = groupesQuery.Where(g => g.DepartementId == deptId);
@@ -187,7 +187,7 @@ namespace GestionHoraire.Controllers
             int? deptId = GetMonDeptId();
             string userRole = HttpContext.Session.GetString("UserRole");
             
-            if (userRole != "Administrateur" && cours.DepartementId != deptId)
+            if (!string.Equals(userRole, "Administrateur", StringComparison.OrdinalIgnoreCase) && cours.DepartementId != deptId)
                 return RedirectToAction("Index", "Login");
 
             // Support multi-profs

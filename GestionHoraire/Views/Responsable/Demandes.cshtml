@@ -4,150 +4,263 @@
     ViewData["Title"] = "Gestion des Demandes";
 }
 
-<div class="container mt-4">
-    <div class="d-flex justify-content-between align-items-center mb-4 border-bottom pb-3">
-        <h2 class="fw-bold"><i class="bi bi-chat-left-text-fill me-2 text-primary"></i>Demandes des Professeurs @(ViewBag.VoirArchives ? "(Archivées)" : "")</h2>
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.0/font/bootstrap-icons.css">
+<link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;600;700&display=swap" rel="stylesheet">
+
+<style>
+    body {
+        background: #f8fafc;
+        font-family: 'Outfit', sans-serif;
+        color: #1e293b;
+    }
+
+    :root {
+        --primary-gradient: linear-gradient(135deg, #4f46e5 0%, #7c3aed 100%);
+        --glass-bg: rgba(255, 255, 255, 0.7);
+        --glass-border: rgba(255, 255, 255, 0.4);
+    }
+
+    .premium-header {
+        background: var(--primary-gradient);
+        border-radius: 0 0 50px 50px;
+        padding: 4rem 0 8rem 0;
+        margin-bottom: -6rem;
+        box-shadow: 0 10px 30px rgba(79, 70, 229, 0.2);
+    }
+
+    .glass-card {
+        background: var(--glass-bg);
+        backdrop-filter: blur(12px);
+        -webkit-backdrop-filter: blur(12px);
+        border: 1px solid var(--glass-border);
+        border-radius: 24px;
+        transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+        box-shadow: 0 10px 25px rgba(0, 0, 0, 0.03);
+    }
+
+    .hover-scale:hover {
+        transform: translateY(-8px);
+        box-shadow: 0 20px 40px rgba(0, 0, 0, 0.08);
+        border-color: rgba(79, 70, 229, 0.3);
+    }
+
+    .btn-pill {
+        border-radius: 50px;
+        padding: 8px 20px;
+        font-weight: 600;
+        transition: all 0.2s;
+        border: none;
+        text-decoration: none;
+        display: inline-flex;
+        align-items: center;
+        font-size: 0.9rem;
+    }
+
+    .btn-header {
+        background: rgba(255, 255, 255, 0.15);
+        backdrop-filter: blur(5px);
+        border: 1px solid rgba(255, 255, 255, 0.2);
+        color: white;
+    }
+
+    .btn-header:hover {
+        background: rgba(255, 255, 255, 0.25);
+        color: white;
+        transform: translateY(-2px);
+    }
+
+    .request-icon {
+        width: 45px;
+        height: 45px;
+        border-radius: 12px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        font-size: 1.2rem;
+    }
+
+    .bg-soft-danger { background: #fee2e2; color: #b91c1c; }
+    .bg-soft-info { background: #e0f2fe; color: #0369a1; }
+    .bg-soft-primary { background: #e0e7ff; color: #4338ca; }
+    .bg-soft-warning { background: #fef9c3; color: #854d0e; }
+    .bg-soft-success { background: #dcfce7; color: #15803d; }
+
+    .urgent-pulse {
+        animation: pulse-red 2s infinite;
+        border: 2px solid #ef4444;
+    }
+
+    @@keyframes pulse-red {
+        0% { box-shadow: 0 0 0 0 rgba(239, 68, 68, 0.4); }
+        70% { box-shadow: 0 0 0 10px rgba(239, 68, 68, 0); }
+        100% { box-shadow: 0 0 0 0 rgba(239, 68, 68, 0); }
+    }
+
+    .category-badge {
+        font-size: 0.7rem;
+        font-weight: 700;
+        text-uppercase;
+        letter-spacing: 0.5px;
+        padding: 4px 10px;
+        border-radius: 50px;
+    }
+</style>
+
+<div class="premium-header text-white">
+    <div class="container d-flex justify-content-between align-items-center">
+        <div>
+            <span class="opacity-75 small text-uppercase tracking-widest fw-bold">Gestion des Flux</span>
+            <h1 class="display-4 fw-bold mt-1">Demandes @(ViewBag.VoirArchives ? "Archivées" : "Profs") 📥</h1>
+            <p class="opacity-75 mb-0 fs-5">Traitez les absences, besoins techniques et documents.</p>
+        </div>
         <div class="d-flex gap-2">
             @if (ViewBag.VoirArchives)
             {
-                <a asp-action="Demandes" asp-route-voirArchives="false" class="btn btn-outline-primary rounded-pill px-4">
-                    <i class="bi bi-list-task"></i> Voir Actives
+                <a asp-action="Demandes" asp-route-voirArchives="false" class="btn-pill btn-header">
+                    <i class="bi bi-list-task me-2"></i>Voir Actives
                 </a>
             }
             else
             {
-                <a asp-action="Demandes" asp-route-voirArchives="true" class="btn btn-outline-secondary rounded-pill px-4">
-                    <i class="bi bi-archive"></i> Voir Archives
+                <a asp-action="Demandes" asp-route-voirArchives="true" class="btn-pill btn-header">
+                    <i class="bi bi-archive me-2"></i>Voir Archives
                 </a>
             }
-            <a asp-action="Index" class="btn btn-outline-secondary rounded-pill pe-4 ps-4">
-                <i class="bi bi-arrow-left"></i> Retour
+            <a asp-action="Index" class="btn-pill btn-header">
+                <i class="bi bi-house-door me-2"></i>Dashboard
             </a>
         </div>
     </div>
+</div>
 
-    @if (Model.Any(d => d.EstUrgent && d.Statut == "En attente"))
+<div class="container pb-5">
+    <!-- Message Urgence -->
+    @if (!ViewBag.VoirArchives && Model.Any(d => d.EstUrgent && d.Statut == "En attente"))
     {
-        <div class="alert alert-danger shadow-sm border-0 d-flex align-items-center" role="alert">
-            <i class="bi bi-exclamation-triangle-fill fs-4 me-3"></i>
-            <div>
-                <strong>Urgences détectées !</strong> Vous avez des absences ou imprévus à traiter immédiatement.
+        <div class="alert glass-card border-0 d-flex align-items-center p-3 mb-5 mt-2" style="background: rgba(239, 68, 68, 0.1);">
+            <div class="bg-danger text-white rounded-circle d-flex align-items-center justify-content-center me-3" style="width: 35px; height: 35px;">
+                <i class="bi bi-exclamation-triangle"></i>
             </div>
+            <div class="fw-bold text-danger">Urgences détectées ! Veuillez traiter les absences prioritaires immédiatement.</div>
         </div>
     }
 
-    <div class="table-responsive shadow-sm rounded-3">
-        <table class="table table-hover align-middle bg-white m-0">
-            <thead class="bg-light text-uppercase small fw-bold">
-                <tr>
-                    <th>Professeur</th>
-                    <th>Catégorie</th>
-                    <th>Détails / Description</th>
-                    <th>Date</th>
-                    <th>Statut</th>
-                    <th class="text-end">Actions</th>
-                </tr>
-            </thead>
-            <tbody>
-                @foreach (var item in Model)
-                {
-                    <tr class="@(item.EstUrgent && item.Statut == "En attente" ? "table-danger" : "")">
-                        <td class="fw-bold">@item.Utilisateur?.Nom</td>
-                        <td>
-                            @if (item.Type == "Absence")
-                            {
-                                <span class="badge bg-danger"><i class="bi bi-person-x-fill me-1"></i> Absence</span>
+    <!-- Messages Flash Success -->
+    @if (TempData["Success"] != null)
+    {
+        <div class="alert glass-card border-0 d-flex align-items-center p-3 mb-5 mt-2" style="background: rgba(16, 185, 129, 0.1);">
+            <div class="bg-success text-white rounded-circle d-flex align-items-center justify-content-center me-3" style="width: 35px; height: 35px;">
+                <i class="bi bi-check-lg"></i>
+            </div>
+            <div class="fw-bold text-success">@TempData["Success"]</div>
+        </div>
+    }
+
+    @if (Model != null && Model.Any())
+    {
+        <div class="row g-4 mt-1">
+            @foreach (var item in Model)
+            {
+                <div class="col-md-6 col-lg-4">
+                    <div class="glass-card p-4 hover-scale h-100 d-flex flex-column @(item.EstUrgent && item.Statut == "En attente" ? "urgent-pulse" : "")">
+                        <div class="d-flex justify-content-between align-items-start mb-3">
+                            @{
+                                var iconClass = item.Type == "Absence" ? "bg-soft-danger" : 
+                                               (item.Type == "Technique" ? "bg-soft-info" : "bg-soft-primary");
+                                var icon = item.Type == "Absence" ? "bi-person-x" : 
+                                          (item.Type == "Technique" ? "bi-gear" : "bi-file-earmark-text");
                             }
-                            else if (item.Type == "Technique")
-                            {
-                                <span class="badge bg-info text-dark"><i class="bi bi-gear-fill me-1"></i> Technique</span>
-                            }
-                            else if (item.Type == "Plan de cours")
-                            {
-                                <span class="badge bg-primary"><i class="bi bi-file-earmark-pdf-fill me-1"></i> Plan de cours</span>
-                            }
-                            else
-                            {
-                                <span class="badge bg-secondary">@item.Type</span>
-                            }
-                            
-                            @if (item.EstUrgent)
-                            {
-                                <span class="badge bg-dark ms-1">URGENT</span>
-                            }
-                        </td>
-                        <td>
-                            <div class="text-wrap" style="max-width: 350px;">
-                                @item.Description
-                                @if (!string.IsNullOrEmpty(item.FichierJoint))
-                                {
-                                    <div class="mt-1">
-                                        <a asp-action="TelechargerDocument" asp-route-id="@item.Id" class="btn btn-sm btn-outline-primary py-0"><i class="bi bi-download"></i> Voir document</a>
-                                    </div>
-                                }
+                            <div class="request-icon @iconClass">
+                                <i class="bi @icon"></i>
                             </div>
-                        </td>
-                        <td class="text-muted small">@item.DateCreation.ToString("dd/MM/yyyy HH:mm")</td>
-                        <td>
+                            <div class="text-end">
+                                <span class="category-badge @iconClass">@item.Type</span>
+                                <div class="small text-muted mt-1" style="font-size: 0.7rem;">@item.DateCreation.ToString("dd MMM, HH:mm")</div>
+                            </div>
+                        </div>
+
+                        <h5 class="fw-bold mb-1">@item.Utilisateur?.Nom</h5>
+                        <p class="text-muted small mb-3 flex-grow-1">@item.Description</p>
+
+                        @if (!string.IsNullOrEmpty(item.FichierJoint))
+                        {
+                            <div class="mb-3">
+                                <a asp-action="TelechargerDocument" asp-route-id="@item.Id" class="btn btn-sm btn-light border rounded-pill px-3 py-1 fw-bold small">
+                                    <i class="bi bi-paperclip me-1"></i>Document Joint
+                                </a>
+                            </div>
+                        }
+
+                        <hr class="opacity-10">
+
+                        <div class="d-flex flex-column gap-3">
                             @if (item.Statut == "En attente")
                             {
-                                <span class="badge bg-secondary">@item.Statut</span>
-                            }
-                            else if (item.Statut == "Approuvé")
-                            {
-                                <span class="badge bg-success">@item.Statut</span>
+                                <form asp-action="TraiterDemande" method="post" class="m-0">
+                                    <input type="hidden" name="id" value="@item.Id" />
+                                    <div class="mb-2">
+                                        <input type="text" name="note" placeholder="Note ou remplaçant..." class="form-control form-control-sm rounded-3 border-0 bg-light" />
+                                    </div>
+                                    <div class="d-flex gap-2">
+                                        <button type="submit" name="action" value="Approuver" class="btn btn-success rounded-pill flex-grow-1 fw-bold btn-sm py-2">Valider</button>
+                                        <button type="submit" name="action" value="Refuser" class="btn btn-outline-danger rounded-pill flex-grow-1 fw-bold btn-sm py-2">Refuser</button>
+                                    </div>
+                                </form>
                             }
                             else
                             {
-                                <span class="badge bg-danger">@item.Statut</span>
+                                <div class="d-flex justify-content-between align-items-center">
+                                    @{
+                                        var statusClass = item.Statut == "Approuvé" ? "bg-soft-success" : 
+                                                        (item.Statut == "Refusé" ? "bg-soft-danger" : "bg-soft-warning");
+                                    }
+                                    <span class="badge @statusClass rounded-pill px-3 py-2">@item.Statut</span>
+                                    
+                                    <div class="d-flex gap-2">
+                                        @if (item.Statut != "Archivé")
+                                        {
+                                            <form asp-action="ArchiveDemande" method="post" class="m-0">
+                                                <input type="hidden" name="id" value="@item.Id" />
+                                                <button type="submit" class="btn btn-light border rounded-circle" style="width: 35px; height: 35px; display: flex; align-items: center; justify-content: center;" title="Archiver">
+                                                    <i class="bi bi-archive text-muted"></i>
+                                                </button>
+                                            </form>
+                                        }
+                                        <form asp-action="SupprimerDemande" method="post" class="m-0" onsubmit="return confirm('Supprimer définitivement ?');">
+                                            <input type="hidden" name="id" value="@item.Id" />
+                                            <button type="submit" class="btn btn-light border rounded-circle hover-bg-danger" style="width: 35px; height: 35px; display: flex; align-items: center; justify-content: center;" title="Supprimer">
+                                                <i class="bi bi-trash text-danger"></i>
+                                            </button>
+                                        </form>
+                                    </div>
+                                </div>
+                                @if (!string.IsNullOrEmpty(item.NoteResponsable))
+                                {
+                                    <div class="bg-light p-2 rounded-3 mt-1">
+                                        <small class="text-muted"><i class="bi bi-info-circle me-1"></i> @item.NoteResponsable</small>
+                                    </div>
+                                }
                             }
-                        </td>
-                        <td class="text-end">
-                            <div class="d-flex justify-content-end gap-1">
-                                @if (item.Statut == "En attente")
-                                {
-                                    <form asp-action="TraiterDemande" method="post" class="d-inline">
-                                        <input type="hidden" name="id" value="@item.Id" />
-                                        <input type="text" name="note" placeholder="Note ou remplaçant" class="form-control form-control-sm d-inline-block w-auto me-1" />
-                                        <button type="submit" name="action" value="Approuver" class="btn btn-sm btn-success">Valider</button>
-                                        <button type="submit" name="action" value="Refuser" class="btn btn-sm btn-danger shadow-sm">Refuser</button>
-                                    </form>
-                                }
-                                else if (item.Statut != "Archivé")
-                                {
-                                    <span class="text-muted small fst-italic me-2">Note : @item.NoteResponsable</span>
-                                    <form asp-action="ArchiveDemande" method="post" class="d-inline">
-                                        <input type="hidden" name="id" value="@item.Id" />
-                                        <button type="submit" class="btn btn-sm btn-outline-secondary" title="Archiver">
-                                            <i class="bi bi-archive-fill"></i>
-                                        </button>
-                                    </form>
-                                }
-                                else
-                                {
-                                    <span class="text-muted small fst-italic me-2">Note : @item.NoteResponsable</span>
-                                }
+                        </div>
+                    </div>
+                </div>
+            }
+        </div>
+    }
+    else
+    {
+        <div class="glass-card text-center py-5 mt-5">
+            <div class="bg-soft-info d-inline-flex p-4 rounded-circle mb-4">
+                <i class="bi bi-inbox fs-1 text-muted"></i>
+            </div>
+            <h3 class="fw-bold">Aucune demande</h3>
+            <p class="text-muted">Votre boîte de réception est actuellement vide.</p>
+        </div>
+    }
 
-                                <form asp-action="SupprimerDemande" method="post" class="d-inline" onsubmit="return confirm('Êtes-vous sûr de vouloir supprimer cette demande ?');">
-                                    <input type="hidden" name="id" value="@item.Id" />
-                                    <button type="submit" class="btn btn-sm btn-outline-danger" title="Supprimer">
-                                        <i class="bi bi-trash-fill"></i>
-                                    </button>
-                                </form>
-                            </div>
-                        </td>
-                    </tr>
-                }
-                @if (!Model.Any())
-                {
-                    <tr>
-                        <td colspan="6" class="text-center py-5 text-muted">
-                            <i class="bi bi-inbox display-6 d-block mb-3 opacity-25"></i>
-                            Aucune demande active dans votre département.
-                        </td>
-                    </tr>
-                }
-            </tbody>
-        </table>
+    <div class="mt-5 text-center">
+        <a asp-action="Index" class="text-decoration-none text-muted fw-bold">
+            <i class="bi bi-arrow-left me-2"></i>Retour au Dashboard
+        </a>
     </div>
 </div>

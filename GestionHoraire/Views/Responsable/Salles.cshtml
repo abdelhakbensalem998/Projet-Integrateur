@@ -1,41 +1,152 @@
-﻿@model IEnumerable<GestionHoraire.Models.Salle>
+@model IEnumerable<GestionHoraire.Models.Salle>
 
 @{
-    ViewData["Title"] = "Gestion des Salles";
+    ViewData["Title"] = "Infrastructure & Salles";
 }
 
-<div class="container mt-4">
-    <div class="d-flex justify-content-between align-items-center mb-4">
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.0/font/bootstrap-icons.css">
+<link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;600;700&display=swap" rel="stylesheet">
+
+<style>
+    body {
+        background: #f8fafc;
+        font-family: 'Outfit', sans-serif;
+        color: #1e293b;
+    }
+
+    :root {
+        --primary-gradient: linear-gradient(135deg, #4f46e5 0%, #7c3aed 100%);
+        --glass-bg: rgba(255, 255, 255, 0.7);
+        --glass-border: rgba(255, 255, 255, 0.4);
+    }
+
+    .premium-header {
+        background: var(--primary-gradient);
+        border-radius: 0 0 50px 50px;
+        padding: 4rem 0 8rem 0;
+        margin-bottom: -6rem;
+        box-shadow: 0 10px 30px rgba(79, 70, 229, 0.2);
+    }
+
+    .glass-card {
+        background: var(--glass-bg);
+        backdrop-filter: blur(12px);
+        -webkit-backdrop-filter: blur(12px);
+        border: 1px solid var(--glass-border);
+        border-radius: 24px;
+        transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+        box-shadow: 0 10px 25px rgba(0, 0, 0, 0.03);
+    }
+
+    .hover-scale:hover {
+        transform: translateY(-8px);
+        box-shadow: 0 20px 40px rgba(0, 0, 0, 0.08);
+        border-color: rgba(79, 70, 229, 0.3);
+    }
+
+    .btn-action {
+        border-radius: 50px;
+        padding: 10px 25px;
+        font-weight: 600;
+        transition: all 0.2s;
+        border: none;
+    }
+
+    .btn-add {
+        background: rgba(255, 255, 255, 0.15);
+        backdrop-filter: blur(5px);
+        border: 1px solid rgba(255, 255, 255, 0.2);
+        color: white;
+    }
+
+    .btn-add:hover {
+        background: rgba(255, 255, 255, 0.25);
+        color: white;
+        transform: translateY(-2px);
+    }
+
+    .capacity-badge {
+        padding: 6px 16px;
+        border-radius: 50px;
+        font-weight: 600;
+        font-size: 0.85rem;
+    }
+
+    .bg-soft-info { background: #e0f2fe; color: #0369a1; }
+    .bg-soft-primary { background: #e0e7ff; color: #4338ca; }
+    .bg-soft-error { background: #fee2e2; color: #b91c1c; }
+
+    .salle-icon {
+        width: 50px;
+        height: 50px;
+        border-radius: 15px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        font-size: 1.25rem;
+        margin-bottom: 1rem;
+    }
+
+    .feature-tag {
+        background: #f1f5f9;
+        color: #64748b;
+        padding: 4px 12px;
+        border-radius: 8px;
+        font-size: 0.75rem;
+        font-weight: 600;
+    }
+</style>
+
+<div class="premium-header text-white">
+    <div class="container d-flex justify-content-between align-items-center">
         <div>
-            <h2 class="text-dark"><i class="bi bi-door-open-fill me-2"></i>Infrastructures</h2>
-            <p class="text-muted">Liste des salles de classe et laboratoires disponibles</p>
+            <span class="opacity-75 small text-uppercase tracking-widest fw-bold">Gestion des Ressources</span>
+            <h1 class="display-4 fw-bold mt-1">Infrastructure 🏛️</h1>
+            <p class="opacity-75 mb-0 fs-5">Configuration et pilotage des locaux et salles.</p>
         </div>
-        <button class="btn btn-success shadow-sm">
-            <i class="bi bi-plus-lg"></i> Ajouter une salle
+        <button class="btn btn-action btn-add">
+            <i class="bi bi-plus-lg me-2"></i>Ajouter une salle
         </button>
     </div>
+</div>
 
+<div class="container pb-5">
     @if (Model != null && Model.Any())
     {
-        <div class="row">
+        <div class="row g-4 mt-1">
             @foreach (var salle in Model)
             {
-                <div class="col-md-4 mb-4">
-                    <div class="card h-100 shadow-sm border-0">
-                        <div class="card-body">
-                            <div class="d-flex justify-content-between align-items-start">
-                                <h5 class="card-title fw-bold">@salle.Nom</h5>
-                                <span class="badge @(salle.Capacite > 40 ? "bg-primary" : "bg-info") rounded-pill">
-                                    @salle.Capacite places
-                                </span>
+                <div class="col-md-4">
+                    <div class="glass-card p-4 hover-scale h-100 d-flex flex-column">
+                        <div class="d-flex justify-content-between align-items-start">
+                            @{
+                                var iconClass = salle.Capacite >= 100 ? "bg-soft-error" : (salle.Capacite >= 40 ? "bg-soft-primary" : "bg-soft-info");
+                                var icon = salle.Capacite >= 100 ? "bi-megaphone" : (salle.Capacite >= 40 ? "bi-building-down" : "bi-laptop");
+                            }
+                            <div class="salle-icon @iconClass">
+                                <i class="bi @icon"></i>
                             </div>
-                            <p class="card-text text-muted small mt-2">
-                                <i class="bi bi-info-circle"></i> Prête pour les cours magistraux et travaux dirigés.
-                            </p>
+                            <span class="capacity-badge @iconClass">
+                                @salle.Capacite Places
+                            </span>
                         </div>
-                        <div class="card-footer bg-transparent border-0 d-flex justify-content-end gap-2 pb-3">
-                            <button class="btn btn-sm btn-outline-warning">Modifier</button>
-                            <button class="btn btn-sm btn-outline-danger">Désactiver</button>
+
+                        <h4 class="fw-bold mb-2">@salle.Nom</h4>
+                        <p class="text-muted small mb-3">Salle enregistrée pour le département informatique.</p>
+                        
+                        <div class="d-flex flex-wrap gap-2 mb-4 mt-auto">
+                            <span class="feature-tag"><i class="bi bi-wifi me-1"></i> WiFi</span>
+                            <span class="feature-tag"><i class="bi bi-projector me-1"></i> Vidéo</span>
+                            <span class="feature-tag"><i class="bi bi-snow me-1"></i> Clim</span>
+                        </div>
+
+                        <div class="d-flex gap-2">
+                             <a class="btn btn-light rounded-pill flex-grow-1 border fw-bold small py-2">
+                                <i class="bi bi-pencil-square me-1"></i>Modifier
+                             </a>
+                             <a class="btn btn-outline-danger rounded-pill px-3 py-2 border">
+                                <i class="bi bi-trash"></i>
+                             </a>
                         </div>
                     </div>
                 </div>
@@ -44,13 +155,18 @@
     }
     else
     {
-        <div class="text-center py-5 border rounded bg-light">
-            <i class="bi bi-building-exclamation fs-1 text-muted"></i>
-            <p class="mt-3">Aucune salle n'est enregistrée dans le système.</p>
+        <div class="glass-card text-center py-5 mt-5">
+            <div class="bg-soft-dark d-inline-flex p-4 rounded-circle mb-4">
+                <i class="bi bi-building-slash fs-1 text-muted"></i>
+            </div>
+            <h3 class="fw-bold">Aucune salle disponible</h3>
+            <p class="text-muted">L'inventaire de vos infrastructures est actuellement vide.</p>
         </div>
     }
 
-    <div class="mt-4">
-        <a asp-action="Index" class="btn btn-secondary">Retour au Dashboard</a>
+    <div class="mt-5 text-center">
+        <a asp-action="Index" class="text-decoration-none text-muted fw-bold">
+            <i class="bi bi-arrow-left me-2"></i>Retour au Dashboard
+        </a>
     </div>
 </div>

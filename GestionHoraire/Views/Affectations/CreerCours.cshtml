@@ -1,71 +1,201 @@
 @model GestionHoraire.Models.Cours
 
-<div class="container mt-5">
+@{
+    ViewData["Title"] = "Nouveau Cours";
+}
+
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.0/font/bootstrap-icons.css">
+
+<style>
+    :root {
+        --primary-gradient: linear-gradient(135deg, #00b09b 0%, #96c93d 100%);
+        --glass-bg: rgba(255, 255, 255, 0.95);
+    }
+
+    body { background-color: #f8f9fa; }
+
+    .glass-card {
+        background: var(--glass-bg);
+        border-radius: 25px;
+        box-shadow: 0 15px 35px rgba(0,0,0,0.05);
+        border: none;
+    }
+
+    .selection-card {
+        cursor: pointer;
+        transition: all 0.2s ease;
+        border: 2px solid transparent;
+        border-radius: 12px;
+        position: relative;
+    }
+
+    .selection-card:hover {
+        background-color: #f0fdf4;
+        border-color: #d1fae5;
+    }
+
+    .selection-card.active {
+        border-color: #10b981;
+        background-color: #ecfdf5;
+    }
+
+    .check-indicator {
+        position: absolute;
+        top: 8px;
+        right: 8px;
+        width: 18px;
+        height: 18px;
+        background: #10b981;
+        color: white;
+        border-radius: 50%;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        font-size: 0.6rem;
+        opacity: 0;
+        transform: scale(0);
+        transition: all 0.2s ease;
+    }
+
+    .selection-card.active .check-indicator {
+        opacity: 1;
+        transform: scale(1);
+    }
+
+    .search-box input {
+        border-radius: 12px;
+        padding-left: 40px;
+        background-color: #f1f5f9;
+        border: none;
+    }
+
+    .search-box i {
+        position: absolute;
+        left: 15px;
+        top: 50%;
+        transform: translateY(-50%);
+        color: #94a3b8;
+    }
+
+    .scroll-area {
+        max-height: 300px;
+        overflow-y: auto;
+        padding-right: 5px;
+    }
+
+    .scroll-area::-webkit-scrollbar { width: 4px; }
+    .scroll-area::-webkit-scrollbar-thumb { background: #e2e8f0; border-radius: 10px; }
+
+    .btn-create {
+        background: var(--primary-gradient);
+        color: white;
+        border: none;
+        padding: 12px 40px;
+        border-radius: 50px;
+        font-weight: 700;
+    }
+</style>
+
+<div class="container py-5">
     <div class="row justify-content-center">
-        <div class="col-md-6">
-            <div class="card shadow border-0">
-                <div class="card-header bg-success text-white py-3">
-                    <h4 class="mb-0"><i class="bi bi-plus-circle me-2"></i>Nouveau Cours</h4>
+        <div class="col-lg-10">
+            <div class="card glass-card overflow-hidden">
+                <div class="p-4 text-white" style="background: var(--primary-gradient);">
+                    <div class="d-flex justify-content-between align-items-center">
+                        <div>
+                            <h2 class="fw-bold mb-0">Création de Cours</h2>
+                            <p class="opacity-75 mb-0">Définissez un nouveau cours et ses intervenants.</p>
+                        </div>
+                        <i class="bi bi-journal-plus fs-1 opacity-50"></i>
+                    </div>
                 </div>
-                <div class="card-body p-4">
-                    <form asp-action="CreerCours" method="post">
+
+                <div class="card-body p-4 p-md-5">
+                    <form asp-action="CreerCours" method="post" id="createForm" onsubmit="return validateSelection()">
                         @Html.AntiForgeryToken()
+                        
+                        <div id="hiddenProfs"></div>
+                        <div id="hiddenGroupes"></div>
 
-                        <div class="mb-3">
-                            <label class="form-label fw-bold">Nom du cours</label>
-                            <input asp-for="Titre" class="form-control" placeholder="Ex: Algorithmique" required />
+                        <div class="mb-5">
+                            <label class="form-label fw-bold text-dark fs-5 mb-3">Titre du Cours</label>
+                            <input asp-for="Titre" class="form-control form-control-lg border-0 shadow-sm" style="border-radius: 15px; background-color: #f8fafc;" placeholder="Ex: Algorithmique et Structures de Données" required />
                         </div>
 
-                        <div class="mb-3">
-                            <label class="form-label fw-bold">Professeurs (Sélectionnez un ou plusieurs)</label>
-                            <select name="profIds" class="form-select border-success" multiple style="height: 120px;">
-                                @foreach (var item in (List<GestionHoraire.Models.Utilisateur>)ViewBag.Professeurs)
-                                {
-                                    <option value="@item.Id">@item.Nom</option>
-                                }
-                            </select>
-                            <div class="form-text text-muted">Maintenez Ctrl pour plusieurs professeurs.</div>
-                        </div>
+                        <div class="row g-4">
+                            <!-- Section Professeurs -->
+                            <div class="col-md-6 border-end">
+                                <div class="d-flex justify-content-between align-items-center mb-3">
+                                    <h5 class="fw-bold text-dark m-0">Intervenants</h5>
+                                    <span class="badge bg-success rounded-pill py-2 px-3" id="profBadge">0</span>
+                                </div>
+                                
+                                <div class="search-box position-relative mb-3">
+                                    <i class="bi bi-search"></i>
+                                    <input type="text" class="form-control" placeholder="Chercher un prof..." onkeyup="filter('profList', this.value)">
+                                </div>
 
-                        <div class="mb-3">
-                            <div class="d-flex justify-content-between align-items-center mb-1">
-                                <label class="form-label fw-bold mb-0">Groupes (Sélectionnez un ou plusieurs)</label>
-                                <button type="button" class="btn btn-sm btn-outline-info rounded-pill px-2 py-0" style="font-size: 0.7rem;" onclick="toggleAllGroups()">Tous / Aucun</button>
+                                <div class="scroll-area" id="profList">
+                                    @foreach (var prof in (List<GestionHoraire.Models.Utilisateur>)ViewBag.Professeurs)
+                                    {
+                                        <div class="card selection-card p-3 mb-2 shadow-xs border-light" 
+                                             data-id="@prof.Id" data-type="prof" data-search="@prof.Nom.ToLower()" onclick="toggleItem(this)">
+                                            <div class="check-indicator"><i class="bi bi-check-lg"></i></div>
+                                            <div class="d-flex align-items-center">
+                                                <div class="bg-success-subtle text-success rounded-circle d-flex align-items-center justify-content-center me-3" style="width: 35px; height: 35px; font-weight: bold;">
+                                                    @prof.Nom.Substring(0,1).ToUpper()
+                                                </div>
+                                                <div class="fw-bold small text-dark">@prof.Nom</div>
+                                            </div>
+                                        </div>
+                                    }
+                                </div>
                             </div>
-                            <select id="groupeIds" name="groupeIds" class="form-select border-success" multiple style="height: 150px;" required>
-                                @foreach (var item in (SelectList)ViewBag.Groupes)
-                                {
-                                    <option value="@item.Value">@item.Text</option>
-                                }
-                            </select>
-                            <div class="form-text text-muted">Si vous sélectionnez plusieurs groupes, cela créera <strong>une séance séparée</strong> pour chaque groupe afin qu'ils aient des horaires indépendants.</div>
+
+                            <!-- Section Groupes -->
+                            <div class="col-md-6">
+                                <div class="d-flex justify-content-between align-items-center mb-3">
+                                    <h5 class="fw-bold text-dark m-0">Groupes Concernés</h5>
+                                    <span class="badge bg-primary text-white rounded-pill py-2 px-3" id="groupBadge">0</span>
+                                </div>
+
+                                <div class="search-box position-relative mb-3">
+                                    <i class="bi bi-search"></i>
+                                    <input type="text" class="form-control" placeholder="Chercher un groupe..." onkeyup="filter('groupList', this.value)">
+                                </div>
+
+                                <div class="scroll-area" id="groupList">
+                                    @foreach (var grp in (SelectList)ViewBag.Groupes)
+                                    {
+                                        <div class="card selection-card p-3 mb-2 shadow-xs border-light" 
+                                             data-id="@grp.Value" data-type="group" data-search="@grp.Text.ToLower()" onclick="toggleItem(this)">
+                                            <div class="check-indicator"><i class="bi bi-check-lg"></i></div>
+                                            <div class="d-flex align-items-center">
+                                                <div class="bg-primary-subtle text-primary rounded-circle d-flex align-items-center justify-content-center me-3" style="width: 35px; height: 35px;">
+                                                    <i class="bi bi-people-fill"></i>
+                                                </div>
+                                                <div class="fw-bold small text-dark">@grp.Text</div>
+                                            </div>
+                                        </div>
+                                    }
+                                </div>
+                            </div>
                         </div>
 
-                        <script>
-                            function toggleAllGroups() {
-                                const select = document.getElementById('groupeIds');
-                                const options = select.options;
-                                const someSelected = Array.from(options).some(o => o.selected);
-                                for (let i = 0; i < options.length; i++) {
-                                    options[i].selected = !someSelected;
-                                }
-                            }
-                        </script>
-
-                        <div class="mb-3">
-                            <label class="form-label fw-bold">Salle (optionnel)</label>
-                            <select name="salleId" class="form-select border-success">
-                                <option value="">-- Pas de salle --</option>
-                                @foreach (var item in (SelectList)ViewBag.Salles)
-                                {
-                                    <option value="@item.Value">@item.Text</option>
-                                }
-                            </select>
+                        <div class="mt-5 p-4 rounded-4 bg-light border border-dashed text-center">
+                            <label class="form-label fw-bold d-block mb-3">Infrastructure</label>
+                            <div class="row justify-content-center">
+                                <div class="col-md-6">
+                                    <select name="salleId" class="form-select border-0 shadow-sm py-2" style="border-radius: 12px;" asp-items="ViewBag.Salles">
+                                        <option value="">-- Sans salle spécifique --</option>
+                                    </select>
+                                </div>
+                            </div>
                         </div>
 
-                        <div class="d-flex justify-content-between mt-4">
-                            <a asp-controller="Affectations" asp-action="Index" class="btn btn-outline-secondary">Annuler</a>
-                            <button type="submit" class="btn btn-success px-5 shadow-sm">Créer le cours</button>
+                        <div class="d-flex justify-content-between mt-5 pt-3">
+                            <a asp-action="Index" class="btn btn-lg btn-light rounded-pill px-5 border">Annuler</a>
+                            <button type="submit" class="btn btn-create shadow px-5">Finaliser la Création</button>
                         </div>
                     </form>
                 </div>
@@ -73,3 +203,59 @@
         </div>
     </div>
 </div>
+
+<script>
+    function toggleItem(card) {
+        card.classList.toggle('active');
+        refreshCounts();
+    }
+
+    function refreshCounts() {
+        const profs = document.querySelectorAll('#profList .active');
+        const groups = document.querySelectorAll('#groupList .active');
+        
+        document.getElementById('profBadge').innerText = profs.length;
+        document.getElementById('groupBadge').innerText = groups.length;
+
+        // Mise à jour des inputs cachés pour le POST
+        const hiddenProfs = document.getElementById('hiddenProfs');
+        const hiddenGroupes = document.getElementById('hiddenGroupes');
+        
+        hiddenProfs.innerHTML = '';
+        hiddenGroupes.innerHTML = '';
+
+        profs.forEach(p => {
+            let input = document.createElement('input');
+            input.type = 'hidden';
+            input.name = 'profIds';
+            input.value = p.getAttribute('data-id');
+            hiddenProfs.appendChild(input);
+        });
+
+        groups.forEach(g => {
+            let input = document.createElement('input');
+            input.type = 'hidden';
+            input.name = 'groupeIds';
+            input.value = g.getAttribute('data-id');
+            hiddenGroupes.appendChild(input);
+        });
+    }
+
+    function validateSelection() {
+        const groups = document.querySelectorAll('#groupList .active');
+        if (groups.length === 0) {
+            alert("Veuillez sélectionner au moins un groupe !");
+            return false;
+        }
+        return true;
+    }
+
+    function filter(listId, val) {
+        const q = val.toLowerCase();
+        const items = document.querySelectorAll(`#${listId} .selection-card`);
+        items.forEach(i => {
+            const searchTxt = i.getAttribute('data-search');
+            i.style.display = searchTxt.includes(q) ? 'block' : 'none';
+        });
+    }
+</script>

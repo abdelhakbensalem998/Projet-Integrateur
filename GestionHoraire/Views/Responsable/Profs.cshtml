@@ -1,54 +1,107 @@
 @model IEnumerable<GestionHoraire.Models.Utilisateur>
 
-<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.0/font/bootstrap-icons.css">
+@{
+    ViewData["Title"] = "Équipe Pédagogique";
+}
 
-<div class="container mt-4">
-    <div class="d-flex justify-content-between align-items-center mb-4">
-        <h2 class="text-success fw-bold"><i class="bi bi-people-fill me-2"></i>Équipe Pédagogique</h2>
-        <div class="d-flex gap-2">
-            <a asp-action="Index" class="btn btn-outline-secondary rounded-pill px-3 shadow-sm">
-                <i class="bi bi-house-door me-1"></i> Tableau de bord
-            </a>
-            <a asp-action="CreerProf" class="btn btn-success rounded-pill px-4 shadow-sm">
-                <i class="bi bi-person-plus-fill me-1"></i> Ajouter un Enseignant
-            </a>
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.0/font/bootstrap-icons.css">
+<link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700&display=swap" rel="stylesheet">
+
+<div class="page-header py-5 mb-5">
+    <div class="container">
+        <div class="d-flex flex-column flex-md-row justify-content-between align-items-md-center gap-3">
+            <div class="header-text">
+                <h1 class="display-5 fw-bold text-white mb-2">
+                    <i class="bi bi-people-fill me-3"></i>Équipe Pédagogique
+                </h1>
+                <p class="text-white-50 mb-0 fs-5">Gérez vos enseignants et leurs accès en toute simplicité.</p>
+            </div>
+            <div class="header-actions">
+                <a asp-action="CreerProf" class="btn btn-light btn-lg rounded-pill px-4 shadow-lg hover-up">
+                    <i class="bi bi-person-plus-fill me-2"></i> Ajouter un Enseignant
+                </a>
+            </div>
         </div>
     </div>
+</div>
 
-    <div class="row">
+<div class="container pb-5">
+    <!-- Alerts -->
+    @if (TempData["Success"] != null)
+    {
+        <div class="alert alert-success border-0 shadow-sm rounded-4 px-4 py-3 mb-4 animate-fade-in" role="alert">
+            <div class="d-flex align-items-center">
+                <i class="bi bi-check-circle-fill me-3 fs-4"></i>
+                <div>@TempData["Success"]</div>
+                <button type="button" class="btn-close ms-auto" data-bs-dismiss="alert"></button>
+            </div>
+        </div>
+    }
+    @if (TempData["Error"] != null)
+    {
+        <div class="alert alert-danger border-0 shadow-sm rounded-4 px-4 py-3 mb-4 animate-fade-in" role="alert">
+            <div class="d-flex align-items-center">
+                <i class="bi bi-exclamation-triangle-fill me-3 fs-4"></i>
+                <div>@TempData["Error"]</div>
+                <button type="button" class="btn-close ms-auto" data-bs-dismiss="alert"></button>
+            </div>
+        </div>
+    }
+
+    <div class="row g-4">
         @foreach (var item in Model)
         {
-            <div class="col-md-4 mb-4">
-                <div class="card prof-card shadow-sm border-0 h-100 overflow-hidden">
+            <div class="col-xl-4 col-lg-6">
+                <div class="prof-card bg-white rounded-4 border-0 shadow-sm overflow-hidden h-100 position-relative">
                     <div class="card-body p-0">
-                        <!-- Card Content -->
-                        <div class="p-4 d-flex align-items-center">
-                            <div class="avatar-circle bg-success-subtle text-success p-3 me-3">
-                                <i class="bi bi-person-badge fs-2"></i>
+                        <!-- Top Banner / Accents -->
+                        <div class="accent-bar bg-primary-gradient"></div>
+                        
+                        <div class="p-4">
+                            <div class="d-flex align-items-center mb-4">
+                                <div class="avatar-box bg-light rounded-4 me-3 d-flex align-items-center justify-content-center">
+                                    <span class="fs-2 fw-bold text-primary">@item.Nom.Substring(0, 1).ToUpper()</span>
+                                </div>
+                                <div class="info">
+                                    <h4 class="fw-bold text-dark mb-1">@item.Nom</h4>
+                                    <span class="badge bg-primary-subtle text-primary rounded-pill px-3">Professeur</span>
+                                </div>
                             </div>
-                            <div class="prof-info">
-                                <h5 class="card-title mb-0 fw-bold">@item.Nom</h5>
-                                <p class="text-muted small mb-0"><i class="bi bi-envelope-at me-1"></i>@item.Email</p>
+
+                            <div class="contact-info mb-4">
+                                <div class="d-flex align-items-center mb-2 text-muted">
+                                    <i class="bi bi-envelope me-2"></i> @item.Email
+                                </div>
+                                <div class="d-flex align-items-center text-muted">
+                                    <i class="bi bi-building me-2"></i> @(item.Departement?.Nom ?? "Département assigné")
+                                </div>
                             </div>
                         </div>
 
-                        <!-- Hover Overlay -->
-                        <div class="prof-overlay d-flex flex-column justify-content-center align-items-center p-3">
-                            <a asp-controller="Disponibilite" asp-action="Index" 
+                        <!-- Actions Grid (Visible on Hover / Fixed on Mobile) -->
+                        <div class="prof-actions p-4 border-top bg-light-subtle d-flex flex-wrap gap-2">
+                             <a asp-controller="Disponibilite" asp-action="Index" 
                                asp-route-professeurId="@item.Id" 
                                asp-route-returnUrl="/Responsable/Profs" 
-                               class="btn btn-info btn-sm rounded-pill mb-2 w-75 shadow-sm hover-scale text-white">
-                                 <i class="bi bi-calendar-check me-1"></i> Gérer Disponibilités
+                               class="btn btn-outline-info flex-grow-1 rounded-pill py-2">
+                                 <i class="bi bi-calendar-check"></i> Dispos
                              </a>
-                            <a asp-action="EditerProf" asp-route-id="@item.Id" 
-                               class="btn btn-primary btn-sm rounded-pill mb-2 w-75 shadow-sm hover-scale">
-                                <i class="bi bi-pencil-square me-1"></i> Modifier
+                             <a asp-action="EditerProf" asp-route-id="@item.Id" 
+                               class="btn btn-outline-primary flex-grow-1 rounded-pill py-2">
+                                <i class="bi bi-pencil"></i> Modifier
                             </a>
-                            <form asp-action="SupprimerProf" asp-route-id="@item.Id" method="post" 
-                                  onsubmit="return confirm('Supprimer cet enseignant ?');" class="w-75">
+                            <form asp-action="ReinitialiserMotDePasse" asp-route-id="@item.Id" method="post" 
+                                  onsubmit="return confirm('Réinitialiser le mot de passe de cet enseignant ?');" class="flex-grow-1">
                                 @Html.AntiForgeryToken()
-                                <button type="submit" class="btn btn-danger btn-sm rounded-pill w-100 shadow-sm hover-scale" title="Supprimer">
-                                    <i class="bi bi-trash-fill me-1"></i> Supprimer
+                                <button type="submit" class="btn btn-outline-warning w-100 rounded-pill py-2">
+                                    <i class="bi bi-shield-lock"></i> Reset MDP
+                                </button>
+                            </form>
+                            <form asp-action="SupprimerProf" asp-route-id="@item.Id" method="post" 
+                                  onsubmit="return confirm('Souhaitez-vous vraiment supprimer cet enseignant ?');" class="flex-grow-1">
+                                @Html.AntiForgeryToken()
+                                <button type="submit" class="btn btn-outline-danger w-100 rounded-pill py-2">
+                                    <i class="bi bi-trash"></i>
                                 </button>
                             </form>
                         </div>
@@ -56,57 +109,105 @@
                 </div>
             </div>
         }
+
+        @if (!Model.Any())
+        {
+            <div class="col-12 text-center py-5">
+                <div class="empty-state">
+                    <i class="bi bi-people text-muted opacity-25" style="font-size: 5rem;"></i>
+                    <h3 class="mt-3 text-muted">Aucun enseignant trouvé</h3>
+                    <p class="text-muted">Commencez par ajouter un professeur à votre équipe.</p>
+                </div>
+            </div>
+        }
     </div>
 </div>
 
 <style>
-    .prof-card {
-        position: relative;
-        transition: transform 0.3s ease, box-shadow 0.3s ease;
-        border-radius: 15px;
-        background: #fff;
+    :root {
+        --primary-gradient: linear-gradient(135deg, #2563eb, #3b82f6);
+        --bg-glass: rgba(255, 255, 255, 0.8);
     }
 
-    .avatar-circle {
-        width: 60px;
-        height: 60px;
-        display: flex;
-        align-items: center;
-        justify-content: center;
-        border-radius: 50%;
+    body {
+        background-color: #f8fafc;
+        font-family: 'Plus Jakarta Sans', sans-serif;
     }
 
-    .prof-overlay {
-        position: absolute;
-        top: 0;
-        left: 0;
+    .page-header {
+        background: linear-gradient(135deg, #1e40af, #2563eb);
+        border-radius: 0 0 50px 50px;
+        box-shadow: 0 10px 30px rgba(30, 64, 175, 0.2);
+    }
+
+    .bg-primary-gradient {
+        background: var(--primary-gradient);
+    }
+
+    .accent-bar {
+        height: 6px;
         width: 100%;
-        height: 100%;
-        background: rgba(255, 255, 255, 0.6); /* Transparent au lieu de sombre */
-        opacity: 0;
-        visibility: hidden;
-        transition: all 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275);
-        transform: scale(0.9);
-        backdrop-filter: blur(8px); /* Effet flou transparent */
-        border-radius: 15px;
     }
 
-    .prof-card:hover .prof-overlay {
-        opacity: 1;
-        visibility: visible;
-        transform: scale(1);
+    .prof-card {
+        transition: all 0.4s cubic-bezier(0.165, 0.84, 0.44, 1);
+        border: 1px solid rgba(0,0,0,0.05) !important;
     }
 
     .prof-card:hover {
-        transform: translateY(-5px);
-        box-shadow: 0 10px 20px rgba(0,0,0,0.1) !important;
+        transform: translateY(-8px);
+        box-shadow: 0 20px 40px rgba(0,0,0,0.08) !important;
     }
 
-    .hover-scale {
+    .avatar-box {
+        width: 70px;
+        height: 70px;
+        transition: all 0.3s ease;
+    }
+
+    .prof-card:hover .avatar-box {
+        background: #2563eb !important;
+    }
+
+    .prof-card:hover .avatar-box span {
+        color: white !important;
+    }
+
+    .prof-actions {
+        opacity: 0.7;
+        transition: all 0.3s ease;
+    }
+
+    .prof-card:hover .prof-actions {
+        opacity: 1;
+        background-color: white;
+    }
+
+    .btn-outline-info:hover, .btn-outline-primary:hover, .btn-outline-warning:hover, .btn-outline-danger:hover {
+        color: white !important;
+    }
+
+    .hover-up {
         transition: transform 0.2s ease;
     }
 
-    .hover-scale:hover {
-        transform: scale(1.05);
+    .hover-up:hover {
+        transform: translateY(-3px);
+    }
+
+    .animate-fade-in {
+        animation: fadeIn 0.5s ease-out;
+    }
+
+    @@keyframes fadeIn {
+        from { opacity: 0; transform: translateY(10px); }
+        to { opacity: 1; transform: translateY(0); }
+    }
+
+    /* Mobile handling: actions always visible */
+    @@media (max-width: 991px) {
+        .prof-actions {
+            opacity: 1;
+        }
     }
 </style>

@@ -4,102 +4,255 @@
     ViewData["Title"] = "Départements";
 }
 
-<div class="container py-5">
-    <div class="row mb-5 align-items-center bg-white p-4 rounded-4 shadow-sm border-start border-5 border-warning justify-content-between">
-        <div class="col-md-8">
-            <h2 class="fw-bolder mb-1" style="color: #2c3e50;">
-                <i class="bi bi-building me-2 text-warning"></i>Gestion des Départements
-            </h2>
-            <p class="text-secondary mb-0">Gérez les départements de l'établissement avec facilité et élégance</p>
-        </div>
-        <div class="col-md-4 text-md-end mt-3 mt-md-0">
-            <a asp-action="Create" class="btn btn-warning btn-lg fw-bold shadow-sm rounded-pill px-4 transition-all hover-lift">
-                <i class="bi bi-plus-circle-fill me-2"></i>Nouveau Département
-            </a>
-        </div>
-    </div>
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.0/font/bootstrap-icons.css">
+<link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;600;700&display=swap" rel="stylesheet">
 
-    @if (TempData["SuccessMessage"] != null)
-    {
-        <div class="alert alert-success alert-dismissible fade show shadow-sm rounded-4 border-0 border-start border-5 border-success mb-4" role="alert">
-            <i class="bi bi-check-circle-fill me-2 fs-5 align-middle"></i>
-            <span class="fw-medium">@TempData["SuccessMessage"]</span>
-            <button type="button" class="btn-close mt-1" data-bs-dismiss="alert" aria-label="Close"></button>
-        </div>
+<style>
+    body {
+        background: #f8fafc;
+        font-family: 'Outfit', sans-serif;
+        color: #1e293b;
     }
 
-    <div class="card shadow-lg border-0 rounded-4 overflow-hidden mb-5">
-        <div class="card-header bg-gradient bg-light py-3 border-bottom border-light">
-            <h5 class="mb-0 fw-bold text-secondary"><i class="bi bi-list-ul me-2"></i>Liste des départements (@Model.Count())</h5>
+    :root {
+        --primary-gradient: linear-gradient(135deg, #4f46e5 0%, #7c3aed 100%);
+        --glass-bg: rgba(255, 255, 255, 0.7);
+        --glass-border: rgba(255, 255, 255, 0.4);
+    }
+
+    .premium-header {
+        background: var(--primary-gradient);
+        border-radius: 0 0 50px 50px;
+        padding: 4rem 0 8rem 0;
+        margin-bottom: -6rem;
+        box-shadow: 0 10px 30px rgba(79, 70, 229, 0.2);
+    }
+
+    .glass-card {
+        background: var(--glass-bg);
+        backdrop-filter: blur(12px);
+        -webkit-backdrop-filter: blur(12px);
+        border: 1px solid var(--glass-border);
+        border-radius: 24px;
+        transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+        box-shadow: 0 10px 25px rgba(0, 0, 0, 0.03);
+    }
+
+    .btn-pill {
+        border-radius: 50px;
+        padding: 10px 25px;
+        font-weight: 600;
+        transition: all 0.2s;
+        border: none;
+        text-decoration: none;
+        display: inline-flex;
+        align-items: center;
+    }
+
+    .btn-header {
+        background: rgba(255, 255, 255, 0.15);
+        backdrop-filter: blur(5px);
+        border: 1px solid rgba(255, 255, 255, 0.2);
+        color: white;
+    }
+
+    .btn-header:hover {
+        background: rgba(255, 255, 255, 0.25);
+        color: white;
+        transform: translateY(-2px);
+    }
+
+    .btn-add {
+        background: white;
+        color: #4f46e5;
+    }
+
+    .btn-add:hover {
+        background: #f8fafc;
+        color: #7c3aed;
+        transform: translateY(-2px);
+        box-shadow: 0 5px 15px rgba(0,0,0,0.1);
+    }
+
+    /* Premium Table Styles */
+    .premium-table-container {
+        background: white;
+        border-radius: 24px;
+        overflow: hidden;
+        box-shadow: 0 10px 30px rgba(0, 0, 0, 0.04);
+        border: 1px solid #f1f5f9;
+        margin-top: 2rem;
+    }
+
+    .premium-table thead th {
+        background: #f8fafc;
+        color: #64748b;
+        font-weight: 700;
+        text-uppercase;
+        font-size: 0.75rem;
+        letter-spacing: 0.5px;
+        padding: 1.25rem 1.5rem;
+        border-bottom: 2px solid #f1f5f9;
+    }
+
+    .premium-table tbody tr {
+        transition: all 0.2s;
+        border-bottom: 1px solid #f1f5f9;
+    }
+
+    .premium-table tbody tr:last-child {
+        border-bottom: none;
+    }
+
+    .premium-table tbody tr:hover {
+        background-color: #f8fafc;
+        transform: scale(1.002);
+    }
+
+    .premium-table td {
+        padding: 1.25rem 1.5rem;
+        vertical-align: middle;
+    }
+
+    .dept-icon-wrapper {
+        width: 45px;
+        height: 45px;
+        border-radius: 14px;
+        background: #eef2ff;
+        color: #4f46e5;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        font-size: 1.25rem;
+        margin-right: 1.25rem;
+    }
+
+    .action-btn {
+        width: 40px;
+        height: 40px;
+        border-radius: 12px;
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        transition: all 0.2s;
+        border: 1px solid #e2e8f0;
+        background: white;
+        color: #64748b;
+        text-decoration: none;
+    }
+
+    .action-btn:hover {
+        transform: translateY(-2px);
+        box-shadow: 0 4px 10px rgba(0,0,0,0.05);
+    }
+
+    .btn-edit:hover { color: #4f46e5; border-color: #4f46e5; }
+    .btn-delete:hover { color: #ef4444; border-color: #ef4444; }
+
+    .hover-scale {
+        transition: transform 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+    }
+
+    .hover-scale:hover {
+        transform: scale(1.02);
+    }
+</style>
+
+<div class="premium-header text-white">
+    <div class="container d-flex justify-content-between align-items-center">
+        <div>
+            <span class="opacity-75 small text-uppercase tracking-widest fw-bold">Structure Pédagogique</span>
+            <h1 class="display-4 fw-bold mt-1">Départements 🏛️</h1>
+            <p class="opacity-75 mb-0 fs-5">Gérez les unités d'enseignement et l'organisation de l'établissement.</p>
         </div>
-        <div class="card-body p-0">
-            <div class="table-responsive">
-                <table class="table table-hover align-middle mb-0">
-                    <thead style="background-color: #f8f9fa;">
-                        <tr>
-                            <th class="ps-5 py-3 border-0 text-uppercase text-secondary" style="font-size: 0.85rem; letter-spacing: 0.5px;">Nom du Département</th>
-                            <th class="text-end pe-5 py-3 border-0 text-uppercase text-secondary" style="font-size: 0.85rem; letter-spacing: 0.5px;">Actions</th>
-                        </tr>
-                    </thead>
-                    <tbody class="border-top-0">
-                        @foreach (var item in Model)
-                        {
-                            <tr class="transition-all" style="transition: background-color 0.2s ease;">
-                                <td class="ps-5 py-4">
-                                    <div class="d-flex align-items-center">
-                                        <div class="bg-primary bg-opacity-10 text-primary rounded-circle d-flex align-items-center justify-content-center me-3" style="width: 45px; height: 45px;">
-                                            <i class="bi bi-building fs-5"></i>
-                                        </div>
-                                        <span class="fw-bold fs-5 text-dark">@item.Nom</span>
-                                    </div>
-                                </td>
-                                <td class="text-end pe-5 py-4">
-                                    <div class="btn-group shadow-sm rounded-pill" role="group">
-                                        <a asp-action="Edit" asp-route-id="@item.Id" class="btn btn-outline-primary px-3 rounded-start-pill border-end-0 transition-all hover-bg-primary">
-                                            <i class="bi bi-pencil-fill me-1"></i> Modifier
-                                        </a>
-                                        <a asp-action="Delete" asp-route-id="@item.Id" class="btn btn-outline-danger px-3 rounded-end-pill transition-all hover-bg-danger">
-                                            <i class="bi bi-trash-fill me-1"></i> Supprimer
-                                        </a>
-                                    </div>
-                                </td>
-                            </tr>
-                        }
-                        
-                        @if (!Model.Any())
-                        {
-                            <tr>
-                                <td colspan="2" class="text-center py-5">
-                                    <div class="text-muted d-flex flex-column align-items-center justify-content-center">
-                                        <i class="bi bi-inbox fs-1 mb-3 text-secondary opacity-50"></i>
-                                        <h5 class="fw-bold mb-1">Aucun département</h5>
-                                        <p class="small mb-4">Commencez par ajouter votre premier département.</p>
-                                        <a asp-action="Create" class="btn btn-outline-warning rounded-pill px-4">Créer maintenant</a>
-                                    </div>
-                                </td>
-                            </tr>
-                        }
-                    </tbody>
-                </table>
-            </div>
+        <div class="d-flex gap-2">
+            <a asp-action="Create" class="btn-pill btn-add shadow-sm">
+                <i class="bi bi-plus-circle-fill me-2"></i>Nouveau Département
+            </a>
+            <a asp-controller="Admin" asp-action="Dashboard" class="btn-pill btn-header">
+                <i class="bi bi-house-door me-2"></i>Dashboard
+            </a>
         </div>
     </div>
 </div>
 
-<style>
-    .hover-lift:hover {
-        transform: translateY(-2px);
-        box-shadow: 0 .5rem 1rem rgba(0,0,0,.15)!important;
+<div class="container pb-5">
+    <!-- Messages Flash -->
+    @if (TempData["SuccessMessage"] != null)
+    {
+        <div class="alert glass-card border-0 d-flex align-items-center p-3 mb-5 mt-2" style="background: rgba(16, 185, 129, 0.1);">
+            <div class="bg-success text-white rounded-circle d-flex align-items-center justify-content-center me-3" style="width: 35px; height: 35px;">
+                <i class="bi bi-check-lg"></i>
+            </div>
+            <div class="fw-bold text-success">@TempData["SuccessMessage"]</div>
+        </div>
     }
-    .hover-bg-primary:hover {
-        background-color: #0d6efd;
-        color: white !important;
-    }
-    .hover-bg-danger:hover {
-        background-color: #dc3545;
-        color: white !important;
-    }
-    tr:hover {
-        background-color: #f8f9fa !important;
-    }
-</style>
+
+    <!-- Tableau Premium -->
+    <div class="premium-table-container">
+        <div class="table-responsive">
+            <table class="table premium-table m-0">
+                <thead>
+                    <tr>
+                        <th style="width: 60%;">Nom du Département</th>
+                        <th class="text-end">Actions</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    @if (Model != null && Model.Any())
+                    {
+                        foreach (var item in Model)
+                        {
+                            <tr>
+                                <td>
+                                    <div class="d-flex align-items-center">
+                                        <div class="dept-icon-wrapper">
+                                            <i class="bi bi-building"></i>
+                                        </div>
+                                        <div>
+                                            <div class="fw-bold fs-5 text-dark">@item.Nom</div>
+                                            <div class="text-muted small">Pôle d'Enseignement Supérieur</div>
+                                        </div>
+                                    </div>
+                                </td>
+                                <td class="text-end">
+                                    <div class="d-flex justify-content-end gap-3">
+                                        <a asp-action="Edit" asp-route-id="@item.Id" class="action-btn btn-edit" title="Modifier">
+                                            <i class="bi bi-pencil-fill"></i>
+                                        </a>
+                                        <a asp-action="Delete" asp-route-id="@item.Id" class="action-btn btn-delete" title="Supprimer">
+                                            <i class="bi bi-trash3-fill"></i>
+                                        </a>
+                                    </div>
+                                </td>
+                            </tr>
+                        }
+                    }
+                    else
+                    {
+                        <tr>
+                            <td colspan="2" class="text-center py-5">
+                                <div class="text-muted d-flex flex-column align-items-center justify-content-center py-4">
+                                    <div class="bg-light p-4 rounded-circle mb-4">
+                                        <i class="bi bi-inbox fs-1 opacity-25"></i>
+                                    </div>
+                                    <h4 class="fw-bold mb-1 text-dark">Aucun département</h4>
+                                    <p class="mb-4">Commencez par ajouter votre premier département.</p>
+                                    <a asp-action="Create" class="btn btn-primary rounded-pill px-5 fw-bold py-2 shadow-sm">
+                                        Créer maintenant
+                                    </a>
+                                </div>
+                            </td>
+                        </tr>
+                    }
+                </tbody>
+            </table>
+        </div>
+    </div>
+
+    <div class="text-center mt-5">
+        <a asp-controller="Admin" asp-action="Dashboard" class="text-decoration-none text-muted fw-bold">
+            <i class="bi bi-arrow-left me-2"></i>Retour au Dashboard
+        </a>
+    </div>
+</div>

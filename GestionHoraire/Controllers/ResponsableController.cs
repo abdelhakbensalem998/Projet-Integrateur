@@ -134,6 +134,7 @@ namespace GestionHoraire.Controllers
 
             demande.Statut = "Archivé";
             await _context.SaveChangesAsync();
+            TempData["Success"] = "Demande archivée avec succès.";
             return RedirectToAction(nameof(Demandes));
         }
 
@@ -151,6 +152,7 @@ namespace GestionHoraire.Controllers
 
             _context.Demandes.Remove(demande);
             await _context.SaveChangesAsync();
+            TempData["Success"] = "Demande supprimée définitivement.";
             return RedirectToAction(nameof(Demandes));
         }
 
@@ -272,8 +274,136 @@ Merci.";
             }
             catch
             {
-                // si SMTP pas configuré ou erreur d'envoi, on ne bloque pas la création
                 TempData["Success"] = "Professeur créé avec succès. (Email non envoyé : configuration SMTP manquante)";
+            }
+
+            return RedirectToAction(nameof(Profs));
+        }
+
+        // =========================
+        // EDITER PROF (GET)
+        // =========================
+        [HttpGet]
+        public async Task<IActionResult> EditerProf(int id)
+        {
+            var deptId = GetDeptId();
+            var prof = await _context.Utilisateurs.FindAsync(id);
+
+            if (prof == null || prof.Role != "Professeur" || prof.DepartementId != deptId)
+            {
+                return NotFound();
+            }
+
+            return View(prof);
+        }
+
+        // =========================
+        // EDITER PROF (POST)
+        // =========================
+        [HttpPost]
+        [ValidateAntiForgeryToken]
+        public async Task<IActionResult> EditerProf(int id, string nom, string email)
+        {
+            var deptId = GetDeptId();
+            var prof = await _context.Utilisateurs.FindAsync(id);
+
+            if (prof == null || prof.Role != "Professeur" || prof.DepartementId != deptId)
+            {
+                return NotFound();
+            }
+
+            if (string.IsNullOrWhiteSpace(nom) || string.IsNullOrWhiteSpace(email))
+            {
+                ModelState.AddModelError("", "Le nom et l'email sont obligatoires.");
+                return View(prof);
+            }
+
+            // Vérifier email unique (sauf pour ce prof)
+            if (_context.Utilisateurs.Any(u => u.Email == email && u.Id != id))
+            {
+                ModelState.AddModelError("Email", "Cet email est déjà utilisé par un autre compte.");
+                return View(prof);
+            }
+
+            prof.Nom = nom;
+            prof.Email = email;
+
+            await _context.SaveChangesAsync();
+            TempData["Success"] = "Les informations du professeur ont été mises à jour.";
+            return RedirectToAction(nameof(Profs));
+        }
+
+        // =========================
+        // SUPPRIMER PROF (POST)
+        // =========================
+        [HttpPost]
+        [ValidateAntiForgeryToken]
+        public async Task<IActionResult> SupprimerProf(int id)
+        {
+            var deptId = GetDeptId();
+            var prof = await _context.Utilisateurs.FindAsync(id);
+
+            if (prof == null || prof.Role != "Professeur" || prof.DepartementId != deptId)
+            {
+                return NotFound();
+            }
+
+            // Vérifier s'il a des cours affectés ou des demandes
+            bool aDesDemandes = await _context.Demandes.AnyAsync(d => d.UtilisateurId == id);
+            if (aDesDemandes)
+            {
+                TempData["Error"] = "Impossible de supprimer ce professeur car il a des demandes enregistrées.";
+                return RedirectToAction(nameof(Profs));
+            }
+
+            _context.Utilisateurs.Remove(prof);
+            await _context.SaveChangesAsync();
+            TempData["Success"] = "Le professeur a été supprimé avec succès.";
+            return RedirectToAction(nameof(Profs));
+        }
+
+        // =========================
+        // REINITIALISER MDP (POST)
+        // =========================
+        [HttpPost]
+        [ValidateAntiForgeryToken]
+        public async Task<IActionResult> ReinitialiserMotDePasse(int id, [FromServices] EmailService emailService)
+        {
+            var deptId = GetDeptId();
+            var prof = await _context.Utilisateurs.FindAsync(id);
+
+            if (prof == null || prof.Role != "Professeur" || prof.DepartementId != deptId)
+            {
+                return NotFound();
+            }
+
+            // Générer un MDP temporaire (ex: P@ss1234!)
+            string nouveauMdp = "TempPass!" + new Random().Next(1000, 9999);
+            
+            Guid salt = Guid.NewGuid();
+            byte[] hash = CalculerSHA256AvecSalt(nouveauMdp, salt);
+
+            prof.MotDePasseSalt = salt;
+            prof.MotDePasseHash = hash;
+            prof.EstMotDePasseProvisoire = true;
+
+            await _context.SaveChangesAsync();
+
+            // Envoyer l'email
+            string body = $@"Bonjour {prof.Nom},
+
+Votre mot de passe a été réinitialisé par le responsable de votre département.
+
+Email : {prof.Email}
+Nouveau mot de passe provisoire : {nouveauMdp}
+
+Veuillez vous connecter et changer votre mot de passe immédiatement.";
+
+            try {
+                emailService.Send(prof.Email, "Réinitialisation de votre mot de passe - Gestion Horaire", body);
+                TempData["Success"] = "Mot de passe réinitialisé. Un email a été envoyé au professeur.";
+            } catch {
+                TempData["Success"] = $"Mot de passe réinitialisé : {nouveauMdp} (Email non envoyé : erreur SMTP).";
             }
 
             return RedirectToAction(nameof(Profs));
@@ -329,25 +459,16 @@ Merci.";
         [HttpGet]
         public async Task<IActionResult> TelechargerDocument(int id)
         {
-            var demande = await _context.Demandes.FindAsync(id);
-            if (demande == null || string.IsNullOrEmpty(demande.FichierJoint)) return NotFound();
+            var demandaWithFile = await _context.Demandes.FindAsync(id);
+            if (demandaWithFile == null || demandaWithFile.ContenuFichier == null) 
+                return NotFound("Le fichier n'est pas disponible en base de données.");
 
             // Verify the requester belongs to the manager's department
             var deptId = GetDeptId();
-            var user = await _context.Utilisateurs.FindAsync(demande.UtilisateurId);
+            var user = await _context.Utilisateurs.FindAsync(demandaWithFile.UtilisateurId);
             if (user == null || user.DepartementId != deptId) return RedirectToAction("Index", "Login");
 
-            var filePath = Path.Combine(_env.WebRootPath, "uploads", demande.FichierJoint);
-            if (!System.IO.File.Exists(filePath)) return NotFound("Le fichier n'existe pas sur le serveur.");
-
-            var fileBytes = System.IO.File.ReadAllBytes(filePath);
-            
-            // Extract the original filename (after the Guid_)
-            var originalName = demande.FichierJoint.Contains("_") ?
-                               demande.FichierJoint.Substring(demande.FichierJoint.IndexOf("_") + 1) :
-                               demande.FichierJoint;
-
-            return File(fileBytes, "application/octet-stream", originalName);
+            return File(demandaWithFile.ContenuFichier, demandaWithFile.TypeMime ?? "application/octet-stream", demandaWithFile.FichierJoint ?? "document");
         }
 
         private static byte[] CalculerSHA256AvecSalt(string motDePasse, Guid saltGuid)

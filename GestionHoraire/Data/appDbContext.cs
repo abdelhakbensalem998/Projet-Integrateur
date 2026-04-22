@@ -30,9 +30,8 @@ namespace GestionHoraire.Data
                 .Property(d => d.Jour)
                 .HasConversion<int>();
 
-            modelBuilder.Entity<Utilisateur>()
-                .Property(u => u.MotDePasseSalt)
-                .HasColumnType("uniqueidentifier");
+            // PostgreSQL gère nativement le type Guid comme 'uuid'
+            // Pas besoin de spécifier le type de colonne
         }
     }
 }
