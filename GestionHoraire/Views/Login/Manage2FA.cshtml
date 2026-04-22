@@ -1,0 +1,327 @@
+@model ManageTwoFactorViewModel
+
+@{
+    ViewData["Title"] = "Securite du compte";
+}
+
+<div class="security-page">
+    <section class="app-hero security-header">
+        <div class="app-hero-grid">
+            <div>
+                <span class="app-kicker">Securite du compte</span>
+                <h1 class="app-title">Choisissez votre protection 2FA</h1>
+                <p class="app-subtitle">
+                    Activez une methode de verification, gardez vos codes de secours et controlez les appareils qui peuvent passer la verification.
+                </p>
+
+                <div class="app-pills">
+                    <span class="app-pill @(Model.IsTwoFactorEnabled ? "success" : "muted")">
+                        @(Model.IsTwoFactorEnabled ? "2FA activee" : "2FA inactive")
+                    </span>
+                    <span class="app-pill primary">@Model.ProviderLabel</span>
+                    <span class="app-pill muted">@Model.RemainingBackupCodes code(s) de secours</span>
+                </div>
+            </div>
+
+            <div class="app-status-panel">
+                <h2>Navigation</h2>
+                <div class="app-status-list">
+                    <a asp-controller="Login" asp-action="SecurityHistory" class="btn btn-outline-primary w-100">
+                        Historique de securite
+                    </a>
+                    <a asp-controller="Home" asp-action="Index" class="btn btn-outline-secondary w-100">
+                        Retour a l'accueil
+                    </a>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    @if (TempData["Success"] != null)
+    {
+        <div class="alert alert-success mb-4">
+            @TempData["Success"]
+        </div>
+    }
+
+    @if (TempData["Info"] != null)
+    {
+        <div class="alert alert-info mb-4">
+            @TempData["Info"]
+        </div>
+    }
+
+    @if (TempData["Error"] != null)
+    {
+        <div class="alert alert-danger mb-4">
+            @TempData["Error"]
+        </div>
+    }
+
+    <div class="security-grid">
+        <aside class="security-summary">
+            <h2>Etat actuel</h2>
+            <p class="security-help">
+                Cette zone resume ce qui protege votre compte aujourd'hui.
+            </p>
+
+            <div class="security-state-list">
+                <div class="security-state-row">
+                    <span class="security-label">Methode active</span>
+                    <span class="security-value">@Model.ProviderLabel</span>
+                </div>
+
+                <div class="security-state-row">
+                    <span class="security-label">Statut 2FA</span>
+                    <span class="security-value">@(Model.IsTwoFactorEnabled ? "Activee" : "Inactive")</span>
+                </div>
+
+                <div class="security-state-row">
+                    <span class="security-label">Codes restants</span>
+                    <span class="security-value">@Model.RemainingBackupCodes</span>
+                </div>
+            </div>
+
+            <div class="security-actions">
+                <form asp-action="BeginAuthenticatorSetup" method="post">
+                    @Html.AntiForgeryToken()
+                    <button type="submit" class="btn btn-primary w-100">
+                        @(Model.IsAuthenticatorConfigured ? "Reconfigurer l'Authenticator" : "Configurer l'Authenticator")
+                    </button>
+                </form>
+
+                @if (Model.IsEmailTwoFactorEnabled)
+                {
+                    <form asp-action="DisableEmailTwoFactor" method="post">
+                        @Html.AntiForgeryToken()
+                        <button type="submit" class="btn btn-outline-danger w-100">
+                            Desactiver le code par email
+                        </button>
+                    </form>
+                }
+                else
+                {
+                    <form asp-action="EnableEmailTwoFactor" method="post">
+                        @Html.AntiForgeryToken()
+                        <button type="submit" class="btn btn-outline-primary w-100">
+                            @(Model.IsAuthenticatorConfigured ? "Utiliser le code par email" : "Activer le code par email")
+                        </button>
+                    </form>
+                }
+
+                @if (Model.IsAuthenticatorConfigured)
+                {
+                    <form asp-action="RegenerateBackupCodes" method="post">
+                        @Html.AntiForgeryToken()
+                        <button type="submit" class="btn btn-outline-primary w-100">
+                            Regenerer les codes de secours
+                        </button>
+                    </form>
+
+                    <form asp-action="DisableAuthenticator" method="post">
+                        @Html.AntiForgeryToken()
+                        <button type="submit" class="btn btn-outline-danger w-100">
+                            Desactiver l'Authenticator
+                        </button>
+                    </form>
+                }
+            </div>
+        </aside>
+
+        <main class="security-main">
+            <section class="security-panel">
+                <h2>Comprendre les choix</h2>
+                <p class="security-help">
+                    L'Authenticator est recommande pour une verification rapide. Le code par email reste utile si vous voulez une configuration plus simple.
+                </p>
+
+                <div class="security-choice-grid mt-3">
+                    <div class="security-choice">
+                        <h3>Application Authenticator</h3>
+                        <p>Scannez un QR code, puis utilisez le code qui change dans votre application mobile.</p>
+                    </div>
+
+                    <div class="security-choice">
+                        <h3>Code par email</h3>
+                        <p>Recevez un code temporaire dans votre boite email a chaque connexion sensible.</p>
+                    </div>
+                </div>
+            </section>
+
+            <section class="security-panel">
+                <h2>Configuration Authenticator</h2>
+
+                @if (Model.IsSetupInProgress)
+                {
+                    <p class="security-help">
+                        Suivez ces etapes dans l'ordre. Si le scan ne marche pas, utilisez la cle manuelle.
+                    </p>
+
+                    <ol class="security-steps">
+                        <li>
+                            <span class="security-step-number">1</span>
+                            <div>
+                                <strong>Ouvrez votre application Authenticator.</strong>
+                                <div class="text-muted">Google Authenticator, Microsoft Authenticator ou une application TOTP compatible.</div>
+                            </div>
+                        </li>
+                        <li>
+                            <span class="security-step-number">2</span>
+                            <div>
+                                <strong>Scannez le QR code.</strong>
+                                <div class="text-muted">Vous pouvez aussi ouvrir le QR code seul si votre camera a du mal a le lire.</div>
+                            </div>
+                        </li>
+                        <li>
+                            <span class="security-step-number">3</span>
+                            <div>
+                                <strong>Entrez le code affiche.</strong>
+                                <div class="text-muted">Le code change regulierement, utilisez le code actuel.</div>
+                            </div>
+                        </li>
+                    </ol>
+
+                    <div class="authenticator-scan-panel mb-4">
+                        <div class="authenticator-qr-box">
+                            <div class="authenticator-qr">
+                                @Html.Raw(Model.QrCodeSvg)
+                            </div>
+                        </div>
+
+                        <a asp-controller="Login"
+                           asp-action="AuthenticatorQr"
+                           class="btn btn-outline-primary mt-3"
+                           target="_blank"
+                           rel="noopener">
+                            Ouvrir le QR code seul
+                        </a>
+                    </div>
+
+                    <div class="authenticator-setup-grid">
+                        <div>
+                            <div class="security-choice mb-3">
+                                <div class="security-label mb-1">Compte</div>
+                                <div class="fw-semibold">@Model.AccountLabel</div>
+                            </div>
+
+                            <div class="security-choice">
+                                <div class="security-label mb-1">Cle manuelle</div>
+                                <div class="fw-semibold font-monospace authenticator-manual-key">@Model.ManualEntryKey</div>
+                            </div>
+                        </div>
+
+                        <div>
+                            <form asp-action="EnableAuthenticator" method="post">
+                                @Html.AntiForgeryToken()
+                                <label for="verificationCode" class="form-label fw-semibold">
+                                    Code genere par l'application
+                                </label>
+                                <input type="text"
+                                       id="verificationCode"
+                                       name="verificationCode"
+                                       class="form-control form-control-lg mb-3"
+                                       placeholder="123456"
+                                       autocomplete="one-time-code"
+                                       required />
+
+                                <button type="submit" class="btn btn-primary w-100">
+                                    Activer l'Authenticator
+                                </button>
+                            </form>
+                        </div>
+                    </div>
+                }
+                else
+                {
+                    <div class="security-choice mt-3">
+                        <h3>Aucune configuration en cours</h3>
+                        <p>
+                            Cliquez sur "Configurer l'Authenticator" pour generer un QR code et lier votre compte a votre application mobile.
+                        </p>
+                    </div>
+                }
+            </section>
+
+            @if (Model.RecoveryCodes.Count > 0)
+            {
+                <section class="security-panel">
+                    <h2>Codes de secours</h2>
+                    <p class="security-help">
+                        Gardez ces codes dans un endroit sur. Chaque code ne peut etre utilise qu'une seule fois.
+                    </p>
+
+                    <div class="backup-code-grid mt-3">
+                        @foreach (var code in Model.RecoveryCodes)
+                        {
+                            <div class="backup-code-item">@code</div>
+                        }
+                    </div>
+
+                    <div class="alert alert-warning mt-3 mb-0">
+                        Ces codes ne seront plus affiches apres cette page. Sauvegardez-les maintenant.
+                    </div>
+                </section>
+            }
+        </main>
+    </div>
+
+    <section class="security-panel mt-4">
+        <div class="d-flex justify-content-between align-items-start flex-wrap gap-3 mb-3">
+            <div>
+                <h2>Appareils de confiance</h2>
+                <p class="security-help">
+                    Ces appareils peuvent eviter la verification 2FA pendant 30 jours. Supprimez ceux que vous ne reconnaissez pas.
+                </p>
+            </div>
+
+            @if (Model.TrustedDevices.Count > 0)
+            {
+                <form asp-action="RevokeAllTrustedDevices" method="post">
+                    @Html.AntiForgeryToken()
+                    <button type="submit" class="btn btn-outline-danger">
+                        Supprimer tous les appareils
+                    </button>
+                </form>
+            }
+        </div>
+
+        @if (Model.TrustedDevices.Count == 0)
+        {
+            <div class="alert alert-light border mb-0">
+                Aucun appareil de confiance enregistre.
+            </div>
+        }
+        else
+        {
+            <div class="trusted-device-list">
+                @foreach (var device in Model.TrustedDevices)
+                {
+                    <div class="trusted-device-item">
+                        <div class="trusted-device-main">
+                            <div class="fw-semibold">
+                                @device.DeviceName
+                                @if (device.IsCurrentDevice)
+                                {
+                                    <span class="badge bg-primary ms-2">Cet appareil</span>
+                                }
+                            </div>
+                            <div class="text-muted small">
+                                Ajoute le @device.CreatedAt.ToLocalTime().ToString("yyyy-MM-dd HH:mm")
+                            </div>
+                            <div class="text-muted small">
+                                Expire le @device.ExpiresAt.ToLocalTime().ToString("yyyy-MM-dd HH:mm")
+                            </div>
+                        </div>
+
+                        <form asp-action="RevokeTrustedDevice" asp-route-id="@device.Id" method="post">
+                            @Html.AntiForgeryToken()
+                            <button type="submit" class="btn btn-outline-danger">
+                                Supprimer
+                            </button>
+                        </form>
+                    </div>
+                }
+            </div>
+        }
+    </section>
+</div>

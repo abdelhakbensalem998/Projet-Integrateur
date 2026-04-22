@@ -1,19 +1,23 @@
 using GestionHoraire.Data;
 using GestionHoraire.Models;
+using GestionHoraire.Models.ViewModels;
 using GestionHoraire.Services;
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 using System;
+using System.Collections.Generic;
 using System.Linq;
 using System.Security.Cryptography;
 using System.Text;
+using System.Text.Json;
 
 namespace GestionHoraire.Controllers
 {
     public class LoginController : Controller
     {
         private readonly AppDbContext _context;
+        private readonly TwoFactorService _twoFactorService;
 
         private const int LOCKOUT_MAX_ATTEMPTS = 5;
         private static readonly TimeSpan LOCKOUT_DURATION = TimeSpan.FromMinutes(10);
@@ -21,21 +25,28 @@ namespace GestionHoraire.Controllers
         private const string TRUST_COOKIE = "gh_trusted";
         private static readonly TimeSpan TRUST_DURATION = TimeSpan.FromDays(30);
 
-        public LoginController(AppDbContext context)
+        private const string PendingAuthenticatorSecretSessionKey = "PendingAuthenticatorSecret";
+        private const string RecoveryCodesTempDataKey = "RecoveryCodes";
+        private const string TwoFactorProviderEmail = "Email";
+        private const string TwoFactorProviderAuthenticator = "Authenticator";
+
+        public LoginController(AppDbContext context, TwoFactorService twoFactorService)
         {
             _context = context;
+            _twoFactorService = twoFactorService;
         }
 
-        // =========================
-        // LOGIN
-        // =========================
         [HttpGet]
-        public IActionResult Index()
+        public IActionResult Index(string? expired = null)
         {
             var userId = HttpContext.Session.GetInt32("UserId");
             var role = HttpContext.Session.GetString("UserRole");
+
             if (userId != null && !string.IsNullOrEmpty(role))
                 return RedirectSelonRole(role);
+
+            if (expired == "1")
+                ViewBag.Error = "Votre session a expiré. Reconnectez-vous pour continuer.";
 
             return View();
         }
@@ -54,19 +65,12 @@ namespace GestionHoraire.Controllers
                 .Include(u => u.Departement)
                 .FirstOrDefault(u => u.Email != null && u.Email.ToLower() == email.ToLower());
 
-            Console.WriteLine($"[DEBUG] Login attempt for: {email}");
-
             if (user == null)
             {
-                Console.WriteLine($"[DEBUG] User NOT found in database for email: {email}");
                 ViewBag.Error = "Email ou mot de passe incorrect";
                 return View();
             }
 
-            Console.WriteLine($"[DEBUG] User found: {user.Nom} (ID: {user.Id}, Role: {user.Role})");
-            Console.WriteLine($"[DEBUG] Hash in DB (Length): {user.MotDePasseHash?.Length}");
-
-            // LOCKOUT
             if (user.LockoutUntil != null && user.LockoutUntil > DateTime.UtcNow)
             {
                 ViewBag.Error = "Compte verrouillé temporairement. Réessayez plus tard.";
@@ -77,7 +81,6 @@ namespace GestionHoraire.Controllers
             if (!VerifierMotDePasseSHA256AvecSalt(motDePasse, user.MotDePasseSalt, user.MotDePasseHash))
             {
                 user.FailedLoginAttempts += 1;
-
                 if (user.FailedLoginAttempts >= LOCKOUT_MAX_ATTEMPTS)
                 {
                     user.LockoutUntil = DateTime.UtcNow.Add(LOCKOUT_DURATION);
@@ -94,76 +97,111 @@ namespace GestionHoraire.Controllers
                 return View();
             }
 
-            // login success => reset
             user.FailedLoginAttempts = 0;
             user.LockoutUntil = null;
             _context.SaveChanges();
             LogSecurity(user.Id, "LOGIN_SUCCESS", null);
 
-            // mot de passe provisoire
             if (user.EstMotDePasseProvisoire)
             {
                 TempData["Info"] = "Vous devez changer votre mot de passe provisoire.";
                 return RedirectToAction("ChangeTempPassword", new { email = user.Email });
             }
 
-            // 2FA (si activé et device pas trusted)
-            if (user.TwoFactorEnabled && !IsTrustedDevice(user.Id))
+            if (RequiresTwoFactor(user) && !IsTrustedDevice(user.Id))
             {
                 HttpContext.Session.SetInt32("Pending2FAUserId", user.Id);
-                Send2FACode(user, null);
+
+                if (UsesAuthenticator(user))
+                {
+                    LogSecurity(user.Id, "2FA_CHALLENGE_STARTED", $"Provider={TwoFactorProviderAuthenticator}");
+                }
+                else
+                {
+                    Send2FACode(user, null);
+                }
+
                 return RedirectToAction("Verify2FA");
             }
 
-            // Session normale
             OpenFullSession(user);
             return RedirectSelonRole(user.Role ?? "");
         }
 
-        // =========================
-        // VERIFY 2FA
-        // =========================
         [HttpGet]
         public IActionResult Verify2FA()
         {
             var pending = HttpContext.Session.GetInt32("Pending2FAUserId");
             if (pending == null) return RedirectToAction("Index");
-            return View();
+
+            var user = _context.Utilisateurs.FirstOrDefault(u => u.Id == pending.Value);
+            if (user == null)
+            {
+                HttpContext.Session.Remove("Pending2FAUserId");
+                return RedirectToAction("Index");
+            }
+
+            return View(BuildVerifyTwoFactorViewModel(user));
         }
 
         [HttpPost]
         [ValidateAntiForgeryToken]
-        public IActionResult Verify2FA(string codeEmail, bool rememberDevice)
+        public IActionResult Verify2FA(string verificationCode, bool rememberDevice)
         {
             var pending = HttpContext.Session.GetInt32("Pending2FAUserId");
             if (pending == null) return RedirectToAction("Index");
 
             var user = _context.Utilisateurs.FirstOrDefault(u => u.Id == pending.Value);
-            if (user == null) return RedirectToAction("Index");
+            if (user == null)
+            {
+                HttpContext.Session.Remove("Pending2FAUserId");
+                return RedirectToAction("Index");
+            }
 
-            if (string.IsNullOrWhiteSpace(codeEmail))
+            if (string.IsNullOrWhiteSpace(verificationCode))
             {
                 ViewBag.Error = "Veuillez entrer le code.";
-                return View();
+                return View(BuildVerifyTwoFactorViewModel(user));
             }
 
-            if (!VerifyOtp(user.Id, "2FA", codeEmail.Trim(), out var otp))
+            var usedBackupCode = false;
+            var success = false;
+
+            if (UsesAuthenticator(user))
             {
-                ViewBag.Error = "Code invalide ou expiré.";
-                LogSecurity(user.Id, "2FA_FAIL", null);
-                return View();
+                success = !string.IsNullOrWhiteSpace(user.AuthenticatorSecretKey) &&
+                    _twoFactorService.ValidateTotp(user.AuthenticatorSecretKey, verificationCode);
+
+                if (!success)
+                {
+                    success = TryUseBackupCode(user.Id, verificationCode);
+                    usedBackupCode = success;
+                }
+            }
+            else
+            {
+                success = VerifyOtp(user.Id, "2FA", verificationCode.Trim(), out var otp);
+                if (success)
+                {
+                    otp!.UsedAt = DateTime.UtcNow;
+                    _context.SaveChanges();
+                }
             }
 
-            otp!.UsedAt = DateTime.UtcNow;
-            _context.SaveChanges();
+            if (!success)
+            {
+                ViewBag.Error = UsesAuthenticator(user) ? "Code de verification invalide." : "Code invalide ou expiré.";
+                LogSecurity(user.Id, "2FA_FAIL", $"Provider={GetTwoFactorProvider(user)}");
+                return View(BuildVerifyTwoFactorViewModel(user));
+            }
 
             if (rememberDevice)
-                CreateTrustedDevice(user.Id, "Web");
+                CreateTrustedDevice(user.Id, BuildTrustedDeviceName());
 
             HttpContext.Session.Remove("Pending2FAUserId");
-
             OpenFullSession(user);
-            LogSecurity(user.Id, "2FA_SUCCESS", $"Remember={rememberDevice}");
+
+            LogSecurity(user.Id, "2FA_SUCCESS", $"Provider={GetTwoFactorProvider(user)};Remember={rememberDevice};BackupCode={usedBackupCode}");
             return RedirectSelonRole(user.Role ?? "");
         }
 
@@ -175,37 +213,270 @@ namespace GestionHoraire.Controllers
             if (pending == null) return RedirectToAction("Index");
 
             var user = _context.Utilisateurs.FirstOrDefault(u => u.Id == pending.Value);
-            if (user == null) return RedirectToAction("Index");
+            if (user == null)
+            {
+                HttpContext.Session.Remove("Pending2FAUserId");
+                return RedirectToAction("Index");
+            }
+
+            if (UsesAuthenticator(user))
+            {
+                TempData["Info"] = "Le code est généré dans votre application Authenticator.";
+                return RedirectToAction("Verify2FA");
+            }
 
             Send2FACode(user, emailService);
             TempData["Info"] = "Nouveau code envoyé.";
             return RedirectToAction("Verify2FA");
         }
 
-        // =========================
-        // ENABLE/DISABLE 2FA
-        // =========================
+        [HttpGet]
+        public IActionResult Manage2FA()
+        {
+            var user = GetCurrentSessionUser();
+            if (user == null) return RedirectToAction("Index");
+            return View(BuildManageTwoFactorViewModel(user, ReadRecoveryCodesFromTempData()));
+        }
+
+        [HttpGet]
+        public IActionResult AuthenticatorQr()
+        {
+            var user = GetCurrentSessionUser();
+            if (user == null) return RedirectToAction("Index");
+
+            var pendingSecret = GetPendingAuthenticatorSecret();
+            if (string.IsNullOrWhiteSpace(pendingSecret))
+                return RedirectToAction("Manage2FA");
+
+            var svg = BuildAuthenticatorQrCodeSvg(user, pendingSecret);
+            return Content(svg, "image/svg+xml");
+        }
+
+        [HttpPost]
+        [ValidateAntiForgeryToken]
+        public IActionResult BeginAuthenticatorSetup()
+        {
+            var user = GetCurrentSessionUser();
+            if (user == null) return RedirectToAction("Index");
+
+            SetPendingAuthenticatorSecret(_twoFactorService.GenerateSharedKey());
+
+            TempData["Info"] = UsesAuthenticator(user)
+                ? "Scannez le nouveau QR code puis confirmez avec un code."
+                : "Scannez le QR code puis saisissez le code généré.";
+
+            LogSecurity(user.Id, "AUTHENTICATOR_SETUP_STARTED", null);
+            return RedirectToAction("Manage2FA");
+        }
+
+        [HttpPost]
+        [ValidateAntiForgeryToken]
+        public IActionResult EnableAuthenticator(string verificationCode)
+        {
+            var user = GetCurrentSessionUser();
+            if (user == null) return RedirectToAction("Index");
+
+            var pendingSecret = GetPendingAuthenticatorSecret();
+            if (string.IsNullOrWhiteSpace(pendingSecret))
+            {
+                TempData["Error"] = "Commencez par générer un QR code.";
+                return RedirectToAction("Manage2FA");
+            }
+
+            if (string.IsNullOrWhiteSpace(verificationCode))
+            {
+                TempData["Error"] = "Entrez le code affiché par votre application Authenticator.";
+                return RedirectToAction("Manage2FA");
+            }
+
+            if (!_twoFactorService.ValidateTotp(pendingSecret, verificationCode))
+            {
+                TempData["Error"] = "Code Authenticator invalide.";
+                LogSecurity(user.Id, "AUTHENTICATOR_ENABLE_FAIL", null);
+                return RedirectToAction("Manage2FA");
+            }
+
+            var recoveryCodes = ReplaceBackupCodes(user.Id);
+            user.AuthenticatorSecretKey = pendingSecret;
+            user.AuthenticatorEnabledAt = DateTime.UtcNow;
+            user.TwoFactorEnabled = true;
+            user.TwoFactorProvider = TwoFactorProviderAuthenticator;
+
+            ClearTrustedDevices(user.Id);
+            ClearPendingAuthenticatorSecret();
+            _context.SaveChanges();
+
+            TempData[RecoveryCodesTempDataKey] = JsonSerializer.Serialize(recoveryCodes);
+            TempData["Success"] = "Application Authenticator activée.";
+
+            LogSecurity(user.Id, "AUTHENTICATOR_ENABLED", $"BackupCodes={recoveryCodes.Count}");
+            return RedirectToAction("Manage2FA");
+        }
+
+        [HttpPost]
+        [ValidateAntiForgeryToken]
+        public IActionResult RegenerateBackupCodes()
+        {
+            var user = GetCurrentSessionUser();
+            if (user == null) return RedirectToAction("Index");
+
+            if (!UsesAuthenticator(user))
+            {
+                TempData["Info"] = "Activez d'abord l'application Authenticator.";
+                return RedirectToAction("Manage2FA");
+            }
+
+            var recoveryCodes = ReplaceBackupCodes(user.Id);
+            _context.SaveChanges();
+
+            TempData[RecoveryCodesTempDataKey] = JsonSerializer.Serialize(recoveryCodes);
+            TempData["Success"] = "Nouveaux codes de secours générés.";
+
+            LogSecurity(user.Id, "BACKUP_CODES_REGENERATED", $"Count={recoveryCodes.Count}");
+            return RedirectToAction("Manage2FA");
+        }
+
+        [HttpPost]
+        [ValidateAntiForgeryToken]
+        public IActionResult DisableAuthenticator()
+        {
+            var user = GetCurrentSessionUser();
+            if (user == null) return RedirectToAction("Index");
+
+            user.TwoFactorEnabled = false;
+            user.TwoFactorProvider = null;
+            user.AuthenticatorSecretKey = null;
+            user.AuthenticatorEnabledAt = null;
+
+            RevokeBackupCodes(user.Id);
+            ClearTrustedDevices(user.Id);
+            ClearPendingAuthenticatorSecret();
+            _context.SaveChanges();
+
+            TempData["Success"] = "Application Authenticator désactivée.";
+            LogSecurity(user.Id, "AUTHENTICATOR_DISABLED", null);
+
+            return RedirectToAction("Manage2FA");
+        }
+
+        [HttpPost]
+        [ValidateAntiForgeryToken]
+        public IActionResult EnableEmailTwoFactor()
+        {
+            var user = GetCurrentSessionUser();
+            if (user == null) return RedirectToAction("Index");
+
+            if (string.IsNullOrWhiteSpace(user.Email))
+            {
+                TempData["Error"] = "Aucune adresse email associée.";
+                return RedirectToAction("Manage2FA");
+            }
+
+            user.TwoFactorEnabled = true;
+            user.TwoFactorProvider = TwoFactorProviderEmail;
+            user.AuthenticatorSecretKey = null;
+            user.AuthenticatorEnabledAt = null;
+
+            RevokeBackupCodes(user.Id);
+            ClearTrustedDevices(user.Id);
+            _context.SaveChanges();
+
+            TempData["Success"] = "Le 2FA par email est activé.";
+            LogSecurity(user.Id, "EMAIL_2FA_ENABLED", null);
+
+            return RedirectToAction("Manage2FA");
+        }
+
+        [HttpPost]
+        [ValidateAntiForgeryToken]
+        public IActionResult DisableEmailTwoFactor()
+        {
+            var user = GetCurrentSessionUser();
+            if (user == null) return RedirectToAction("Index");
+
+            user.TwoFactorEnabled = false;
+            user.TwoFactorProvider = null;
+            ClearTrustedDevices(user.Id);
+            _context.SaveChanges();
+
+            TempData["Success"] = "Le 2FA par email est désactivé.";
+            LogSecurity(user.Id, "EMAIL_2FA_DISABLED", null);
+
+            return RedirectToAction("Manage2FA");
+        }
+
+        [HttpPost]
+        [ValidateAntiForgeryToken]
+        public IActionResult RevokeTrustedDevice(int id)
+        {
+            var user = GetCurrentSessionUser();
+            if (user == null) return RedirectToAction("Index");
+
+            var device = _context.TrustedDevices.FirstOrDefault(td => td.Id == id && td.UserId == user.Id);
+            if (device != null)
+            {
+                var wasCurrentDevice = GetTrustedDeviceCookieId() == device.Id;
+                _context.TrustedDevices.Remove(device);
+                _context.SaveChanges();
+
+                if (wasCurrentDevice)
+                    Response.Cookies.Delete(TRUST_COOKIE);
+            }
+
+            TempData["Success"] = "Appareil supprimé.";
+            return RedirectToAction("Manage2FA");
+        }
+
+        [HttpPost]
+        [ValidateAntiForgeryToken]
+        public IActionResult RevokeAllTrustedDevices()
+        {
+            var user = GetCurrentSessionUser();
+            if (user == null) return RedirectToAction("Index");
+
+            var devices = _context.TrustedDevices.Where(td => td.UserId == user.Id).ToList();
+            if (devices.Count > 0)
+            {
+                _context.TrustedDevices.RemoveRange(devices);
+                _context.SaveChanges();
+            }
+
+            Response.Cookies.Delete(TRUST_COOKIE);
+            TempData["Success"] = "Tous les appareils ont été supprimés.";
+            return RedirectToAction("Manage2FA");
+        }
+
+        [HttpGet]
+        public IActionResult SecurityHistory()
+        {
+            var user = GetCurrentSessionUser();
+            if (user == null) return RedirectToAction("Index");
+
+            var logs = _context.SecurityLogs
+                .Where(log => log.UserId == user.Id)
+                .OrderByDescending(log => log.CreatedAt)
+                .Take(100)
+                .AsEnumerable()
+                .Select(log => new SecurityLogItemViewModel
+                {
+                    Action = log.Action,
+                    Label = GetSecurityLogLabel(log.Action),
+                    Details = log.Details,
+                    IpAddress = log.IpAddress,
+                    CreatedAt = log.CreatedAt
+                })
+                .ToList();
+
+            return View(new SecurityHistoryViewModel { Logs = logs });
+        }
+
         [HttpPost]
         [ValidateAntiForgeryToken]
         public IActionResult Toggle2FA()
         {
-            var userId = HttpContext.Session.GetInt32("UserId");
-            if (userId == null) return RedirectToAction("Index");
-
-            var user = _context.Utilisateurs.FirstOrDefault(u => u.Id == userId.Value);
-            if (user == null) return RedirectToAction("Logout");
-
-            user.TwoFactorEnabled = !user.TwoFactorEnabled;
-            _context.SaveChanges();
-
-            LogSecurity(user.Id, "2FA_TOGGLED", $"Enabled={user.TwoFactorEnabled}");
-            TempData["Success"] = user.TwoFactorEnabled ? "2FA activé." : "2FA désactivé.";
-            return RedirectToAction("Index", "Home");
+            return RedirectToAction("Manage2FA");
         }
 
-        // =========================
-        // LOGOUT
-        // =========================
         [HttpGet]
         public IActionResult Logout()
         {
@@ -213,9 +484,6 @@ namespace GestionHoraire.Controllers
             return RedirectToAction("Index");
         }
 
-        // =========================
-        // CHANGER MOT DE PASSE PROVISOIRE + question sécurité
-        // =========================
         [HttpGet]
         public IActionResult ChangeTempPassword(string email)
         {
@@ -238,12 +506,9 @@ namespace GestionHoraire.Controllers
             ViewBag.Email = email;
             ViewBag.Questions = GetQuestionsSecurite();
 
-            if (string.IsNullOrWhiteSpace(email) ||
-                string.IsNullOrWhiteSpace(motDePasseProvisoire) ||
-                string.IsNullOrWhiteSpace(nouveauMotDePasse) ||
-                string.IsNullOrWhiteSpace(confirmerMotDePasse) ||
-                string.IsNullOrWhiteSpace(questionSecurite) ||
-                string.IsNullOrWhiteSpace(reponseSecurite))
+            if (string.IsNullOrWhiteSpace(email) || string.IsNullOrWhiteSpace(motDePasseProvisoire) ||
+                string.IsNullOrWhiteSpace(nouveauMotDePasse) || string.IsNullOrWhiteSpace(confirmerMotDePasse) ||
+                string.IsNullOrWhiteSpace(questionSecurite) || string.IsNullOrWhiteSpace(reponseSecurite))
             {
                 ViewBag.Error = "Tous les champs sont obligatoires.";
                 return View();
@@ -262,15 +527,9 @@ namespace GestionHoraire.Controllers
             }
 
             var user = _context.Utilisateurs.FirstOrDefault(u => u.Email == email);
-            if (user == null)
+            if (user == null || !user.EstMotDePasseProvisoire)
             {
                 ViewBag.Error = "Informations invalides.";
-                return View();
-            }
-
-            if (!user.EstMotDePasseProvisoire)
-            {
-                ViewBag.Error = "Aucun mot de passe provisoire actif.";
                 return View();
             }
 
@@ -293,21 +552,13 @@ namespace GestionHoraire.Controllers
 
             _context.SaveChanges();
 
-            try
-            {
-                emailService.Send(user.Email ?? "", "Mot de passe modifié", "Votre mot de passe a été modifié.");
-            }
-            catch { }
+            try { emailService.Send(user.Email ?? "", "Mot de passe modifié", "Votre mot de passe a été modifié."); } catch { }
 
             LogSecurity(user.Id, "PWD_CHANGED_FROM_TEMP", null);
-
-            TempData["Success"] = "Mot de passe changé et question de sécurité enregistrée. Vous pouvez vous connecter.";
+            TempData["Success"] = "Mot de passe changé. Vous pouvez vous connecter.";
             return RedirectToAction("Index");
         }
 
-        // =========================
-        // FORGOT PASSWORD
-        // =========================
         [HttpGet]
         public IActionResult ForgotPassword() => View();
 
@@ -324,47 +575,33 @@ namespace GestionHoraire.Controllers
             var user = _context.Utilisateurs.FirstOrDefault(u => u.Email == email);
             if (user == null)
             {
-                ViewBag.Error = "Aucun compte trouvé avec cet email.";
+                ViewBag.Error = "Aucun compte trouvé.";
                 return View();
             }
 
             return RedirectToAction("ForgotPasswordReset", new { id = user.Id });
         }
 
-        // =========================
-        // RESET PASSWORD
-        // =========================
         [HttpGet]
         public IActionResult ForgotPasswordReset(int id, int? step)
         {
             var user = _context.Utilisateurs.FirstOrDefault(u => u.Id == id);
             if (user == null) return RedirectToAction("ForgotPassword");
 
-            if (string.IsNullOrWhiteSpace(user.QuestionSecurite) ||
-                user.ReponseSecuriteSalt == null ||
-                user.ReponseSecuriteHash == null)
+            if (string.IsNullOrWhiteSpace(user.QuestionSecurite) || user.ReponseSecuriteSalt == null || user.ReponseSecuriteHash == null)
             {
-                TempData["Info"] = "Aucune question de sécurité n'est configurée pour ce compte.";
+                TempData["Info"] = "Aucune question de sécurité configurée.";
                 return RedirectToAction("ForgotPassword");
             }
 
             ViewBag.UserId = user.Id;
             ViewBag.Question = user.QuestionSecurite;
 
-            if (step.HasValue && step.Value == 4)
-            {
+            if (step == 4 || (HttpContext.Session.GetInt32("ResetQuestionVerifiedUserId") == user.Id))
                 ViewBag.Step = 4;
-                return View();
-            }
+            else
+                ViewBag.Step = 2;
 
-            var qOk = HttpContext.Session.GetInt32("ResetQuestionVerifiedUserId");
-            if (qOk != null && qOk.Value == user.Id)
-            {
-                ViewBag.Step = 4;
-                return View();
-            }
-
-            ViewBag.Step = 2;
             return View();
         }
 
@@ -380,12 +617,7 @@ namespace GestionHoraire.Controllers
             [FromServices] EmailService emailService)
         {
             var user = _context.Utilisateurs.FirstOrDefault(u => u.Id == userId);
-            if (user == null)
-            {
-                ViewBag.Error = "Informations invalides.";
-                ViewBag.Step = 2;
-                return View();
-            }
+            if (user == null) { ViewBag.Step = 2; return View(); }
 
             ViewBag.UserId = user.Id;
             ViewBag.Question = user.QuestionSecurite;
@@ -396,47 +628,28 @@ namespace GestionHoraire.Controllers
                 {
                     ViewBag.Error = "Réponse incorrecte.";
                     ViewBag.Step = 2;
-                    LogSecurity(user.Id, "PWD_RESET_Q_FAIL", null);
                     return View();
                 }
 
                 HttpContext.Session.SetInt32("ResetQuestionVerifiedUserId", user.Id);
-
                 CreateOtp(user.Id, "RESET", TimeSpan.FromMinutes(10));
                 var code = (string)HttpContext.Items["__otp_code"]!;
-                try
-                {
-                    emailService.Send(user.Email ?? "", "Code de réinitialisation", $"Votre code est : {code}\nValable 10 minutes.");
-                }
-                catch { }
-
-                TempData["Info"] = "Un code a été envoyé par email. Entrez-le pour continuer.";
+                try { emailService.Send(user.Email ?? "", "Code reset", $"Code : {code}"); } catch { }
                 ViewBag.Step = 4;
-                LogSecurity(user.Id, "PWD_RESET_CODE_SENT", null);
                 return View();
             }
 
             if (step == "4")
             {
-                var qOk = HttpContext.Session.GetInt32("ResetQuestionVerifiedUserId");
-                if (qOk == null || qOk.Value != user.Id)
-                {
-                    ViewBag.Error = "Veuillez répondre à la question avant.";
-                    ViewBag.Step = 2;
-                    return View();
-                }
-
+                if (HttpContext.Session.GetInt32("ResetQuestionVerifiedUserId") != user.Id) return RedirectToAction("ForgotPasswordReset", new { id = userId });
                 if (!VerifyOtp(user.Id, "RESET", (codeEmail ?? "").Trim(), out var otp))
                 {
-                    ViewBag.Error = "Code invalide ou expiré.";
+                    ViewBag.Error = "Code invalide.";
                     ViewBag.Step = 4;
-                    LogSecurity(user.Id, "PWD_RESET_CODE_FAIL", null);
                     return View();
                 }
-
                 otp!.UsedAt = DateTime.UtcNow;
                 _context.SaveChanges();
-
                 HttpContext.Session.SetInt32("ResetEmailVerifiedUserId", user.Id);
                 ViewBag.Step = 3;
                 return View();
@@ -444,31 +657,10 @@ namespace GestionHoraire.Controllers
 
             if (step == "3")
             {
-                var ok = HttpContext.Session.GetInt32("ResetEmailVerifiedUserId");
-                if (ok == null || ok.Value != user.Id)
+                if (HttpContext.Session.GetInt32("ResetEmailVerifiedUserId") != user.Id) return RedirectToAction("ForgotPasswordReset", new { id = userId, step = 4 });
+                if (nouveauMotDePasse != confirmerMotDePasse || !MotDePasseValide(nouveauMotDePasse))
                 {
-                    ViewBag.Error = "Veuillez valider le code email avant.";
-                    ViewBag.Step = 4;
-                    return View();
-                }
-
-                if (nouveauMotDePasse != confirmerMotDePasse)
-                {
-                    ViewBag.Error = "La confirmation ne correspond pas.";
-                    ViewBag.Step = 3;
-                    return View();
-                }
-
-                if (!MotDePasseValide(nouveauMotDePasse))
-                {
-                    ViewBag.Error = "Mot de passe non conforme.";
-                    ViewBag.Step = 3;
-                    return View();
-                }
-
-                if (VerifierMotDePasseSHA256AvecSalt(nouveauMotDePasse, user.MotDePasseSalt, user.MotDePasseHash))
-                {
-                    ViewBag.Error = "Le nouveau mot de passe doit être différent de l'ancien.";
+                    ViewBag.Error = "Mot de passe invalide ou non conforme.";
                     ViewBag.Step = 3;
                     return View();
                 }
@@ -477,21 +669,12 @@ namespace GestionHoraire.Controllers
                 user.MotDePasseSalt = salt;
                 user.MotDePasseHash = CalculerSHA256AvecSalt(nouveauMotDePasse, salt);
                 user.EstMotDePasseProvisoire = false;
-
                 _context.SaveChanges();
 
-                try
-                {
-                    emailService.Send(user.Email ?? "", "Mot de passe réinitialisé", "Votre mot de passe a été réinitialisé.");
-                }
-                catch { }
-
-                LogSecurity(user.Id, "PWD_RESET_SUCCESS", null);
-
+                try { emailService.Send(user.Email ?? "", "Reset Password", "Mot de passe réinitialisé."); } catch { }
                 HttpContext.Session.Remove("ResetQuestionVerifiedUserId");
                 HttpContext.Session.Remove("ResetEmailVerifiedUserId");
-
-                TempData["Success"] = "Mot de passe réinitialisé. Vous pouvez vous connecter.";
+                TempData["Success"] = "Réinitialisé avec succès.";
                 return RedirectToAction("Index");
             }
 
@@ -499,43 +682,19 @@ namespace GestionHoraire.Controllers
             return View();
         }
 
-        [HttpPost]
-        [ValidateAntiForgeryToken]
-        public IActionResult ResendResetCode(int userId, [FromServices] EmailService emailService)
+        private Utilisateur? GetCurrentSessionUser()
         {
-            var qOk = HttpContext.Session.GetInt32("ResetQuestionVerifiedUserId");
-            if (qOk == null || qOk.Value != userId)
-            {
-                TempData["Info"] = "Veuillez répondre à la question avant.";
-                return RedirectToAction("ForgotPasswordReset", new { id = userId });
-            }
-
-            CreateOtp(userId, "RESET", TimeSpan.FromMinutes(10));
-            var code = (string)HttpContext.Items["__otp_code"]!;
-            try
-            {
-                emailService.Send(
-                    _context.Utilisateurs.Where(u => u.Id == userId).Select(u => u.Email).FirstOrDefault() ?? "",
-                    "Nouveau code",
-                    $"Votre nouveau code est : {code}\nValable 10 minutes.");
-            }
-            catch { }
-
-            TempData["Info"] = "Nouveau code envoyé.";
-            return RedirectToAction("ForgotPasswordReset", new { id = userId, step = 4 });
+            var userId = HttpContext.Session.GetInt32("UserId");
+            return userId == null ? null : _context.Utilisateurs.FirstOrDefault(u => u.Id == userId.Value);
         }
 
-        // =========================
-        // HELPERS
-        // =========================
         private void OpenFullSession(Utilisateur user)
         {
             HttpContext.Session.SetInt32("UserId", user.Id);
             HttpContext.Session.SetString("UserRole", (user.Role ?? "").Trim());
             HttpContext.Session.SetString("UserNom", user.Nom ?? "");
             HttpContext.Session.SetString("UserEmail", user.Email ?? "");
-            if (user.DepartementId.HasValue)
-                HttpContext.Session.SetInt32("DepartementId", user.DepartementId.Value);
+            if (user.DepartementId.HasValue) HttpContext.Session.SetInt32("DepartementId", user.DepartementId.Value);
         }
 
         private IActionResult RedirectSelonRole(string role)
@@ -550,212 +709,161 @@ namespace GestionHoraire.Controllers
             };
         }
 
-        private static string[] GetQuestionsSecurite() => new[]
-        {
-            "Quel est le nom de ta première école ?",
-            "Quel est le prénom de ta mère ?",
-            "Quel est le nom de ton premier animal ?",
-            "Dans quelle ville es-tu née ?",
-            "Quel est ton plat préféré ?"
-        };
+        private static string[] GetQuestionsSecurite() => new[] { "Nom de ta première école ?", "Prénom de ta mère ?", "Nom de ton premier animal ?", "Ville de naissance ?", "Plat préféré ?" };
 
         private void LogSecurity(int? userId, string action, string? details)
         {
-            _context.SecurityLogs.Add(new SecurityLog
-            {
-                UserId = userId,
-                Action = action,
-                Details = details,
-                IpAddress = HttpContext.Connection.RemoteIpAddress?.ToString(),
-                CreatedAt = DateTime.UtcNow
-            });
+            _context.SecurityLogs.Add(new SecurityLog { UserId = userId, Action = action, Details = details, IpAddress = HttpContext.Connection.RemoteIpAddress?.ToString(), CreatedAt = DateTime.UtcNow });
             _context.SaveChanges();
         }
 
-        private static bool MotDePasseValide(string motDePasse)
+        private static bool MotDePasseValide(string mdp)
         {
-            if (string.IsNullOrWhiteSpace(motDePasse) || motDePasse.Length < 8) return false;
-            bool hasUpper = motDePasse.Any(char.IsUpper);
-            bool hasLower = motDePasse.Any(char.IsLower);
-            bool hasDigit = motDePasse.Any(char.IsDigit);
-            bool hasSpecial = motDePasse.Any(ch => !char.IsLetterOrDigit(ch));
-            return hasUpper && hasLower && hasDigit && hasSpecial;
+            if (string.IsNullOrWhiteSpace(mdp) || mdp.Length < 8) return false;
+            return mdp.Any(char.IsUpper) && mdp.Any(char.IsLower) && mdp.Any(char.IsDigit) && mdp.Any(ch => !char.IsLetterOrDigit(ch));
         }
 
-        private static bool VerifierMotDePasseSHA256AvecSalt(string motDePasse, Guid saltGuid, byte[] hashStocke)
+        private static bool VerifierMotDePasseSHA256AvecSalt(string mdp, Guid salt, byte[] hash)
         {
-            if (hashStocke == null) return false;
-
-            // Diagnostic: voir la longueur réelle après conversion potentielle
-            if (hashStocke.Length == 66)
-            {
-                try
-                {
-                    string hex = Encoding.UTF8.GetString(hashStocke);
-                    // Gère \x ou \\x (selon comment l'encodage a interprété le backslash)
-                    if (hex.StartsWith(@"\x") || hex.StartsWith("\\x")) 
-                    {
-                        hashStocke = Convert.FromHexString(hex.Substring(2));
-                        Console.WriteLine($"[DEBUG] Hash converted from Hex String. New length: {hashStocke.Length}");
-                    }
-                }
-                catch (Exception ex)
-                {
-                    Console.WriteLine($"[DEBUG] Error converting hex string: {ex.Message}");
-                }
-            }
-
-            byte[] hashCalcule = CalculerSHA256AvecSalt(motDePasse, saltGuid);
-
-            if (hashCalcule.Length != hashStocke.Length)
-            {
-                Console.WriteLine($"[DEBUG] Length mismatch: Calcule={hashCalcule.Length}, Stocke={hashStocke.Length}");
-                return false;
-            }
-
-            return CryptographicOperations.FixedTimeEquals(hashCalcule, hashStocke);
+            if (hash == null) return false;
+            return CryptographicOperations.FixedTimeEquals(CalculerSHA256AvecSalt(mdp, salt), hash);
         }
 
-        private static byte[] CalculerSHA256AvecSalt(string motDePasse, Guid saltGuid)
+        private static byte[] CalculerSHA256AvecSalt(string mdp, Guid saltGuid)
         {
             byte[] salt = saltGuid.ToByteArray();
-            byte[] mdpBytes = Encoding.UTF8.GetBytes(motDePasse);
-
-            byte[] input = new byte[salt.Length + mdpBytes.Length];
+            byte[] bytes = Encoding.UTF8.GetBytes(mdp);
+            byte[] input = new byte[salt.Length + bytes.Length];
             Buffer.BlockCopy(salt, 0, input, 0, salt.Length);
-            Buffer.BlockCopy(mdpBytes, 0, input, salt.Length, mdpBytes.Length);
-
+            Buffer.BlockCopy(bytes, 0, input, salt.Length, bytes.Length);
             return SHA256.HashData(input);
         }
 
         private static bool VerifierReponseSecurite(Utilisateur user, string reponse)
         {
             if (user.ReponseSecuriteSalt == null || user.ReponseSecuriteHash == null) return false;
-            string normalized = (reponse ?? "").Trim().ToLowerInvariant();
-            byte[] hashCalcule = CalculerSHA256AvecSalt(normalized, user.ReponseSecuriteSalt.Value);
-            return CryptographicOperations.FixedTimeEquals(hashCalcule, user.ReponseSecuriteHash);
+            byte[] calc = CalculerSHA256AvecSalt((reponse ?? "").Trim().ToLowerInvariant(), user.ReponseSecuriteSalt.Value);
+            return CryptographicOperations.FixedTimeEquals(calc, user.ReponseSecuriteHash);
         }
 
-        // ===== OTP helpers =====
-        private static string Generate6DigitCode()
+        private bool RequiresTwoFactor(Utilisateur user) => UsesAuthenticator(user) || UsesEmailTwoFactor(user);
+        private bool UsesAuthenticator(Utilisateur user) => user.TwoFactorEnabled && string.Equals(user.TwoFactorProvider, TwoFactorProviderAuthenticator, StringComparison.OrdinalIgnoreCase) && !string.IsNullOrWhiteSpace(user.AuthenticatorSecretKey);
+        private bool UsesEmailTwoFactor(Utilisateur user) => user.TwoFactorEnabled && !UsesAuthenticator(user);
+        private string GetTwoFactorProvider(Utilisateur user) => UsesAuthenticator(user) ? TwoFactorProviderAuthenticator : TwoFactorProviderEmail;
+        private string GetTwoFactorProviderLabel(Utilisateur user) => UsesAuthenticator(user) ? "Application Authenticator" : (UsesEmailTwoFactor(user) ? "Code par email" : "Aucune");
+        private string GetAuthenticatorIssuer() => "GestionHoraire";
+        private string GetAuthenticatorAccountLabel(Utilisateur user) => user.Email ?? user.Nom ?? $"User-{user.Id}";
+
+        private ManageTwoFactorViewModel BuildManageTwoFactorViewModel(Utilisateur user, IReadOnlyList<string>? recoveryCodes = null)
         {
-            var bytes = new byte[4];
-            RandomNumberGenerator.Fill(bytes);
-            int val = BitConverter.ToInt32(bytes, 0) & 0x7FFFFFFF;
-            return (val % 1000000).ToString("D6");
+            RemoveExpiredTrustedDevices(user.Id);
+            var pendingSecret = GetPendingAuthenticatorSecret();
+            var isSetupInProgress = !string.IsNullOrWhiteSpace(pendingSecret);
+            return new ManageTwoFactorViewModel
+            {
+                IsTwoFactorEnabled = user.TwoFactorEnabled,
+                IsAuthenticatorConfigured = UsesAuthenticator(user),
+                IsEmailTwoFactorEnabled = UsesEmailTwoFactor(user),
+                IsSetupInProgress = isSetupInProgress,
+                ProviderLabel = GetTwoFactorProviderLabel(user),
+                ManualEntryKey = isSetupInProgress ? _twoFactorService.FormatSharedKey(pendingSecret!) : null,
+                QrCodeSvg = isSetupInProgress ? BuildAuthenticatorQrCodeSvg(user, pendingSecret!) : null,
+                AccountLabel = GetAuthenticatorAccountLabel(user),
+                RemainingBackupCodes = CountRemainingBackupCodes(user.Id),
+                RecoveryCodes = recoveryCodes ?? Array.Empty<string>(),
+                TrustedDevices = BuildTrustedDeviceViewModels(user.Id)
+            };
         }
+
+        private string BuildAuthenticatorQrCodeSvg(Utilisateur user, string secret) => _twoFactorService.GenerateQrCodeSvg(_twoFactorService.BuildOtpAuthUri(GetAuthenticatorIssuer(), GetAuthenticatorAccountLabel(user), secret));
+
+        private IReadOnlyList<TrustedDeviceViewModel> BuildTrustedDeviceViewModels(int userId)
+        {
+            var cookieId = GetTrustedDeviceCookieId();
+            return _context.TrustedDevices.Where(td => td.UserId == userId && td.ExpiresAt > DateTime.UtcNow).OrderByDescending(td => td.CreatedAt).Select(td => new TrustedDeviceViewModel { Id = td.Id, DeviceName = td.DeviceName ?? "Appareil Web", CreatedAt = td.CreatedAt, ExpiresAt = td.ExpiresAt, IsCurrentDevice = cookieId.HasValue && td.Id == cookieId.Value }).ToList();
+        }
+
+        private static string GetSecurityLogLabel(string action) => action switch { "LOGIN_SUCCESS" => "Connexion réussie", "LOGIN_FAILED" => "Échec de connexion", "LOGIN_LOCKED" => "Bloqué", "2FA_SUCCESS" => "2FA réussi", "2FA_FAIL" => "2FA échoué", _ => action };
+
+        private VerifyTwoFactorViewModel BuildVerifyTwoFactorViewModel(Utilisateur user)
+        {
+            if (UsesAuthenticator(user)) return new VerifyTwoFactorViewModel { ProviderLabel = "Authenticator", Instruction = "Entrez le code à 6 chiffres.", InputLabel = "Code", AllowResend = false };
+            return new VerifyTwoFactorViewModel { ProviderLabel = "Code par email", Instruction = "Entrez le code reçu par email.", InputLabel = "Code", AllowResend = true };
+        }
+
+        private string? GetPendingAuthenticatorSecret() => HttpContext.Session.GetString(PendingAuthenticatorSecretSessionKey);
+        private void SetPendingAuthenticatorSecret(string secret) => HttpContext.Session.SetString(PendingAuthenticatorSecretSessionKey, secret);
+        private void ClearPendingAuthenticatorSecret() => HttpContext.Session.Remove(PendingAuthenticatorSecretSessionKey);
+        private IReadOnlyList<string> ReadRecoveryCodesFromTempData() { if (!TempData.TryGetValue(RecoveryCodesTempDataKey, out var val) || val == null) return Array.Empty<string>(); return JsonSerializer.Deserialize<string[]>(val.ToString()!) ?? Array.Empty<string>(); }
+        private int CountRemainingBackupCodes(int userId) => _context.BackupCodes.Count(b => b.UserId == userId && b.UsedAt == null && b.RevokedAt == null);
+        private List<string> ReplaceBackupCodes(int userId, int count = 8) { RevokeBackupCodes(userId); var codes = _twoFactorService.GenerateBackupCodes(count).ToList(); foreach (var c in codes) { var s = Guid.NewGuid(); _context.BackupCodes.Add(new BackupCode { UserId = userId, CodeSalt = s, CodeHash = _twoFactorService.HashBackupCode(c, s), CreatedAt = DateTime.UtcNow }); } return codes; }
+        private void RevokeBackupCodes(int userId) { var olds = _context.BackupCodes.Where(b => b.UserId == userId && b.UsedAt == null && b.RevokedAt == null).ToList(); foreach (var c in olds) c.RevokedAt = DateTime.UtcNow; }
+        private bool TryUseBackupCode(int userId, string code) { var norm = _twoFactorService.NormalizeBackupCode(code); if (string.IsNullOrEmpty(norm)) return false; var olds = _context.BackupCodes.Where(b => b.UserId == userId && b.UsedAt == null && b.RevokedAt == null).ToList(); foreach (var bc in olds) { if (CryptographicOperations.FixedTimeEquals(_twoFactorService.HashBackupCode(norm, bc.CodeSalt), bc.CodeHash)) { bc.UsedAt = DateTime.UtcNow; _context.SaveChanges(); return true; } } return false; }
+        private static string Generate6DigitCode() { var bytes = new byte[4]; RandomNumberGenerator.Fill(bytes); return ((BitConverter.ToInt32(bytes, 0) & 0x7FFFFFFF) % 1000000).ToString("D6"); }
 
         private EmailOtp CreateOtp(int userId, string purpose, TimeSpan ttl)
         {
-            var olds = _context.EmailOtps
-                .Where(o => o.UserId == userId && o.Purpose == purpose && o.UsedAt == null)
-                .ToList();
-
-            foreach (var o in olds)
-                o.UsedAt = DateTime.UtcNow;
-
+            var olds = _context.EmailOtps.Where(o => o.UserId == userId && o.Purpose == purpose && o.UsedAt == null).ToList();
+            foreach (var o in olds) o.UsedAt = DateTime.UtcNow;
             string code = Generate6DigitCode();
-            Guid salt = Guid.NewGuid();
-            byte[] hash = CalculerSHA256AvecSalt(code, salt);
-
-            var otp = new EmailOtp
-            {
-                UserId = userId,
-                Purpose = purpose,
-                CodeSalt = salt,
-                CodeHash = hash,
-                ExpiresAt = DateTime.UtcNow.Add(ttl),
-                LastSentAt = DateTime.UtcNow,
-                CreatedAt = DateTime.UtcNow
-            };
-
+            Guid s = Guid.NewGuid();
+            var otp = new EmailOtp { UserId = userId, Purpose = purpose, CodeSalt = s, CodeHash = CalculerSHA256AvecSalt(code, s), ExpiresAt = DateTime.UtcNow.Add(ttl), LastSentAt = DateTime.UtcNow, CreatedAt = DateTime.UtcNow };
             _context.EmailOtps.Add(otp);
             _context.SaveChanges();
-
             HttpContext.Items["__otp_code"] = code;
             return otp;
         }
 
         private bool VerifyOtp(int userId, string purpose, string code, out EmailOtp? otp)
         {
-            otp = _context.EmailOtps
-                .Where(o => o.UserId == userId && o.Purpose == purpose && o.UsedAt == null)
-                .OrderByDescending(o => o.CreatedAt)
-                .FirstOrDefault();
-
-            if (otp == null) return false;
-            if (otp.ExpiresAt <= DateTime.UtcNow) return false;
-            if (otp.Attempts >= 5) return false;
-
-            otp.Attempts += 1;
+            otp = _context.EmailOtps.Where(o => o.UserId == userId && o.Purpose == purpose && o.UsedAt == null).OrderByDescending(o => o.CreatedAt).FirstOrDefault();
+            if (otp == null || otp.ExpiresAt <= DateTime.UtcNow || otp.Attempts >= 5) return false;
+            otp.Attempts++;
             _context.SaveChanges();
-
-            byte[] calc = CalculerSHA256AvecSalt(code, otp.CodeSalt);
-            return CryptographicOperations.FixedTimeEquals(calc, otp.CodeHash);
+            return CryptographicOperations.FixedTimeEquals(CalculerSHA256AvecSalt(code, otp.CodeSalt), otp.CodeHash);
         }
 
         private void Send2FACode(Utilisateur user, EmailService? emailService)
         {
             emailService ??= HttpContext.RequestServices.GetService(typeof(EmailService)) as EmailService;
-
             CreateOtp(user.Id, "2FA", TimeSpan.FromMinutes(10));
             var code = (string)HttpContext.Items["__otp_code"]!;
-
-            try
-            {
-                emailService?.Send(user.Email ?? "", "Code de connexion (2FA)", $"Votre code est : {code}\nValable 10 minutes.");
-            }
-            catch { }
-
+            try { emailService?.Send(user.Email ?? "", "Verification Code", $"Code: {code}"); } catch { }
             LogSecurity(user.Id, "2FA_CODE_SENT", null);
         }
 
-        // ===== Trusted device =====
-        private void CreateTrustedDevice(int userId, string deviceName)
+        private string BuildTrustedDeviceName()
         {
-            var token = Guid.NewGuid().ToString("N") + Guid.NewGuid().ToString("N");
+            var ua = Request.Headers["User-Agent"].ToString();
+            return ua.Contains("Chrome") ? "Chrome" : (ua.Contains("Firefox") ? "Firefox" : "Navigateur Web");
+        }
+
+        private void CreateTrustedDevice(int userId, string name)
+        {
+            var token = Guid.NewGuid().ToString("N");
             var salt = Guid.NewGuid();
-            var hash = CalculerSHA256AvecSalt(token, salt);
-
-            var td = new TrustedDevice
-            {
-                UserId = userId,
-                DeviceName = deviceName,
-                TokenSalt = salt,
-                TokenHash = hash,
-                ExpiresAt = DateTime.UtcNow.Add(TRUST_DURATION),
-                CreatedAt = DateTime.UtcNow
-            };
-
+            var td = new TrustedDevice { UserId = userId, DeviceName = name, TokenSalt = salt, TokenHash = CalculerSHA256AvecSalt(token, salt), ExpiresAt = DateTime.UtcNow.Add(TRUST_DURATION), CreatedAt = DateTime.UtcNow };
             _context.TrustedDevices.Add(td);
             _context.SaveChanges();
+            Response.Cookies.Append(TRUST_COOKIE, $"{td.Id}:{token}", new CookieOptions { HttpOnly = true, Secure = Request.IsHttps, SameSite = SameSiteMode.Lax, Expires = DateTimeOffset.UtcNow.Add(TRUST_DURATION) });
+        }
 
-            Response.Cookies.Append(TRUST_COOKIE, $"{td.Id}:{token}", new CookieOptions
-            {
-                HttpOnly = true,
-                Secure = true,
-                SameSite = SameSiteMode.Lax,
-                Expires = DateTimeOffset.UtcNow.Add(TRUST_DURATION)
-            });
+        private void ClearTrustedDevices(int userId) { var devs = _context.TrustedDevices.Where(td => td.UserId == userId).ToList(); _context.TrustedDevices.RemoveRange(devs); Response.Cookies.Delete(TRUST_COOKIE); }
+        private int? GetTrustedDeviceCookieId() { if (!Request.Cookies.TryGetValue(TRUST_COOKIE, out var val) || string.IsNullOrEmpty(val)) return null; var parts = val.Split(':'); return int.TryParse(parts[0], out var id) ? id : null; }
+
+        private void RemoveExpiredTrustedDevices(int userId)
+        {
+            var olds = _context.TrustedDevices.Where(td => td.UserId == userId && td.ExpiresAt <= DateTime.UtcNow).ToList();
+            if (olds.Count > 0) { _context.TrustedDevices.RemoveRange(olds); _context.SaveChanges(); }
         }
 
         private bool IsTrustedDevice(int userId)
         {
-            if (!Request.Cookies.TryGetValue(TRUST_COOKIE, out var value)) return false;
-            if (string.IsNullOrWhiteSpace(value)) return false;
-
-            var parts = value.Split(':');
-            if (parts.Length != 2) return false;
-
-            if (!int.TryParse(parts[0], out var id)) return false;
-            var token = parts[1];
-
+            if (!Request.Cookies.TryGetValue(TRUST_COOKIE, out var val) || string.IsNullOrEmpty(val)) return false;
+            var parts = val.Split(':'); if (parts.Length != 2 || !int.TryParse(parts[0], out var id)) return false;
             var td = _context.TrustedDevices.FirstOrDefault(x => x.Id == id && x.UserId == userId);
-            if (td == null) return false;
-            if (td.ExpiresAt <= DateTime.UtcNow) return false;
-
-            var calc = CalculerSHA256AvecSalt(token, td.TokenSalt);
-            return CryptographicOperations.FixedTimeEquals(calc, td.TokenHash);
+            if (td == null || td.ExpiresAt <= DateTime.UtcNow) return false;
+            return CryptographicOperations.FixedTimeEquals(CalculerSHA256AvecSalt(parts[1], td.TokenSalt), td.TokenHash);
         }
     }
 }

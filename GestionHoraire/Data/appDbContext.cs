@@ -21,6 +21,7 @@ namespace GestionHoraire.Data
         public DbSet<EmailOtp> EmailOtps { get; set; }
         public DbSet<SecurityLog> SecurityLogs { get; set; }
         public DbSet<TrustedDevice> TrustedDevices { get; set; }
+        public DbSet<BackupCode> BackupCodes { get; set; }
 
         protected override void OnModelCreating(ModelBuilder modelBuilder)
         {
@@ -31,7 +32,21 @@ namespace GestionHoraire.Data
                 .HasConversion<int>();
 
             // PostgreSQL gère nativement le type Guid comme 'uuid'
-            // Pas besoin de spécifier le type de colonne
+            // Les configurations spécifiques à SQL Server (uniqueidentifier) ne sont pas nécessaires
+            
+            modelBuilder.Entity<Utilisateur>()
+                .Property(u => u.TwoFactorProvider)
+                .HasMaxLength(32);
+
+            modelBuilder.Entity<Utilisateur>()
+                .Property(u => u.AuthenticatorSecretKey)
+                .HasMaxLength(128);
+
+            modelBuilder.Entity<BackupCode>()
+                .HasOne(b => b.User)
+                .WithMany(u => u.BackupCodes)
+                .HasForeignKey(b => b.UserId)
+                .OnDelete(DeleteBehavior.Cascade);
         }
     }
 }

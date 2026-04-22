@@ -1,18 +1,78 @@
+@using Microsoft.AspNetCore.Http
+@{
+    var currentUserId = Context.Session.GetInt32("UserId");
+    var currentRole = Context.Session.GetString("UserRole");
+    var userNom = Context.Session.GetString("UserNom");
+}
 <!DOCTYPE html>
-<html lang="en">
+<html lang="fr">
 <head>
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>@ViewData["Title"] - GestionHoraire</title>
-    <script type="importmap"></script>
     <link rel="stylesheet" href="~/lib/bootstrap/dist/css/bootstrap.min.css" />
     <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.min.css">
     <link rel="stylesheet" href="~/css/site.css" asp-append-version="true" />
     <link rel="stylesheet" href="~/GestionHoraire.styles.css" asp-append-version="true" />
+    <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    <style>
+        :root {
+            --primary-indigo: #4f46e5;
+            --primary-violet: #7c3aed;
+            --premium-gradient: linear-gradient(135deg, var(--primary-indigo), var(--primary-violet));
+            --surface-glass: rgba(255, 255, 255, 0.85);
+        }
+
+        body {
+            font-family: 'Outfit', sans-serif;
+            background-color: #f8fafc;
+            color: #1e293b;
+        }
+
+        .navbar {
+            background: var(--surface-glass) !important;
+            backdrop-filter: blur(12px);
+            border-bottom: 1px solid rgba(0,0,0,0.05) !important;
+            padding: 0.75rem 1rem;
+        }
+
+        .navbar-brand {
+            font-weight: 700;
+            background: var(--premium-gradient);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            font-size: 1.5rem;
+        }
+
+        .nav-link {
+            font-weight: 500;
+            color: #64748b !important;
+            transition: all 0.3s ease;
+            padding: 0.5rem 1rem !important;
+            border-radius: 8px;
+        }
+
+        .nav-link:hover {
+            color: var(--primary-indigo) !important;
+            background: rgba(79, 70, 229, 0.05);
+        }
+
+        .nav-link.active-link {
+            color: var(--primary-indigo) !important;
+            background: rgba(79, 70, 229, 0.1);
+        }
+
+        .btn-logout {
+            border-radius: 8px;
+            font-weight: 600;
+            padding: 0.5rem 1.25rem;
+            transition: all 0.3s ease;
+        }
+    </style>
 </head>
 <body>
     <header>
-        <nav class="navbar navbar-expand-sm navbar-toggleable-sm navbar-light bg-white border-bottom box-shadow mb-3">
+        <nav class="navbar navbar-expand-sm navbar-toggleable-sm navbar-light border-bottom box-shadow mb-3 sticky-top">
             <div class="container-fluid">
                 <a class="navbar-brand" asp-area="" asp-controller="Home" asp-action="Index">GestionHoraire</a>
                 <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target=".navbar-collapse" aria-controls="navbarSupportedContent"
@@ -22,71 +82,86 @@
                 <div class="navbar-collapse collapse d-sm-inline-flex justify-content-between">
                     <ul class="navbar-nav flex-grow-1">
                         <li class="nav-item">
-                            <a class="nav-link text-dark" asp-controller="Home" asp-action="Index">Accueil</a>
+                            <a class="nav-link" asp-controller="Home" asp-action="Index"><i class="bi bi-house-door me-1"></i> Accueil</a>
                         </li>
-                        @if (Context.Session.GetInt32("UserId") != null)
-                        {
-                            var role = Context.Session.GetString("UserRole");
-                            var userNom = Context.Session.GetString("UserNom");
 
-                            if (role == "Administrateur")
+                        @if (currentUserId != null)
+                        {
+                            if (currentRole == "Administrateur")
                             {
                                 <li class="nav-item">
-                                    <a class="nav-link text-primary fw-bold" asp-controller="Admin" asp-action="Dashboard"><i class="bi bi-speedometer2"></i> Admin</a>
+                                    <a class="nav-link text-primary" asp-controller="Admin" asp-action="Dashboard"><i class="bi bi-speedometer2"></i> Admin</a>
                                 </li>
                             }
-                            else if (role == "ResponsableDépartement")
+                            else if (currentRole == "ResponsableDépartement")
                             {
                                 <li class="nav-item dropdown">
                                     <a class="nav-link dropdown-toggle text-primary fw-bold" href="#" id="navbarDropdownResponsable" role="button" data-bs-toggle="dropdown" aria-expanded="false">
                                         <i class="bi bi-mortarboard-fill"></i> Ma Gestion
                                     </a>
-                                    <ul class="dropdown-menu shadow border-0" aria-labelledby="navbarDropdownResponsable">
-                                        <li><a class="dropdown-item" asp-controller="Responsable" asp-action="Index"><i class="bi bi-grid-fill me-2"></i>Tableau de bord</a></li>
+                                    <ul class="dropdown-menu shadow border-0 p-2" aria-labelledby="navbarDropdownResponsable">
+                                        <li><a class="dropdown-item rounded" asp-controller="Responsable" asp-action="Index"><i class="bi bi-grid-fill me-2"></i>Tableau de bord</a></li>
                                         <li><hr class="dropdown-divider"></li>
-                                        <li><a class="dropdown-item" asp-controller="Responsable" asp-action="Profs"><i class="bi bi-people-fill me-2"></i>Équipe Pédagogique</a></li>
-                                        <li><a class="dropdown-item" asp-controller="Groupes" asp-action="Index"><i class="bi bi-mortarboard me-2"></i>Groupes d'études</a></li>
-                                        <li><a class="dropdown-item" asp-controller="Affectations" asp-action="Index"><i class="bi bi-node-plus-fill me-2"></i>Affectations</a></li>
-                                        <li><a class="dropdown-item" asp-controller="Planning" asp-action="Index"><i class="bi bi-calendar3 me-2"></i>Plannings</a></li>
-                                        <li><a class="dropdown-item" asp-controller="Salles" asp-action="Index"><i class="bi bi-building-fill me-2"></i>Locaux / Labos</a></li>
-                                        <li><a class="dropdown-item" asp-controller="Responsable" asp-action="Demandes"><i class="bi bi-chat-left-text-fill me-2"></i>Demandes</a></li>
+                                        <li><a class="dropdown-item rounded" asp-controller="Responsable" asp-action="Profs"><i class="bi bi-people-fill me-2"></i>Équipe Pédagogique</a></li>
+                                        <li><a class="dropdown-item rounded" asp-controller="Groupes" asp-action="Index"><i class="bi bi-mortarboard me-2"></i>Groupes</a></li>
+                                        <li><a class="dropdown-item rounded" asp-controller="Affectations" asp-action="Index"><i class="bi bi-node-plus-fill me-2"></i>Affectations</a></li>
+                                        <li><a class="dropdown-item rounded" asp-controller="Planning" asp-action="Index"><i class="bi bi-calendar3 me-2"></i>Plannings</a></li>
+                                        <li><a class="dropdown-item rounded" asp-controller="Salles" asp-action="Index"><i class="bi bi-building-fill me-2"></i>Salles</a></li>
+                                        <li><a class="dropdown-item rounded" asp-controller="Responsable" asp-action="Demandes"><i class="bi bi-chat-left-text-fill me-2"></i>Demandes</a></li>
                                     </ul>
                                 </li>
                             }
-                            else if (role == "Professeur")
+                            else if (currentRole == "Professeur")
                             {
                                 <li class="nav-item">
-                                    <a class="nav-link text-primary fw-bold" asp-controller="Professeur" asp-action="Index"><i class="bi bi-person-fill"></i> Mon Espace</a>
+                                    <a class="nav-link text-primary" asp-controller="Professeur" asp-action="Index"><i class="bi bi-person-fill"></i> Mon Espace</a>
                                 </li>
                             }
 
-                            <li class="nav-item">
-                                <a class="nav-link text-danger" asp-controller="Login" asp-action="Logout">Déconnexion (@userNom)</a>
-                            </li>
-                        }
-                        else
-                        {
-                            <li class="nav-item">
-                                <a class="nav-link text-dark fw-bold" asp-controller="Login" asp-action="Index">S'identifier</a>
+                            <!-- Communs à tous les connectés -->
+                            <li class="nav-item dropdown">
+                                <a class="nav-link dropdown-toggle" href="#" id="navbarDropdownSecurity" role="button" data-bs-toggle="dropdown" aria-expanded="false">
+                                    <i class="bi bi-shield-lock-fill"></i> Sécurité
+                                </a>
+                                <ul class="dropdown-menu shadow border-0 p-2" aria-labelledby="navbarDropdownSecurity">
+                                    <li><a class="dropdown-item rounded" asp-controller="Login" asp-action="Manage2FA"><i class="bi bi-key-fill me-2"></i>Double Authentification</a></li>
+                                    <li><a class="dropdown-item rounded" asp-controller="Login" asp-action="SecurityHistory"><i class="bi bi-clock-history me-2"></i>Historique Sécurité</a></li>
+                                </ul>
                             </li>
                         }
                     </ul>
+
+                    @if (currentUserId != null)
+                    {
+                        <div class="d-flex align-items-center">
+                            <span class="text-muted small me-3 d-none d-lg-inline">Connecté : <strong>@userNom</strong></span>
+                            <a class="btn btn-outline-danger btn-sm btn-logout" asp-controller="Login" asp-action="Logout">
+                                <i class="bi bi-box-arrow-right"></i> Déconnexion
+                            </a>
+                        </div>
+                    }
+                    else
+                    {
+                        <a class="btn btn-primary btn-sm px-4" asp-controller="Login" asp-action="Index">S'identifier</a>
+                    }
                 </div>
             </div>
         </nav>
     </header>
+
     <div class="container">
         <main role="main" class="pb-3">
             @RenderBody()
         </main>
     </div>
 
-    <footer class="border-top footer text-muted">
-        <div class="container">
-            &copy; 2026 - GestionHoraire - <a asp-area="" asp-controller="Home" asp-action="Privacy">Privacy</a>
+    <footer class="border-top footer text-muted mt-5 py-3 bg-white">
+        <div class="container text-center">
+            &copy; 2026 - <strong>GestionHoraire</strong> - <a asp-area="" asp-controller="Home" asp-action="Privacy" class="text-decoration-none">Confidentialité</a>
         </div>
     </footer>
-    <script src="~/lib/jquery/dist/jquery.min.js"></script>
+
+    <script src="~/lib/jquery/dist/jquery.min.min.js"></script>
     <script src="~/lib/bootstrap/dist/js/bootstrap.bundle.min.js"></script>
     <script src="~/js/site.js" asp-append-version="true"></script>
     @await RenderSectionAsync("Scripts", required: false)

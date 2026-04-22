@@ -1,4 +1,4 @@
-﻿@using Microsoft.AspNetCore.Http
+@using Microsoft.AspNetCore.Http
 @using GestionHoraire.Data
 @inject AppDbContext Db
 
@@ -10,6 +10,8 @@
     var userNom = Context.Session.GetString("UserNom");
 
     bool twoFactorEnabled = false;
+    bool authenticatorConfigured = false;
+    string twoFactorLabel = "2FA désactivé";
 
     if (userId != null)
     {
@@ -17,6 +19,15 @@
         if (currentUser != null)
         {
             twoFactorEnabled = currentUser.TwoFactorEnabled;
+            authenticatorConfigured = currentUser.TwoFactorEnabled &&
+                currentUser.TwoFactorProvider == "Authenticator" &&
+                !string.IsNullOrWhiteSpace(currentUser.AuthenticatorSecretKey);
+
+            twoFactorLabel = authenticatorConfigured
+                ? "Authenticator activé"
+                : twoFactorEnabled
+                    ? "2FA email activé"
+                    : "2FA désactivé";
         }
     }
 
@@ -34,7 +45,7 @@
     @if (TempData["Success"] != null)
     {
         <div class="alert alert-success alert-dismissible fade show rounded-4 shadow-sm mb-4" role="alert">
-            @TempData["Success"]
+            <i class="bi bi-check-circle-fill me-2"></i> @TempData["Success"]
             <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Fermer"></button>
         </div>
     }
@@ -42,7 +53,7 @@
     @if (TempData["Info"] != null)
     {
         <div class="alert alert-info alert-dismissible fade show rounded-4 shadow-sm mb-4" role="alert">
-            @TempData["Info"]
+            <i class="bi bi-info-circle-fill me-2"></i> @TempData["Info"]
             <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Fermer"></button>
         </div>
     }
@@ -50,107 +61,119 @@
     @if (TempData["Error"] != null)
     {
         <div class="alert alert-danger alert-dismissible fade show rounded-4 shadow-sm mb-4" role="alert">
-            @TempData["Error"]
+            <i class="bi bi-exclamation-triangle-fill me-2"></i> @TempData["Error"]
             <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Fermer"></button>
         </div>
     }
 
-    <div class="p-4 p-md-5 mb-5 bg-white rounded-4 shadow-sm border">
-        <div class="row align-items-center g-4">
+    <div class="p-4 p-md-5 mb-5 bg-white rounded-4 shadow-sm border position-relative overflow-hidden">
+        <div class="position-absolute top-0 end-0 p-3 opacity-10">
+            <i class="bi bi-calendar3" style="font-size: 10rem;"></i>
+        </div>
+
+        <div class="row align-items-center g-4 position-relative">
             <div class="col-lg-7">
-                <span class="badge bg-primary-subtle text-primary mb-3 px-3 py-2 rounded-pill">
-                    Plateforme académique
+                <span class="badge bg-primary-subtle text-primary mb-3 px-3 py-2 rounded-pill fw-bold">
+                    PLATEFORME ACADÉMIQUE PREMIUM
                 </span>
 
-                <h1 class="fw-bold mb-3" style="font-size:2.5rem;">Gestion Horaire</h1>
+                <h1 class="fw-bold mb-3 display-4 text-dark">Gestion Horaire</h1>
 
-                <p class="text-muted fs-5 mb-4">
-                    Plateforme de gestion des cours, affectations, salles et disponibilités des professeurs.
+                <p class="text-muted fs-5 mb-4 pe-lg-5">
+                    Plateforme intelligente pour l'organisation des cours, le suivi des professeurs et l'optimisation des ressources académiques.
                 </p>
 
                 @if (userId != null)
                 {
                     <div class="d-flex flex-wrap align-items-center gap-2 mb-4">
-                        <span class="badge bg-success px-3 py-2 rounded-pill">Connectée</span>
-                        <span class="text-secondary">
-                            Bonjour, <strong>@userNom</strong> <span class="text-muted">(@role)</span>
+                        <span class="badge bg-success-subtle text-success border border-success-subtle px-3 py-2 rounded-pill">
+                             <i class="bi bi-person-check-fill me-1"></i> Session active
+                        </span>
+                        <span class="text-secondary ms-2">
+                             <strong>@userNom</strong> <span class="badge bg-light text-dark border ms-1">@role</span>
                         </span>
 
-                        @if (twoFactorEnabled)
-                        {
-                            <span class="badge bg-primary px-3 py-2 rounded-pill">
-                                2FA activé
-                            </span>
-                        }
-                        else
-                        {
-                            <span class="badge bg-secondary px-3 py-2 rounded-pill">
-                                2FA désactivé
-                            </span>
-                        }
+                        <span class="badge @(twoFactorEnabled ? "bg-primary" : "bg-warning text-dark") px-3 py-2 rounded-pill ms-2">
+                            <i class="bi bi-shield-lock-fill me-1"></i> @twoFactorLabel
+                        </span>
                     </div>
 
                     <div class="d-flex flex-wrap gap-2">
-                        <a class="btn btn-primary px-4"
+                        <a class="btn btn-primary px-4 py-2 fw-semibold shadow-sm"
                            asp-controller="@dashboardController"
                            asp-action="Index">
-                            Continuer vers mon tableau de bord
+                            <i class="bi bi-speedometer2 me-2"></i> Mon Tableau de bord
                         </a>
 
-                        <form asp-controller="Login" asp-action="Toggle2FA" method="post" class="d-inline">
-                            @Html.AntiForgeryToken()
+                        <a class="btn btn-outline-primary px-4 py-2 fw-semibold"
+                           asp-controller="Login"
+                           asp-action="Manage2FA">
+                            <i class="bi bi-key-fill me-2"></i> Sécurité 2FA
+                        </a>
 
-                            @if (twoFactorEnabled)
-                            {
-                                <button type="submit" class="btn btn-outline-danger px-4">
-                                    Désactiver le 2FA
-                                </button>
-                            }
-                            else
-                            {
-                                <button type="submit" class="btn btn-outline-primary px-4">
-                                    Activer le 2FA
-                                </button>
-                            }
-                        </form>
+                        <a class="btn btn-outline-secondary px-4 py-2 fw-semibold"
+                           asp-controller="Login"
+                           asp-action="SecurityHistory">
+                            <i class="bi bi-clock-history me-2"></i> Historique
+                        </a>
 
-                        <a class="btn btn-outline-secondary px-4"
+                        <a class="btn btn-link text-danger px-4 py-2 fw-semibold text-decoration-none"
                            asp-controller="Login"
                            asp-action="Logout">
-                            Se déconnecter
+                            Déconnexion
                         </a>
                     </div>
                 }
                 else
                 {
-                    <div class="d-flex flex-wrap gap-2">
-                        <a class="btn btn-primary btn-lg px-4"
+                    <div class="d-flex flex-wrap gap-3">
+                        <a class="btn btn-primary btn-lg px-5 py-3 fw-bold shadow"
                            asp-controller="Login"
                            asp-action="Index">
-                            Se connecter
+                            Se connecter <i class="bi bi-arrow-right ms-2"></i>
                         </a>
 
-                        <a class="btn btn-outline-secondary btn-lg px-4"
+                        <a class="btn btn-outline-secondary btn-lg px-4 py-3 fw-semibold text-dark"
+                           style="background: white;"
                            asp-controller="Home"
                            asp-action="Privacy">
-                            Politique de confidentialité
+                            Confidentialité
                         </a>
                     </div>
                 }
             </div>
 
             <div class="col-lg-5">
-                <div class="rounded-4 border bg-light p-4 h-100">
-                    <h5 class="fw-bold mb-3">Espace sécurisé</h5>
-                    <p class="text-muted mb-3">
-                        Accès selon le rôle, gestion des disponibilités, sécurité de connexion et suivi des actions sensibles.
+                <div class="rounded-4 border bg-light p-4 h-100 shadow-sm">
+                    <h5 class="fw-bold mb-3 d-flex align-items-center">
+                        <i class="bi bi-shield-check text-primary me-2 fs-4"></i> Sécurité Avancée
+                    </h5>
+                    <p class="text-muted mb-4 small">
+                        Nous protégeons vos données académiques avec des standards de sécurité modernes.
                     </p>
 
-                    <div class="d-flex flex-column gap-2">
-                        <div class="bg-white border rounded-3 px-3 py-2">Connexion sécurisée</div>
-                        <div class="bg-white border rounded-3 px-3 py-2">Réinitialisation du mot de passe</div>
-                        <div class="bg-white border rounded-3 px-3 py-2">Authentification à deux facteurs</div>
-                        <div class="bg-white border rounded-3 px-3 py-2">Gestion par rôle</div>
+                    <div class="d-flex flex-column gap-3">
+                        <div class="d-flex align-items-center bg-white border rounded-3 p-3 shadow-xs">
+                            <i class="bi bi-fingerprint text-primary me-3 fs-5"></i>
+                            <div>
+                                <div class="fw-bold small">Double Authentification</div>
+                                <div class="text-muted" style="font-size: 0.75rem;">TOTP & Codes de secours</div>
+                            </div>
+                        </div>
+                         <div class="d-flex align-items-center bg-white border rounded-3 p-3 shadow-xs">
+                            <i class="bi bi-journal-text text-primary me-3 fs-5"></i>
+                            <div>
+                                <div class="fw-bold small">Journal d'audit</div>
+                                <div class="text-muted" style="font-size: 0.75rem;">Historique complet des connexions</div>
+                            </div>
+                        </div>
+                        <div class="d-flex align-items-center bg-white border rounded-3 p-3 shadow-xs">
+                            <i class="bi bi-laptop text-primary me-3 fs-5"></i>
+                            <div>
+                                <div class="fw-bold small">Gestion des appareils</div>
+                                <div class="text-muted" style="font-size: 0.75rem;">Appareils de confiance</div>
+                            </div>
+                        </div>
                     </div>
                 </div>
             </div>
@@ -159,76 +182,59 @@
 
     <div class="row g-4 mb-5">
         <div class="col-md-4">
-            <div class="card h-100 border-0 shadow-sm rounded-4">
-                <div class="card-body p-4">
-                    <div class="mb-3 fs-3">📚</div>
+            <div class="card h-100 border-0 shadow-sm rounded-4 hover-lift translate-y-n2 transition-all">
+                <div class="card-body p-4 text-center">
+                    <div class="mb-3 bg-primary-subtle text-primary d-inline-flex p-3 rounded-circle fs-3 shadow-sm">
+                        <i class="bi bi-calendar-check"></i>
+                    </div>
                     <h5 class="card-title fw-bold">Gestion des cours</h5>
-                    <p class="card-text text-muted mb-0">
-                        Centraliser la liste des cours et associer professeur et salle de manière simple.
+                    <p class="card-text text-muted small">
+                        Centralisation complète de la structure pédagogique et des affectations.
                     </p>
                 </div>
             </div>
         </div>
 
         <div class="col-md-4">
-            <div class="card h-100 border-0 shadow-sm rounded-4">
-                <div class="card-body p-4">
-                    <div class="mb-3 fs-3">🗓️</div>
+            <div class="card h-100 border-0 shadow-sm rounded-4 hover-lift translate-y-n2 transition-all">
+                <div class="card-body p-4 text-center">
+                    <div class="mb-3 bg-violet-subtle text-violet d-inline-flex p-3 rounded-circle fs-3 shadow-sm" style="background-color: #f5f3ff; color: #7c3aed;">
+                        <i class="bi bi-clock"></i>
+                    </div>
                     <h5 class="card-title fw-bold">Disponibilités</h5>
-                    <p class="card-text text-muted mb-0">
-                        Visualiser et mettre à jour les créneaux de disponibilité des professeurs.
+                    <p class="card-text text-muted small">
+                        Suivi en temps réel des créneaux libres des enseignants et locaux.
                     </p>
                 </div>
             </div>
         </div>
 
         <div class="col-md-4">
-            <div class="card h-100 border-0 shadow-sm rounded-4">
-                <div class="card-body p-4">
-                    <div class="mb-3 fs-3">🏢</div>
-                    <h5 class="card-title fw-bold">Par département</h5>
-                    <p class="card-text text-muted mb-0">
-                        Organisation adaptée selon les rôles : administrateur, responsable et professeur.
+            <div class="card h-100 border-0 shadow-sm rounded-4 hover-lift translate-y-n2 transition-all">
+                <div class="card-body p-4 text-center">
+                    <div class="mb-3 bg-info-subtle text-info d-inline-flex p-3 rounded-circle fs-3 shadow-sm">
+                        <i class="bi bi-bar-chart-line"></i>
+                    </div>
+                    <h5 class="card-title fw-bold">Statistiques</h5>
+                    <p class="card-text text-muted small">
+                         Analyse des taux d'occupation et détection automatique des conflits.
                     </p>
-                </div>
-            </div>
-        </div>
-    </div>
-
-    <div>
-        <div class="d-flex align-items-center justify-content-between flex-wrap gap-2 mb-3">
-            <h2 class="h4 fw-bold mb-0">Accès selon votre rôle</h2>
-            <span class="text-muted small">Navigation adaptée à chaque utilisateur</span>
-        </div>
-
-        <div class="row g-3">
-            <div class="col-lg-4">
-                <div class="border rounded-4 p-4 h-100 bg-white shadow-sm">
-                    <div class="fw-bold mb-2 fs-5">👑 Administrateur</div>
-                    <div class="text-muted">
-                        Gestion globale des utilisateurs, structures et paramètres.
-                    </div>
-                </div>
-            </div>
-
-            <div class="col-lg-4">
-                <div class="border rounded-4 p-4 h-100 bg-white shadow-sm">
-                    <div class="fw-bold mb-2 fs-5">🧑‍💼 Responsable de département</div>
-                    <div class="text-muted">
-                        Affectation prof/salle, suivi des cours et gestion des disponibilités.
-                    </div>
-                </div>
-            </div>
-
-            <div class="col-lg-4">
-                <div class="border rounded-4 p-4 h-100 bg-white shadow-sm">
-                    <div class="fw-bold mb-2 fs-5">👩‍🏫 Professeur</div>
-                    <div class="text-muted">
-                        Accès à ses informations, ses disponibilités et ses cours.
-                    </div>
                 </div>
             </div>
         </div>
     </div>
 
 </div>
+
+<style>
+    .hover-lift:hover {
+        transform: translateY(-5px);
+        box-shadow: 0 1rem 3rem rgba(0,0,0,0.1) !important;
+    }
+    .shadow-xs {
+        box-shadow: 0 2px 4px rgba(0,0,0,0.02);
+    }
+    .transition-all {
+        transition: all 0.3s ease;
+    }
+</style>
