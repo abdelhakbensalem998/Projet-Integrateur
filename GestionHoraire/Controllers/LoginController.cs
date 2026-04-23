@@ -65,20 +65,28 @@ namespace GestionHoraire.Controllers
                 .Include(u => u.Departement)
                 .FirstOrDefault(u => u.Email != null && u.Email.ToLower() == email.ToLower());
 
+            Console.WriteLine($"[AUTH-DEBUG] Tentative pour Email: {email}");
             if (user == null)
             {
+                Console.WriteLine("[AUTH-DEBUG] Aucun utilisateur trouvé avec cet email.");
                 ViewBag.Error = "Email ou mot de passe incorrect";
                 return View();
             }
 
+            Console.WriteLine($"[AUTH-DEBUG] Utilisateur trouvé: ID={user.Id}, Role={user.Role}, 2FA={user.TwoFactorEnabled}");
+
             if (user.LockoutUntil != null && user.LockoutUntil > DateTime.UtcNow)
             {
+                Console.WriteLine($"[AUTH-DEBUG] Compte verrouillé jusqu'à: {user.LockoutUntil}");
                 ViewBag.Error = "Compte verrouillé temporairement. Réessayez plus tard.";
                 LogSecurity(user.Id, "LOGIN_LOCKED", $"LockoutUntil={user.LockoutUntil:O}");
                 return View();
             }
 
-            if (!VerifierMotDePasseSHA256AvecSalt(motDePasse, user.MotDePasseSalt, user.MotDePasseHash))
+            bool passwordCorrect = VerifierMotDePasseSHA256AvecSalt(motDePasse, user.MotDePasseSalt, user.MotDePasseHash);
+            Console.WriteLine($"[AUTH-DEBUG] Mot de passe correct: {passwordCorrect}");
+
+            if (!passwordCorrect)
             {
                 user.FailedLoginAttempts += 1;
                 if (user.FailedLoginAttempts >= LOCKOUT_MAX_ATTEMPTS)
@@ -484,6 +492,42 @@ namespace GestionHoraire.Controllers
             return RedirectToAction("Index");
         }
 
+        // TODO: SUPPRIMER AVANT PRODUCTION
+        [HttpGet("/Login/DebugSchema")]
+        public async Task<IActionResult> CheckSchemaDebug()
+        {
+            var dbSchema = new List<object>();
+
+            try
+            {
+                var tables = await _context.Database.SqlQueryRaw<string>("SELECT table_name FROM information_schema.tables WHERE table_schema = 'public'").ToListAsync();
+
+                foreach (var table in tables)
+                {
+                    var columns = await _context.Database.SqlQueryRaw<string>(@$"
+                        SELECT column_name || ' (' || data_type || ')'
+                        FROM information_schema.columns 
+                        WHERE table_name = '{table}'
+                    ").ToListAsync();
+
+                    dbSchema.Add(new { Table = table, Columns = columns });
+                }
+
+                return Json(new { Status = "Success", Schema = dbSchema });
+            }
+            catch (Exception ex)
+            {
+                return Json(new { Status = "Error", Message = ex.Message });
+            }
+        }
+
+        [HttpGet("/Login/DebugUsers")]
+        public async Task<IActionResult> ListUsersDebug()
+        {
+            var users = await _context.Utilisateurs.Select(u => new { u.Id, u.Email, u.Nom, u.Role, HasHash = u.MotDePasseHash != null, u.FailedLoginAttempts, u.LockoutUntil }).ToListAsync();
+            return Json(users);
+        }
+
         [HttpGet]
         public IActionResult ChangeTempPassword(string email)
         {
@@ -723,10 +767,28 @@ namespace GestionHoraire.Controllers
             return mdp.Any(char.IsUpper) && mdp.Any(char.IsLower) && mdp.Any(char.IsDigit) && mdp.Any(ch => !char.IsLetterOrDigit(ch));
         }
 
-        private static bool VerifierMotDePasseSHA256AvecSalt(string mdp, Guid salt, byte[] hash)
+        private static bool VerifierMotDePasseSHA256AvecSalt(string mdp, Guid salt, byte[] hashStocke)
         {
-            if (hash == null) return false;
-            return CryptographicOperations.FixedTimeEquals(CalculerSHA256AvecSalt(mdp, salt), hash);
+            if (hashStocke == null) return false;
+
+            // Rétrocompatibilité avec l'export SQL Server -> Postgres (\x...)
+            if (hashStocke.Length == 66)
+            {
+                try
+                {
+                    string hex = System.Text.Encoding.UTF8.GetString(hashStocke);
+                    if (hex.StartsWith(@"\x") || hex.StartsWith("\\x")) 
+                    {
+                        hashStocke = Convert.FromHexString(hex.Substring(2));
+                    }
+                }
+                catch { }
+            }
+
+            byte[] hashCalcule = CalculerSHA256AvecSalt(mdp, salt);
+            if (hashCalcule.Length != hashStocke.Length) return false;
+
+            return CryptographicOperations.FixedTimeEquals(hashCalcule, hashStocke);
         }
 
         private static byte[] CalculerSHA256AvecSalt(string mdp, Guid saltGuid)
@@ -742,8 +804,25 @@ namespace GestionHoraire.Controllers
         private static bool VerifierReponseSecurite(Utilisateur user, string reponse)
         {
             if (user.ReponseSecuriteSalt == null || user.ReponseSecuriteHash == null) return false;
+            
+            var hashStocke = user.ReponseSecuriteHash;
+            if (hashStocke.Length == 66)
+            {
+                try
+                {
+                    string hex = System.Text.Encoding.UTF8.GetString(hashStocke);
+                    if (hex.StartsWith(@"\x") || hex.StartsWith("\\x")) 
+                    {
+                        hashStocke = Convert.FromHexString(hex.Substring(2));
+                    }
+                }
+                catch { }
+            }
+
             byte[] calc = CalculerSHA256AvecSalt((reponse ?? "").Trim().ToLowerInvariant(), user.ReponseSecuriteSalt.Value);
-            return CryptographicOperations.FixedTimeEquals(calc, user.ReponseSecuriteHash);
+            if (calc.Length != hashStocke.Length) return false;
+
+            return CryptographicOperations.FixedTimeEquals(calc, hashStocke);
         }
 
         private bool RequiresTwoFactor(Utilisateur user) => UsesAuthenticator(user) || UsesEmailTwoFactor(user);
